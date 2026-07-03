@@ -3,7 +3,7 @@
 //! Arms (docs/benchmark-harness.md §4):
 //!   A0 — baseline: prompt only, no CDB context
 //!   A1 — +context: in-scope symbol table included in the prompt
-//!   A2 — +mask: decode-time constraint (needs logits integration; not yet)
+//!   A2 — +mask: decode constrained to the scope-mask's GBNF grammar
 //!
 //! Prototype protocol: the model emits produced definitions as JSON
 //! (`Vec<Def>` in claw-core's serde format). Parse failures feed back as

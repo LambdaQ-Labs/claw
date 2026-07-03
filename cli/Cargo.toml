@@ -1,0 +1,16 @@
+[package]
+name = "claw-cli"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+
+[[bin]]
+name = "claw"
+path = "src/main.rs"
+
+[dependencies]
+claw-core = { path = "../crates/claw-core" }
+claw-cdb = { path = "../cdb" }
+claw-constraint = { path = "../constraint-server" }
+serde_json = { workspace = true }
+anyhow = { workspace = true }

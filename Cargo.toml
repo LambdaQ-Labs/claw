@@ -5,6 +5,7 @@ members = [
     "cdb",
     "diagnostics",
     "constraint-server",
+    "cli",
     "bench/grader",
     "bench/runner",
 ]
