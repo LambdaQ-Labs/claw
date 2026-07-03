@@ -275,6 +275,7 @@ mod tests {
             "List Nat",
             "Nat, Nat -> Result Nat MathErr",
             "Account, Nat -> Result Ledger Err",
+            "(a -> a), a -> a",
         ] {
             let t = parse_type(s).unwrap();
             assert_eq!(parse_type(&t.to_string()).unwrap(), t, "roundtrip {s}");

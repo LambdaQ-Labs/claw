@@ -62,7 +62,15 @@ impl fmt::Display for Type {
                 Ok(())
             }
             Type::Fn(params, ret) => {
-                let ps: Vec<String> = params.iter().map(|p| p.to_string()).collect();
+                // Fn-typed params need parens or the arrow re-parses wrong:
+                // `(a -> a), a -> a`, not `a -> a, a -> a`.
+                let ps: Vec<String> = params
+                    .iter()
+                    .map(|p| match p {
+                        Type::Fn(..) => format!("({p})"),
+                        _ => p.to_string(),
+                    })
+                    .collect();
                 write!(f, "{} -> {}", ps.join(", "), ret)
             }
         }

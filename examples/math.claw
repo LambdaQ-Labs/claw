@@ -1,0 +1,10 @@
+module [identity, always_zero, apply_twice]
+
+identity : a -> a
+identity = |x| x
+
+always_zero : U64
+always_zero = 0
+
+apply_twice : (a -> a), a -> a
+apply_twice = |f, x| f(f(x))
