@@ -1,0 +1,20 @@
+# examples/wallet.claw — illustrative (syntax not final; see docs/syntax.md)
+module wallet
+
+Account : { id : UserId, balance : Nat }
+
+# Contract-guarded pure function: catches "compiles but wrong".
+transfer : Account, Account, Nat -> Result Ledger TransferErr
+  requires amt <= from.balance
+  ensures  ok(result) => from'.balance == from.balance - amt
+  ensures  ok(result) => to'.balance   == to.balance   + amt
+  example  transfer (acc 100) (acc 0) 30 == Ok (ledger 70 30)
+transfer = \from, to, amt ->
+    when Nat.checkedSub from.balance amt is
+        Err _   -> Err InsufficientFunds
+        Ok left -> Ok (Ledger.of { from: left, to: to.balance + amt })
+
+# Effectful entry: effect row [Write] + required capability are visible in the type.
+commit : Ledger -> Task {} [Write]
+  with cap: { db: DbWrite }
+commit = \l -> db.write! l

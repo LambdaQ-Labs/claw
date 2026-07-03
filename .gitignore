@@ -1,0 +1,33 @@
+# Rust (compiler, cdb, constraint-server, cli)
+/target
+**/target
+Cargo.lock
+*.rs.bk
+
+# Claw build artifacts
+*.claw.o
+/dist
+
+# code-as-database local stores
+*.cdb
+*.sqlite
+*.sqlite-*
+
+# model / corpus (large, not in git)
+/model/corpus/data
+/model/finetune/checkpoints
+*.gguf
+*.safetensors
+
+# benchmark run outputs (archived elsewhere)
+/bench/results
+
+# editor / OS
+.DS_Store
+.idea/
+.vscode/
+*.swp
+
+# env
+.env
+.env.local
