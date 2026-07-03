@@ -93,6 +93,49 @@ impl Generate for MockGenerator {
     }
 }
 
+/// Shell-command generator: spawns a CLI (e.g. `vikasit run --pure -m
+/// provider/model`, or any agent CLI) with the prompt appended as the
+/// final argument; stdout is the completion. Grammar constraints are
+/// ignored (CLI agents don't take logit masks) — do not use for arm A2.
+pub struct CmdGenerator {
+    argv: Vec<String>,
+    tokens: u64,
+}
+
+impl CmdGenerator {
+    /// From CLAW_MODEL_CMD, e.g.
+    /// `CLAW_MODEL_CMD="vikasit run --pure -m opencode/deepseek-v4-flash-free"`.
+    pub fn from_env() -> anyhow::Result<Self> {
+        let raw = std::env::var("CLAW_MODEL_CMD")
+            .map_err(|_| anyhow::anyhow!("CLAW_MODEL_CMD not set"))?;
+        let argv: Vec<String> = raw.split_whitespace().map(String::from).collect();
+        anyhow::ensure!(!argv.is_empty(), "CLAW_MODEL_CMD is empty");
+        Ok(CmdGenerator { argv, tokens: 0 })
+    }
+}
+
+impl Generate for CmdGenerator {
+    fn generate(&mut self, prompt: &str) -> anyhow::Result<String> {
+        self.tokens += (prompt.len() as u64) / 4;
+        let out = std::process::Command::new(&self.argv[0])
+            .args(&self.argv[1..])
+            .arg(prompt)
+            .output()?;
+        anyhow::ensure!(
+            out.status.success(),
+            "generator command failed: {}",
+            String::from_utf8_lossy(&out.stderr)
+        );
+        let text = String::from_utf8_lossy(&out.stdout).into_owned();
+        self.tokens += (text.len() as u64) / 4;
+        Ok(text)
+    }
+
+    fn tokens_used(&self) -> u64 {
+        self.tokens
+    }
+}
+
 /// OpenAI-compatible chat-completions client.
 /// Config via env: CLAW_MODEL_URL (e.g. http://localhost:8000/v1),
 /// CLAW_MODEL_NAME, CLAW_MODEL_KEY (optional).

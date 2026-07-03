@@ -3,10 +3,17 @@
 //! Usage:
 //!   claw-bench run --arm A0 --tasks bench/tasks [--retries 3] [--json out.json]
 //!
-//! Model endpoint via env: CLAW_MODEL_URL, CLAW_MODEL_NAME, CLAW_MODEL_KEY.
+//! Model via env — either:
+//!   CLAW_MODEL_URL, CLAW_MODEL_NAME, CLAW_MODEL_KEY   (OpenAI-compatible HTTP)
+//!   CLAW_MODEL_CMD                                    (CLI generator, e.g.
+//!       "vikasit run --pure -m opencode/deepseek-v4-flash-free")
+//! CLAW_MODEL_CMD wins if both are set. CLI generators can't take logit
+//! masks — arm A2 refuses to run with one.
 
 use claw_bench_grader::Task;
-use claw_bench_runner::{aggregate, run_task, Arm, HttpGenerator, RunConfig};
+use claw_bench_runner::{
+    aggregate, run_task, Arm, CmdGenerator, Generate, HttpGenerator, RunConfig,
+};
 use std::path::PathBuf;
 
 fn main() {
@@ -97,10 +104,21 @@ fn real_main() -> anyhow::Result<()> {
     let mut results = Vec::new();
     let mut errored: Vec<(String, String)> = Vec::new();
 
+    let use_cmd = std::env::var("CLAW_MODEL_CMD").is_ok();
+    if use_cmd && arm == Arm::A2 {
+        anyhow::bail!(
+            "arm A2 needs a grammar-honoring HTTP endpoint; CLI generators can't take logit masks"
+        );
+    }
+
     for task in &tasks {
         // fresh generator per task: no cross-task context bleed
-        let mut generator = HttpGenerator::from_env()?;
-        match run_task(task, &cfg, &mut generator) {
+        let mut generator: Box<dyn Generate> = if use_cmd {
+            Box::new(CmdGenerator::from_env()?)
+        } else {
+            Box::new(HttpGenerator::from_env()?)
+        };
+        match run_task(task, &cfg, &mut *generator) {
             Ok(r) => {
                 eprintln!("  {} compiled={} pass={}", task.id, r.compiled, r.pass);
                 results.push(r);
