@@ -12,6 +12,8 @@
 //!
 //! Spec: docs/p2-spec.md §2.
 
+pub mod gbnf;
+
 use claw_cdb::{Cdb, Result};
 use claw_core::{Hash, Subst, Type};
 use claw_diagnostics::{Category, Diagnostic, Loc};
@@ -46,6 +48,18 @@ pub enum Mask {
     /// agent receives the attached diagnostic (define the missing symbol,
     /// widen the search, or import).
     EmptyWithDiagnostic(Diagnostic),
+}
+
+impl Mask {
+    /// Project this mask to a llama.cpp GBNF grammar over the Def-JSON
+    /// output protocol. An empty mask still yields a valid grammar
+    /// (params-only); its diagnostic tells the agent why nothing fit.
+    pub fn to_gbnf(&self) -> String {
+        match self {
+            Mask::Symbols(list) => gbnf::def_json_grammar(list),
+            Mask::EmptyWithDiagnostic(_) => gbnf::def_json_grammar(&[]),
+        }
+    }
 }
 
 /// The core function: legal continuations for a typed hole.

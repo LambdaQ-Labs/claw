@@ -12,7 +12,8 @@
 //! arms, retry loop, and reporting stay fixed.
 
 use claw_bench_grader::{grade, GradeResult, Task};
-use claw_core::Def;
+use claw_constraint::{legal_continuations, HoleContext};
+use claw_core::{Def, Type};
 use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
@@ -38,6 +39,10 @@ impl std::str::FromStr for Arm {
 /// `MockGenerator` for deterministic CI; `HttpGenerator` for real models.
 pub trait Generate {
     fn generate(&mut self, prompt: &str) -> anyhow::Result<String>;
+    /// Constrain subsequent generations to a GBNF grammar (llama.cpp
+    /// style). `None` clears. Default: ignore (endpoints without
+    /// grammar support run unconstrained — the report still shows it).
+    fn set_grammar(&mut self, _grammar: Option<String>) {}
     /// Rough token accounting for the report (prototype: chars/4).
     fn tokens_used(&self) -> u64;
 }
@@ -51,6 +56,8 @@ pub struct MockGenerator {
     responses: Vec<String>,
     cursor: usize,
     tokens: u64,
+    /// Last grammar set — lets tests assert A2 actually constrained.
+    pub last_grammar: Option<String>,
 }
 
 impl MockGenerator {
@@ -59,6 +66,7 @@ impl MockGenerator {
             responses,
             cursor: 0,
             tokens: 0,
+            last_grammar: None,
         }
     }
 }
@@ -76,6 +84,10 @@ impl Generate for MockGenerator {
         Ok(r)
     }
 
+    fn set_grammar(&mut self, grammar: Option<String>) {
+        self.last_grammar = grammar;
+    }
+
     fn tokens_used(&self) -> u64 {
         self.tokens
     }
@@ -89,6 +101,7 @@ pub struct HttpGenerator {
     model: String,
     api_key: Option<String>,
     tokens: u64,
+    grammar: Option<String>,
 }
 
 impl HttpGenerator {
@@ -99,6 +112,7 @@ impl HttpGenerator {
             model: std::env::var("CLAW_MODEL_NAME").unwrap_or_else(|_| "default".into()),
             api_key: std::env::var("CLAW_MODEL_KEY").ok(),
             tokens: 0,
+            grammar: None,
         })
     }
 }
@@ -110,11 +124,16 @@ impl Generate for HttpGenerator {
         if let Some(k) = &self.api_key {
             req = req.set("authorization", &format!("Bearer {k}"));
         }
-        let body = serde_json::json!({
+        let mut body = serde_json::json!({
             "model": self.model,
             "messages": [{"role": "user", "content": prompt}],
             "temperature": 0.2,
         });
+        // llama.cpp-server-style grammar constraint; OpenAI-compatible
+        // servers without support ignore unknown fields.
+        if let Some(g) = &self.grammar {
+            body["grammar"] = serde_json::Value::String(g.clone());
+        }
         let resp: serde_json::Value = req.send_json(body)?.into_json()?;
         if let Some(u) = resp.get("usage").and_then(|u| u.get("total_tokens")) {
             self.tokens += u.as_u64().unwrap_or(0);
@@ -123,6 +142,10 @@ impl Generate for HttpGenerator {
             .as_str()
             .map(String::from)
             .ok_or_else(|| anyhow::anyhow!("malformed completion response"))
+    }
+
+    fn set_grammar(&mut self, grammar: Option<String>) {
+        self.grammar = grammar;
     }
 
     fn tokens_used(&self) -> u64 {
@@ -191,10 +214,21 @@ pub fn run_task(
     cfg: &RunConfig,
     generator: &mut dyn Generate,
 ) -> anyhow::Result<GradeResult> {
-    if cfg.arm == Arm::A2 {
-        anyhow::bail!("arm A2 requires decode-time mask integration (P2, pending)");
-    }
     let cdb = task.build_scope_cdb()?;
+
+    // A2: constrain decoding to the mask's GBNF projection. Scope symbols
+    // become an explicit grammar alternation — out-of-scope library calls
+    // are ungeneratable at the token level.
+    if cfg.arm == Arm::A2 {
+        let hole = HoleContext {
+            editing: None,
+            expected: Type::Var("any".into()),
+        };
+        let mask = legal_continuations(&cdb, &hole)?;
+        generator.set_grammar(Some(mask.to_gbnf()));
+    } else {
+        generator.set_grammar(None);
+    }
     let mut feedback: Vec<String> = Vec::new();
     let mut last: Option<GradeResult> = None;
 
@@ -390,14 +424,37 @@ mod tests {
     }
 
     #[test]
-    fn a2_is_explicitly_unimplemented() {
+    fn a2_constrains_decoding_with_scope_grammar() {
         let task = task_with_scope();
         let mut generator = MockGenerator::new(vec![clean_solution()]);
         let cfg = RunConfig {
             arm: Arm::A2,
             max_retries: 0,
         };
-        assert!(run_task(&task, &cfg, &mut generator).is_err());
+        let r = run_task(&task, &cfg, &mut generator).unwrap();
+        assert!(r.pass);
+        let g = generator
+            .last_grammar
+            .as_deref()
+            .expect("A2 must set a grammar");
+        assert!(
+            g.contains("Nat.add"),
+            "scope symbol must be in the grammar alternation"
+        );
+        assert!(g.contains("root ::="));
+    }
+
+    #[test]
+    fn non_a2_arms_clear_the_grammar() {
+        let task = task_with_scope();
+        let mut generator = MockGenerator::new(vec![clean_solution()]);
+        generator.last_grammar = Some("stale".into());
+        let cfg = RunConfig {
+            arm: Arm::A1,
+            max_retries: 0,
+        };
+        run_task(&task, &cfg, &mut generator).unwrap();
+        assert!(generator.last_grammar.is_none());
     }
 
     #[test]
