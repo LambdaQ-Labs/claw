@@ -1,0 +1,109 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Claw Playground — hallucination-proof by construction</title>
+<style>
+  :root { --bg:#0b1020; --panel:#131a2e; --ink:#e8ecf4; --dim:#8b95ad; --accent:#7c9dff; --ok:#59d499; --bad:#ff6b6b; }
+  * { box-sizing:border-box; }
+  body { margin:0; font-family:-apple-system,Segoe UI,Roboto,sans-serif; background:var(--bg); color:var(--ink); }
+  header { padding:28px 24px 8px; }
+  h1 { margin:0; font-size:26px; }
+  .sub { color:var(--dim); margin-top:6px; }
+  main { display:grid; grid-template-columns:1fr 1fr; gap:16px; padding:16px 24px 40px; max-width:1100px; }
+  @media (max-width:820px){ main{ grid-template-columns:1fr; } }
+  .panel { background:var(--panel); border:1px solid #222c48; border-radius:12px; padding:16px; }
+  label { display:block; color:var(--dim); font-size:13px; margin-bottom:6px; }
+  input,select { width:100%; padding:10px; border-radius:8px; border:1px solid #2a3654; background:#0e1424; color:var(--ink); font-size:15px; font-family:ui-monospace,monospace; }
+  code,pre { font-family:ui-monospace,SFMono-Regular,monospace; }
+  pre { background:#0e1424; padding:12px; border-radius:8px; overflow:auto; font-size:13px; line-height:1.5; }
+  .cand { padding:6px 8px; border-bottom:1px solid #1c2540; }
+  .cand b { color:var(--accent); }
+  .note { color:var(--dim); font-size:13px; margin-top:10px; }
+  .tag { display:inline-block; background:#1c2540; border-radius:6px; padding:2px 8px; font-size:12px; color:var(--accent); }
+  .hall { margin-top:8px; }
+  .hall .no { color:var(--bad); } .hall .yes { color:var(--ok); }
+</style>
+</head>
+<body>
+<header>
+  <h1>🐾 Claw Playground</h1>
+  <div class="sub">Type-directed candidates + the decode grammar that makes out-of-scope API calls <b>ungeneratable</b>. Runs entirely in your browser — a faithful JS mirror of the Rust <code>claw-cdb</code> / <code>claw-constraint</code>.</div>
+</header>
+<main>
+  <div class="panel">
+    <label>Target type (the "hole" you're filling)</label>
+    <input id="ty" value="Nat, Nat -> a" spellcheck="false">
+    <div class="note">Type variables (lowercase) match anything. Try <code>Nat -&gt; Bool</code>, <code>Str -&gt; Nat</code>, <code>List a -&gt; Nat</code>.</div>
+    <h3>Candidates <span class="tag">only real, in-scope symbols</span></h3>
+    <div id="cands"></div>
+    <div class="hall" id="hall"></div>
+  </div>
+  <div class="panel">
+    <h3>Generation grammar (GBNF) <span class="tag">hallucination = ungeneratable</span></h3>
+    <div class="note">The model can only emit these symbol names. A call that isn't in scope matches no rule — it literally cannot be typed.</div>
+    <pre id="gbnf"></pre>
+  </div>
+</main>
+<script>
+// A demo stdlib scope (mirror of corpus/src/lib.rs stdlib_cdb()).
+const SCOPE = [
+  ["Nat.add","Nat, Nat -> Nat"],["Nat.sub","Nat, Nat -> Nat"],["Nat.mul","Nat, Nat -> Nat"],
+  ["Nat.max","Nat, Nat -> Nat"],["Nat.min","Nat, Nat -> Nat"],["Nat.inc","Nat -> Nat"],
+  ["Nat.isZero","Nat -> Bool"],["Nat.eq","Nat, Nat -> Bool"],["Nat.toStr","Nat -> Str"],
+  ["Str.concat","Str, Str -> Str"],["Str.len","Str -> Nat"],["Str.upper","Str -> Str"],
+  ["Bool.and","Bool, Bool -> Bool"],["Bool.not","Bool -> Bool"],
+  ["List.len","List a -> Nat"],["List.head","List a -> Maybe a"],["List.reverse","List a -> List a"],
+];
+// Tiny structural type + unification (mirror of claw-core).
+function parseTy(s){
+  s=s.trim();
+  const arrow=splitTop(s,"->");
+  if(arrow){ const params=splitTop(arrow[0],",")||[arrow[0]]; return {fn:[params.map(parseAtom), parseTy(arrow[1])]}; }
+  return parseAtom(s);
+}
+function parseAtom(s){ s=s.trim(); if(s.startsWith("(")&&s.endsWith(")"))return parseTy(s.slice(1,-1));
+  const parts=s.split(/\s+/); const head=parts[0];
+  if(parts.length>1) return {app:[head, parts.slice(1).map(parseAtom)]};
+  return /^[a-z]/.test(head)?{var:head}:{named:head}; }
+function splitTop(s,sep){ let d=0,i=0; const out=[]; let last=0; let found=false;
+  while(i<s.length){ const c=s[i]; if(c==="(")d++; else if(c===")")d--;
+    else if(d===0 && s.startsWith(sep,i)){ if(sep==="->"){return [s.slice(0,i), s.slice(i+2)];} out.push(s.slice(last,i)); last=i+sep.length; i+=sep.length-1; found=true; }
+    i++; }
+  if(sep==="->")return null; out.push(s.slice(last)); return found?out:null; }
+function unify(a,b,s={}){ a=res(a,s); b=res(b,s);
+  if(a.var){ s[a.var]=b; return s;} if(b.var){ s[b.var]=a; return s;}
+  if(a.named&&b.named) return a.named===b.named?s:null;
+  if(a.app&&b.app){ if(a.app[0]!==b.app[0]||a.app[1].length!==b.app[1].length)return null; for(let i=0;i<a.app[1].length;i++){s=unify(a.app[1][i],b.app[1][i],s); if(!s)return null;} return s;}
+  if(a.fn&&b.fn){ if(a.fn[0].length!==b.fn[0].length)return null; for(let i=0;i<a.fn[0].length;i++){s=unify(a.fn[0][i],b.fn[0][i],s); if(!s)return null;} return unify(a.fn[1],b.fn[1],s);}
+  return null; }
+function res(t,s){ return t.var&&s[t.var]?res(s[t.var],s):t; }
+
+function render(){
+  const q=parseTy(document.getElementById("ty").value);
+  const cands=SCOPE.filter(([n,sig])=>unify(q,parseTy(sig)));
+  document.getElementById("cands").innerHTML = cands.length
+    ? cands.map(([n,sig])=>`<div class="cand"><b>${n}</b> : ${sig}</div>`).join("")
+    : `<div class="cand" style="color:var(--dim)">no in-scope symbol has this type</div>`;
+  // hallucination demo
+  document.getElementById("hall").innerHTML =
+    `<div class="no">✗ <code>generate_nonce()</code> — not in scope → <b>ungeneratable</b></div>`+
+    (cands.length?`<div class="yes">✓ ${cands.map(c=>c[0]).join(", ")} — real, emittable</div>`:``);
+  // grammar
+  const alt = cands.length ? cands.map(([n])=>`"\\"${n}\\""`).join(" | ") : "(none)";
+  document.getElementById("gbnf").textContent =
+`root      ::= "[" def "]"
+expr      ::= evar | eapp | elit
+evar      ::= "{" "\\"Var\\"" ":" varname "}"
+scopename ::= ${alt}
+varname   ::= scopename | paramname
+paramname ::= "\\"p0\\"" | "\\"p1\\"" | ...   # fixed pool, no free lowercase
+# a name that is neither a scope symbol nor a pool param
+# matches no alternative -> the model cannot type it.`;
+}
+document.getElementById("ty").addEventListener("input", render);
+render();
+</script>
+</body>
+</html>

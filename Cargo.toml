@@ -11,6 +11,7 @@ members = [
     "corpus",
     "cli",
     "mcp",
+    "lsp",
     "bench/grader",
     "bench/runner",
 ]
