@@ -93,6 +93,154 @@ fn wrapper_example(name: &str, hash: &Hash, params: &[Type], ret: &Type) -> Opti
     })
 }
 
+/// A built-in "standard library" scope: a rich set of typed symbols the
+/// corpus can synthesize programs over, so a useful corpus exists with no
+/// project to ingest. Deterministic.
+pub fn stdlib_cdb() -> Cdb {
+    use claw_core::{parse::parse_type, Expr, Lit};
+    let sigs: &[(&str, &str)] = &[
+        ("Nat.add", "Nat, Nat -> Nat"),
+        ("Nat.sub", "Nat, Nat -> Nat"),
+        ("Nat.mul", "Nat, Nat -> Nat"),
+        ("Nat.max", "Nat, Nat -> Nat"),
+        ("Nat.min", "Nat, Nat -> Nat"),
+        ("Nat.inc", "Nat -> Nat"),
+        ("Nat.dec", "Nat -> Nat"),
+        ("Nat.double", "Nat -> Nat"),
+        ("Nat.isZero", "Nat -> Bool"),
+        ("Nat.eq", "Nat, Nat -> Bool"),
+        ("Nat.lte", "Nat, Nat -> Bool"),
+        ("Nat.toStr", "Nat -> Str"),
+        ("Str.concat", "Str, Str -> Str"),
+        ("Str.len", "Str -> Nat"),
+        ("Str.isEmpty", "Str -> Bool"),
+        ("Str.upper", "Str -> Str"),
+        ("Bool.and", "Bool, Bool -> Bool"),
+        ("Bool.or", "Bool, Bool -> Bool"),
+        ("Bool.not", "Bool -> Bool"),
+        ("List.len", "List a -> Nat"),
+        ("List.isEmpty", "List a -> Bool"),
+        ("List.head", "List a -> Maybe a"),
+        ("List.reverse", "List a -> List a"),
+        ("Maybe.isSome", "Maybe a -> Bool"),
+        ("Result.isOk", "Result a e -> Bool"),
+    ];
+    let mut cdb = Cdb::in_memory().expect("in-memory cdb");
+    for (name, sig) in sigs {
+        let ty = parse_type(sig).expect("valid stdlib sig");
+        let def = Def::new(Expr::Lit(Lit::Str((*name).into())), ty);
+        let h = cdb.put(&def).expect("put");
+        cdb.bind(name, &h).expect("bind");
+    }
+    cdb
+}
+
+/// Compose examples: for unary `g : A -> B` and unary `f : B -> C`, emit
+/// `\p0 -> f (g p0)` : A -> C. Over the stdlib this yields many
+/// type-correct, hallucination-free programs.
+fn compose_examples(cdb: &Cdb) -> claw_cdb::Result<Vec<Example>> {
+    let unary: Vec<(String, Hash, Type, Type)> = cdb
+        .symbols()?
+        .into_iter()
+        .filter_map(|(n, h)| {
+            let d = cdb.get(&h).ok()?;
+            if let Type::Fn(ps, ret) = &d.ty {
+                if ps.len() == 1 {
+                    return Some((n, h, ps[0].clone(), (**ret).clone()));
+                }
+            }
+            None
+        })
+        .collect();
+
+    let mut out = Vec::new();
+    for (gname, gh, ga, gb) in &unary {
+        for (fname, fh, fb, fc) in &unary {
+            // g : ga -> gb ; f : fb -> fc ; composable when gb unifies fb
+            if claw_core::unify(gb, fb).is_none() {
+                continue;
+            }
+            let body = Expr::App {
+                func: Box::new(Expr::Ref(fh.clone())),
+                args: vec![Expr::App {
+                    func: Box::new(Expr::Ref(gh.clone())),
+                    args: vec![Expr::Var("p0".into())],
+                }],
+            };
+            let ty = Type::Fn(vec![ga.clone()], Box::new(fc.clone()));
+            let def = Def::new(
+                Expr::Lam {
+                    params: vec!["p0".into()],
+                    body: Box::new(body),
+                },
+                ty.clone(),
+            );
+            let dname = format!(
+                "{}_then_{}",
+                gname.replace('.', "_").to_lowercase(),
+                fname.replace('.', "_").to_lowercase()
+            );
+            let value = serde_json::json!([{
+                "name": dname,
+                "expr": def.expr, "ty": def.ty,
+                "effects": [], "deprecated": false, "doc": ""
+            }]);
+            out.push(Example {
+                prompt: format!(
+                    "Define `{dname}` : {ty} that applies `{gname}` then `{fname}`. Use only in-scope symbols.",
+                ),
+                completion: serde_json::to_string(&value).unwrap_or_default(),
+                uses: vec![gname.clone(), fname.clone()],
+            });
+        }
+    }
+    Ok(out)
+}
+
+/// Instruction prefixes for prompt augmentation. Same target completion,
+/// varied phrasing — teaches the model the output protocol robustly rather
+/// than memorizing one instruction style. Standard SFT augmentation.
+const PROMPT_PREFIXES: &[&str] = &[
+    "",
+    "In Claw, ",
+    "Write Claw code: ",
+    "Task — ",
+    "Using only the in-scope symbols, ",
+];
+
+/// Multiply examples by re-phrasing each prompt with every prefix.
+pub fn augment(examples: &[Example]) -> Vec<Example> {
+    let mut out = Vec::with_capacity(examples.len() * PROMPT_PREFIXES.len());
+    for ex in examples {
+        for pre in PROMPT_PREFIXES {
+            let prompt = if pre.is_empty() {
+                ex.prompt.clone()
+            } else {
+                // lowercase the first letter after a prefix for readability
+                let mut c = ex.prompt.chars();
+                let first = c.next().map(|f| f.to_ascii_lowercase()).unwrap_or_default();
+                format!("{pre}{first}{}", c.as_str())
+            };
+            out.push(Example {
+                prompt,
+                completion: ex.completion.clone(),
+                uses: ex.uses.clone(),
+            });
+        }
+    }
+    out
+}
+
+/// The full synthetic corpus over the built-in stdlib: (wrappers + compose)
+/// × prompt augmentation. This is what `claw corpus gen --stdlib` emits —
+/// the training seed for the bundled model.
+pub fn generate_stdlib() -> claw_cdb::Result<Vec<Example>> {
+    let cdb = stdlib_cdb();
+    let mut base = generate(&cdb)?;
+    base.extend(compose_examples(&cdb)?);
+    Ok(augment(&base))
+}
+
 /// Serialize examples to JSONL (one JSON object per line) — the standard
 /// supervised-fine-tuning input format.
 pub fn to_jsonl(examples: &[Example]) -> String {
@@ -155,6 +303,26 @@ mod tests {
         let known: std::collections::BTreeSet<String> =
             cdb.symbols().unwrap().into_iter().map(|(n, _)| n).collect();
         for ex in generate(&cdb).unwrap() {
+            for u in &ex.uses {
+                assert!(known.contains(u), "corpus used unknown symbol {u}");
+            }
+        }
+    }
+
+    #[test]
+    fn stdlib_corpus_is_large_and_clean() {
+        let examples = generate_stdlib().unwrap();
+        // (wrappers + compositions) × 5 prompt variants
+        assert!(
+            examples.len() > 250,
+            "expected a sizeable corpus, got {}",
+            examples.len()
+        );
+        // every example references only real stdlib symbols
+        let cdb = stdlib_cdb();
+        let known: std::collections::BTreeSet<String> =
+            cdb.symbols().unwrap().into_iter().map(|(n, _)| n).collect();
+        for ex in &examples {
             for u in &ex.uses {
                 assert!(known.contains(u), "corpus used unknown symbol {u}");
             }

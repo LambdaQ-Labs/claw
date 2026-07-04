@@ -53,9 +53,10 @@ fn real_main() -> anyhow::Result<()> {
         }
         // WS-G: transpile a Def-JSON file (the benchmark protocol) to Rust.
         Some("emit-rust") => emit_rust_cmd(&args[1..]),
-        // WS-H: generate a synthetic SFT corpus (JSONL) from the CDB.
+        // WS-H: generate a synthetic SFT corpus (JSONL). `--stdlib` uses the
+        // built-in stdlib scope; otherwise reads the CDB at --db.
         Some("corpus") if args.get(1).map(String::as_str) == Some("gen") => {
-            corpus_gen_cmd(&db_path)
+            corpus_gen_cmd(&db_path, args.iter().any(|a| a == "--stdlib"))
         }
         _ => {
             eprintln!(
@@ -98,12 +99,16 @@ fn emit_rust_cmd(args: &[String]) -> anyhow::Result<()> {
 
 /// `claw corpus gen` — emit a synthetic supervised-fine-tuning corpus
 /// (JSONL) generated from the CDB's in-scope symbols. The cold-start seed.
-fn corpus_gen_cmd(db_path: &Path) -> anyhow::Result<()> {
-    let cdb = Cdb::open(db_path)?;
-    let examples = claw_corpus::generate(&cdb)?;
+fn corpus_gen_cmd(db_path: &Path, stdlib: bool) -> anyhow::Result<()> {
+    let examples = if stdlib {
+        claw_corpus::generate_stdlib()?
+    } else {
+        let cdb = Cdb::open(db_path)?;
+        claw_corpus::generate(&cdb)?
+    };
     if examples.is_empty() {
         anyhow::bail!(
-            "no function symbols in {} — ingest or bind some first",
+            "no function symbols in {} — ingest or bind some, or use --stdlib",
             db_path.display()
         );
     }
