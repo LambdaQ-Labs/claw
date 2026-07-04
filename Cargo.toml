@@ -7,6 +7,8 @@ members = [
     "constraint-server",
     "contract",
     "effects",
+    "emit-rust",
+    "corpus",
     "cli",
     "bench/grader",
     "bench/runner",

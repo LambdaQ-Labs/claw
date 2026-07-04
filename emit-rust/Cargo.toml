@@ -1,0 +1,8 @@
+[package]
+name = "claw-emit-rust"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+
+[dependencies]
+claw-core = { path = "../crates/claw-core" }
