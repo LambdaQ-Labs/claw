@@ -30,7 +30,25 @@ pub fn def_json_grammar(mask: &[Continuation]) -> String {
     g.push_str(
         "def ::= \"{\" ws \"\\\"expr\\\"\" ws \":\" ws expr ws \",\" ws \"\\\"ty\\\"\" ws \":\" ws type ws \",\" ws \"\\\"effects\\\"\" ws \":\" ws \"[]\" ws \",\" ws \"\\\"deprecated\\\"\" ws \":\" ws \"false\" ws \",\" ws \"\\\"doc\\\"\" ws \":\" ws \"\\\"\\\"\" ws \"}\"\n",
     );
-    g.push_str("expr ::= evar | elit | elam | eapp\n");
+    // Depth-bounded expression rules. `expr` is recursive (App/Lam nest
+    // exprs), so without a bound a weak decoder can nest App forever until
+    // it hits max_tokens. Leveling expr0..exprN, where exprN is a leaf
+    // (no App/Lam), makes the grammar finite-depth and forces termination.
+    const MAX_DEPTH: usize = 6;
+    g.push_str("expr ::= expr0\n");
+    for k in 0..MAX_DEPTH {
+        g.push_str(&format!("expr{k} ::= evar | elit | elam{k} | eapp{k}\n"));
+        g.push_str(&format!(
+            "elam{k} ::= \"{{\" ws \"\\\"Lam\\\"\" ws \":\" ws \"{{\" ws \"\\\"params\\\"\" ws \":\" ws \"[\" ws (paramname (ws \",\" ws paramname)*)? ws \"]\" ws \",\" ws \"\\\"body\\\"\" ws \":\" ws expr{next} ws \"}}\" ws \"}}\"\n",
+            next = k + 1
+        ));
+        g.push_str(&format!(
+            "eapp{k} ::= \"{{\" ws \"\\\"App\\\"\" ws \":\" ws \"{{\" ws \"\\\"func\\\"\" ws \":\" ws expr{next} ws \",\" ws \"\\\"args\\\"\" ws \":\" ws \"[\" ws (expr{next} (ws \",\" ws expr{next})*)? ws \"]\" ws \"}}\" ws \"}}\"\n",
+            next = k + 1
+        ));
+    }
+    // Leaf level: no further nesting.
+    g.push_str(&format!("expr{MAX_DEPTH} ::= evar | elit\n"));
     g.push_str("evar ::= \"{\" ws \"\\\"Var\\\"\" ws \":\" ws varname ws \"}\"\n");
 
     // The load-bearing rule: symbol names are an explicit alternation.
@@ -51,12 +69,6 @@ pub fn def_json_grammar(mask: &[Continuation]) -> String {
     );
     g.push_str("int ::= \"-\"? [0-9]+\n");
     g.push_str("string ::= \"\\\"\" [^\"\\\\]* \"\\\"\"\n");
-    g.push_str(
-        "elam ::= \"{\" ws \"\\\"Lam\\\"\" ws \":\" ws \"{\" ws \"\\\"params\\\"\" ws \":\" ws \"[\" ws (paramname (ws \",\" ws paramname)*)? ws \"]\" ws \",\" ws \"\\\"body\\\"\" ws \":\" ws expr ws \"}\" ws \"}\"\n",
-    );
-    g.push_str(
-        "eapp ::= \"{\" ws \"\\\"App\\\"\" ws \":\" ws \"{\" ws \"\\\"func\\\"\" ws \":\" ws expr ws \",\" ws \"\\\"args\\\"\" ws \":\" ws \"[\" ws (expr (ws \",\" ws expr)*)? ws \"]\" ws \"}\" ws \"}\"\n",
-    );
     g.push_str("type ::= tnamed | tvar | tapp | tfn\n");
     g.push_str("tnamed ::= \"{\" ws \"\\\"Named\\\"\" ws \":\" ws tyname ws \"}\"\n");
     g.push_str("tvar ::= \"{\" ws \"\\\"Var\\\"\" ws \":\" ws paramname ws \"}\"\n");
@@ -109,6 +121,22 @@ mod tests {
     }
 
     #[test]
+    fn expr_recursion_is_depth_bounded() {
+        // The leaf level must not recurse into App/Lam — otherwise a weak
+        // decoder can nest forever until max_tokens (observed with 0.5B).
+        let g = def_json_grammar(&[cont("Nat.add")]);
+        assert!(
+            g.contains("expr6 ::= evar | elit"),
+            "leaf level must be non-recursive"
+        );
+        assert!(
+            !g.contains("expr6 ::= evar | elit | elam"),
+            "leaf must not nest"
+        );
+        assert!(g.contains("expr0 ::= evar | elit | elam0 | eapp0"));
+    }
+
+    #[test]
     fn names_are_escaped() {
         let g = def_json_grammar(&[cont(r#"weird"name"#)]);
         assert!(g.contains(r#"weird\"name"#));
@@ -118,7 +146,14 @@ mod tests {
     fn grammar_has_all_structural_rules() {
         let g = def_json_grammar(&[cont("X.y")]);
         for rule in [
-            "root ::=", "def ::=", "expr ::=", "elam ::=", "eapp ::=", "type ::=", "ws ::=",
+            "root ::=",
+            "def ::=",
+            "expr ::= expr0",
+            "expr0 ::=",
+            "elam0 ::=",
+            "eapp0 ::=",
+            "type ::=",
+            "ws ::=",
         ] {
             assert!(g.contains(rule), "missing rule {rule}");
         }
