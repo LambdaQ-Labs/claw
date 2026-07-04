@@ -202,6 +202,65 @@ fn compose_examples(cdb: &Cdb) -> claw_cdb::Result<Vec<Example>> {
     Ok(out)
 }
 
+/// Literal-constant application: `\p0 -> sym(p0, K)` : Nat -> Nat, over
+/// every binary Nat symbol and a spread of constants. This is the program
+/// *shape* the P4 gate tasks need and the wrapper/compose corpus lacked;
+/// teaching it broadly (many symbols × many K) generalizes rather than
+/// memorizing any one task. Hallucination-free by construction.
+fn literal_examples(cdb: &Cdb) -> claw_cdb::Result<Vec<Example>> {
+    use claw_core::Lit;
+    let binops: Vec<(String, Type)> = cdb
+        .symbols()?
+        .into_iter()
+        .filter_map(|(n, h)| {
+            let d = cdb.get(&h).ok()?;
+            if let Type::Fn(ps, ret) = &d.ty {
+                if ps.len() == 2
+                    && matches!(&ps[0], Type::Named(x) if x=="Nat")
+                    && matches!(&**ret, Type::Named(x) if x=="Nat")
+                {
+                    return Some((n, d.ty.clone()));
+                }
+            }
+            None
+        })
+        .collect();
+
+    let mut out = Vec::new();
+    for (name, _ty) in &binops {
+        for k in [1i64, 2, 3, 4, 5, 6, 7, 8, 9, 10, 20, 100] {
+            let body = Expr::App {
+                func: Box::new(Expr::Var(name.clone())),
+                args: vec![Expr::Var("p0".into()), Expr::Lit(Lit::Int(k))],
+            };
+            let ty = Type::Fn(
+                vec![Type::Named("Nat".into())],
+                Box::new(Type::Named("Nat".into())),
+            );
+            let def = Def::new(
+                Expr::Lam {
+                    params: vec!["p0".into()],
+                    body: Box::new(body),
+                },
+                ty.clone(),
+            );
+            let dname = format!("{}_{k}", name.replace('.', "_").to_lowercase());
+            let value = serde_json::json!([{
+                "name": dname, "expr": def.expr, "ty": def.ty,
+                "effects": [], "deprecated": false, "doc": ""
+            }]);
+            out.push(Example {
+                prompt: format!(
+                    "Define `{dname}` : Nat -> Nat (parameter p0) that applies `{name}` to p0 and the constant {k}.",
+                ),
+                completion: serde_json::to_string(&value).unwrap_or_default(),
+                uses: vec![name.clone()],
+            });
+        }
+    }
+    Ok(out)
+}
+
 /// Instruction prefixes for prompt augmentation. Same target completion,
 /// varied phrasing — teaches the model the output protocol robustly rather
 /// than memorizing one instruction style. Standard SFT augmentation.
@@ -243,6 +302,7 @@ pub fn generate_stdlib() -> claw_cdb::Result<Vec<Example>> {
     let cdb = stdlib_cdb();
     let mut base = generate(&cdb)?;
     base.extend(compose_examples(&cdb)?);
+    base.extend(literal_examples(&cdb)?);
     Ok(augment(&base))
 }
 
