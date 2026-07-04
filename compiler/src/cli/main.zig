@@ -2284,7 +2284,7 @@ fn rocRunSharedMemoryShim(ctx: *CliCtx, args: cli_args.RunArgs, arg0: []const u8
 
     // Lower before linking so the host shim uses checked entrypoint metadata
     // rather than rediscovering roots from platform source syntax after checking.
-    var reporter = makeReporter(ctx, "roc", args.timings);
+    var reporter = makeReporter(ctx, "claw", args.timings);
     defer reporter.deinit();
     reporter.start();
 
@@ -2955,7 +2955,7 @@ fn rocRunDefaultApp(ctx: *CliCtx, args: cli_args.RunArgs, original_source: []con
         .roc_ctx = ctx.coreCtx(),
     };
     var cache_manager = CacheManager.init(ctx.gpa, cache_config, ctx.coreCtx());
-    var reporter = makeReporter(ctx, "roc", args.timings);
+    var reporter = makeReporter(ctx, "claw", args.timings);
     defer reporter.deinit();
     reporter.start();
     const shm_result = try buildLirImageWithCoordinator(ctx, app_path, original_source_dir, args.max_threads, inlineExpectModeForOpt(args.opt), resolutionConfigFromLimits(args.resolve_limits), &cache_manager, &reporter, true);
@@ -3065,7 +3065,7 @@ fn rocRunDefaultAppSharedMemoryShim(ctx: *CliCtx, args: cli_args.RunArgs, origin
     try std.Io.Dir.cwd().writeFile(ctx.io.std_io, .{ .sub_path = echo_module_path, .data = echo_platform.echo_module_source });
 
     const original_source_dir = std.fs.path.dirname(args.path) orelse ".";
-    var reporter = makeReporter(ctx, "roc", args.timings);
+    var reporter = makeReporter(ctx, "claw", args.timings);
     defer reporter.deinit();
     reporter.start();
     var lowered_result = try lowerLirWithCoordinator(
@@ -5946,21 +5946,21 @@ fn getRocCacheDir(allocator: std.mem.Allocator) (Allocator.Error || error{NoCach
     // Check XDG_CACHE_HOME first (Linux/macOS)
     if (try getEnvVar(allocator, "XDG_CACHE_HOME")) |xdg_cache| {
         defer allocator.free(xdg_cache);
-        return std.fs.path.join(allocator, &.{ xdg_cache, "roc", "packages" });
+        return std.fs.path.join(allocator, &.{ xdg_cache, "claw", "packages" });
     }
 
     // Fall back to %LOCALAPPDATA%\roc\packages (Windows)
     if (comptime builtin.os.tag == .windows) {
         if (try getEnvVar(allocator, "LOCALAPPDATA")) |local_app_data| {
             defer allocator.free(local_app_data);
-            return std.fs.path.join(allocator, &.{ local_app_data, "roc", "packages" });
+            return std.fs.path.join(allocator, &.{ local_app_data, "claw", "packages" });
         }
     }
 
     // Fall back to ~/.cache/roc/packages (Unix)
     if (try getEnvVar(allocator, "HOME")) |home| {
         defer allocator.free(home);
-        return std.fs.path.join(allocator, &.{ home, ".cache", "roc", "packages" });
+        return std.fs.path.join(allocator, &.{ home, ".cache", "claw", "packages" });
     }
 
     return error.NoCacheDir;

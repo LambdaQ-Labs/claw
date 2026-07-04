@@ -246,7 +246,7 @@ pub fn getTempDir(roc_ctx: CoreCtx, allocator: Allocator) Allocator.Error![]u8 {
     };
     defer allocator.free(temp_base);
 
-    return std.fs.path.join(allocator, &[_][]const u8{ temp_base, "roc" });
+    return std.fs.path.join(allocator, &[_][]const u8{ temp_base, "claw" });
 }
 
 /// Get the version-specific temporary directory for runtime executables.

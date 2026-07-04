@@ -116,10 +116,10 @@ const resolve_limit_help =
 
 /// Arguments for the default `roc` command
 pub const RunArgs = struct {
-    path: []const u8, // the path of the roc file to be executed
+    path: []const u8, // the path of the claw file to be executed
     opt: OptLevel = .dev, // the optimization level (dev, interpreter, size, speed)
     target: ?[]const u8 = null, // the target to compile for (e.g., x64musl, x64glibc)
-    app_args: []const []const u8 = &[_][]const u8{}, // any arguments to be passed to roc application being run
+    app_args: []const []const u8 = &[_][]const u8{}, // any arguments to be passed to claw application being run
     no_cache: bool = false, // bypass the executable cache
     allow_errors: bool = false, // allow execution even if there are type errors
     watch: bool = false, // hot reload when source inputs change
@@ -128,10 +128,10 @@ pub const RunArgs = struct {
     resolve_limits: ResolveLimitArgs = .{}, // package download size limits
 };
 
-/// Arguments for `roc check`
+/// Arguments for `claw check`
 pub const CheckArgs = struct {
-    path: []const u8, // the path of the roc file to be checked
-    main: ?[]const u8, // the path to a roc file with an app header to be used to resolved dependencies
+    path: []const u8, // the path of the claw file to be checked
+    main: ?[]const u8, // the path to a claw file with an app header to be used to resolved dependencies
     time: bool = false, // whether to print timing information
     timings: bool = false, // always show the per-phase timing breakdown
     no_cache: bool = false, // disable cache
@@ -142,7 +142,7 @@ pub const CheckArgs = struct {
     resolve_limits: ResolveLimitArgs = .{}, // package download size limits
 };
 
-/// Arguments for `roc defs` — emit top-level definitions + inferred types.
+/// Arguments for `claw defs` — emit top-level definitions + inferred types.
 pub const DefsArgs = struct {
     path: []const u8,
     main: ?[]const u8 = null,
@@ -150,9 +150,9 @@ pub const DefsArgs = struct {
     resolve_limits: ResolveLimitArgs = .{},
 };
 
-/// Arguments for `roc build`
+/// Arguments for `claw build`
 pub const BuildArgs = struct {
-    path: []const u8, // the path to the roc file to be built
+    path: []const u8, // the path to the claw file to be built
     opt: OptLevel, // the optimization level (dev, interpreter, size, speed)
     target: ?[]const u8 = null, // the target to compile for (e.g., x64musl, x64glibc)
     output: ?[]const u8 = null, // the path where the output binary should be created
@@ -179,11 +179,11 @@ pub const BuildArgs = struct {
     synthetic_root_header_len: usize = 0, // internal: byte length of the header prepended to synthetic_root_original_source
 };
 
-/// Arguments for `roc test`
+/// Arguments for `claw test`
 pub const TestArgs = struct {
     path: []const u8, // the path to the file to be tested
     opt: OptLevel, // the optimization level (dev, interpreter, size, speed)
-    main: ?[]const u8, // the path to a roc file with an app header to be used to resolve dependencies
+    main: ?[]const u8, // the path to a claw file with an app header to be used to resolve dependencies
     verbose: bool = false, // enable verbose output showing individual test results
     no_cache: bool = false, // disable compilation caching, force re-run all tests
     watch: bool = false, // rerun tests when source inputs change
@@ -192,29 +192,29 @@ pub const TestArgs = struct {
     resolve_limits: ResolveLimitArgs = .{}, // package download size limits
 };
 
-/// Arguments for `roc format`
+/// Arguments for `claw format`
 pub const FormatArgs = struct {
     paths: []const []const u8, // the paths of files to be formatted
     stdin: bool = false, // if the input should be read in from stdin and output to stdout
     check: bool = false, // if the command should only check formatting rather than applying it
 };
 
-/// Arguments for `roc bundle`
+/// Arguments for `claw bundle`
 pub const BundleArgs = struct {
-    paths: []const []const u8, // the paths of roc files to bundle
+    paths: []const []const u8, // the paths of claw files to bundle
     output_dir: ?[]const u8 = null, // the directory to output the bundle to
     compression_level: i32 = 3, // zstd compression level (1-22, default 3)
 };
 
-/// Arguments for `roc unbundle`
+/// Arguments for `claw unbundle`
 pub const UnbundleArgs = struct {
     paths: []const []const u8, // the paths of .tar.zst files to unbundle
 };
 
-/// Arguments for `roc docs`
+/// Arguments for `claw docs`
 pub const DocsArgs = struct {
-    path: []const u8, // the path of the roc file to generate docs for
-    main: ?[]const u8 = null, // the path to a roc file with an app header to be used to resolved dependencies
+    path: []const u8, // the path of the claw file to generate docs for
+    main: ?[]const u8 = null, // the path to a claw file with an app header to be used to resolved dependencies
     output: []const u8 = "generated-docs", // the output directory for generated documentation
     time: bool = false, // whether to print timing information
     no_cache: bool = false, // disable cache
@@ -224,7 +224,7 @@ pub const DocsArgs = struct {
     resolve_limits: ResolveLimitArgs = .{}, // package download size limits
 };
 
-/// Arguments for `roc experimental-lsp`
+/// Arguments for `claw experimental-lsp`
 pub const ExperimentalLspArgs = struct {
     debug_io: bool = false, // log the LSP messages to a temporary log file
     debug_build: bool = false,
@@ -232,17 +232,17 @@ pub const ExperimentalLspArgs = struct {
     debug_server: bool = false,
 };
 
-/// Arguments for `roc repl`
+/// Arguments for `claw repl`
 pub const ReplArgs = struct {
     opt: OptLevel = .dev,
     no_color: bool = false,
 };
 
-/// Arguments for `roc glue`
+/// Arguments for `claw glue`
 pub const GlueArgs = struct {
-    glue_spec: []const u8, // path to the glue spec .roc file (REQUIRED)
+    glue_spec: []const u8, // path to the glue spec .claw file (REQUIRED)
     output_dir: []const u8, // path to the output directory for generated glue files (REQUIRED)
-    platform_path: []const u8, // path to the platform .roc file (default: main.roc)
+    platform_path: []const u8, // path to the platform .claw file (default: main.roc)
     opt: OptLevel = .dev,
 };
 
@@ -251,7 +251,7 @@ pub fn parse(alloc: mem.Allocator, std_io: std.Io, args: []const []const u8) Par
     if (args.len == 0) return try parseRun(alloc, args);
 
     // "run" is not a valid subcommand - give a helpful error
-    // The correct usage is: roc path/to/app.roc (without "run")
+    // The correct usage is: claw path/to/app.claw (without "run")
     if (mem.eql(u8, args[0], "run")) {
         return CliArgs{ .help = run_not_a_command_help };
     }
@@ -274,19 +274,19 @@ pub fn parse(alloc: mem.Allocator, std_io: std.Io, args: []const []const u8) Par
 }
 
 const main_help =
-    \\Run the given .roc file
+    \\Run the given .claw file
     \\You can use one of the COMMANDS below to do something else!
     \\
-    \\Usage: roc [OPTIONS] [ROC_FILE] [ARGS_FOR_APP]...
-    \\       roc <COMMAND>
+    \\Usage: claw [OPTIONS] [CLAW_FILE] [ARGS_FOR_APP]...
+    \\       claw <COMMAND>
     \\
     \\Commands:
-    \\  build            Build a binary from the given .roc file, but don't run it
-    \\  bundle           Bundle .roc files into a compressed archive
+    \\  build            Build a binary from the given .claw file, but don't run it
+    \\  bundle           Bundle .claw files into a compressed archive
     \\  unbundle         Extract files from compressed .tar.zst archives
     \\  test             Run all top-level `expect`s in a main module and any modules it imports
     \\  repl             Launch the interactive Read Eval Print Loop (REPL)
-    \\  fmt              Format a .roc file or the .roc files contained in a directory using standard Roc formatting
+    \\  fmt              Format a .claw file or the .claw files contained in a directory using standard Roc formatting
     \\  glue             Generate native glue code from a Roc platform using a language-specific glue spec
     \\  version          Print the Roc compiler's version
     \\  check            Check the code for problems, but don't build or run it
@@ -296,9 +296,9 @@ const main_help =
     \\  licenses         Prints license info for Roc as well as attributions to other projects used by Roc
     \\
     \\Arguments:
-    \\  [ROC_FILE]         The .roc file of an app to run [default: main.roc]
+    \\  [CLAW_FILE]         The .claw file of an app to run [default: main.roc]
     \\  [ARGS_FOR_APP]...  Arguments to pass into the app being run
-    \\                     e.g. `roc app.roc -- arg1 arg2`
+    \\                     e.g. `claw app.claw -- arg1 arg2`
     \\Options:
     \\      --opt=<opt>                    Execution mode: dev (default, fast compilation), interpreter, size (LLVM) or speed (LLVM)
     \\      --target=<target>              Target to compile for (e.g., x64musl, x64glibc, arm64musl). Defaults to native target with musl for static linking
@@ -312,13 +312,13 @@ const run_not_a_command_help =
     \\Error: 'run' is not a valid subcommand.
     \\
     \\To run a Roc application, use:
-    \\    roc path/to/app.roc
+    \\    claw path/to/app.roc
     \\
     \\For example:
-    \\    roc main.roc           Run main.roc in the current directory
-    \\    roc examples/hello.roc Run hello.roc from the examples folder
+    \\    claw main.claw           Run main.claw in the current directory
+    \\    claw examples/hello.claw Run hello.claw from the examples folder
     \\
-    \\Use 'roc help' to see all available commands.
+    \\Use 'claw help' to see all available commands.
     \\
 ;
 
@@ -332,7 +332,7 @@ fn parseDefs(args: []const []const u8) CliArgs {
             return CliArgs{ .help =
             \\Emit top-level definitions and their inferred types.
             \\
-            \\Usage: roc defs [--json] [--main=<main>] [ROC_FILE]
+            \\Usage: claw defs [--json] [--main=<main>] [CLAW_FILE]
             \\
             \\Options:
             \\      --json         Emit a JSON array of {name, type, effectful}
@@ -383,13 +383,13 @@ fn parseCheck(args: []const []const u8) CliArgs {
             return CliArgs{ .help =
             \\Check the code for problems, but don't build or run it
             \\
-            \\Usage: roc check [OPTIONS] [ROC_FILE]
+            \\Usage: claw check [OPTIONS] [CLAW_FILE]
             \\
             \\Arguments:
-            \\  [ROC_FILE]  The .roc file to check [default: main.roc]
+            \\  [CLAW_FILE]  The .claw file to check [default: main.roc]
             \\
             \\Options:
-            \\      --main=<main>  The .roc file of the main app/package module to resolve dependencies from
+            \\      --main=<main>  The .claw file of the main app/package module to resolve dependencies from
             \\      --time         Print timing information for each compilation phase. Will not print anything if everything is cached.
             \\      --timings      Show how long each compilation phase took (shown automatically when checking is slow)
             \\      --no-cache     Disable caching
@@ -474,12 +474,12 @@ fn parseBuild(args: []const []const u8) CliArgs {
     for (args) |arg| {
         if (isHelpFlag(arg)) {
             return CliArgs{ .help =
-            \\Build a binary from the given .roc file, but don't run it
+            \\Build a binary from the given .claw file, but don't run it
             \\
-            \\Usage: roc build [OPTIONS] [ROC_FILE]
+            \\Usage: claw build [OPTIONS] [CLAW_FILE]
             \\
             \\Arguments:
-            \\  [ROC_FILE] The .roc file to build [default: main.roc]
+            \\  [CLAW_FILE] The .claw file to build [default: main.roc]
             \\
             \\Options:
             \\      --output=<output>              The full path to the output binary, including filename. To specify directory only, specify a path that ends in a directory separator (e.g. a slash)
@@ -597,12 +597,12 @@ fn parseBundle(alloc: mem.Allocator, args: []const []const u8) std.mem.Allocator
         if (isHelpFlag(arg)) {
             paths.deinit();
             return CliArgs{ .help =
-            \\Bundle .roc files into a compressed archive
+            \\Bundle .claw files into a compressed archive
             \\
-            \\Usage: roc bundle [OPTIONS] [ROC_FILES]...
+            \\Usage: claw bundle [OPTIONS] [CLAW_FILES]...
             \\
             \\Arguments:
-            \\  [ROC_FILES]...  The .roc files to bundle [default: main.roc]
+            \\  [CLAW_FILES]...  The .claw files to bundle [default: main.roc]
             \\
             \\Options:
             \\      --output-dir <PATH>  Directory to output the bundle to [default: current directory]
@@ -639,7 +639,7 @@ fn parseBundle(alloc: mem.Allocator, args: []const []const u8) std.mem.Allocator
         }
     }
 
-    // Default to main.roc if no files specified
+    // Default to main.claw if no files specified
     if (paths.items.len == 0) {
         try paths.append("main.roc");
     }
@@ -660,7 +660,7 @@ fn parseUnbundle(alloc: mem.Allocator, std_io: std.Io, args: []const []const u8)
             return CliArgs{ .help =
             \\Extract files from compressed .tar.zst archives
             \\
-            \\Usage: roc unbundle [OPTIONS] [ARCHIVE_FILES]...
+            \\Usage: claw unbundle [OPTIONS] [ARCHIVE_FILES]...
             \\
             \\Arguments:
             \\  [ARCHIVE_FILES]...  The .tar.zst files to unbundle
@@ -695,7 +695,7 @@ fn parseUnbundle(alloc: mem.Allocator, std_io: std.Io, args: []const []const u8)
             return CliArgs{ .help =
             \\Extract files from compressed .tar.zst archives
             \\
-            \\Usage: roc unbundle [OPTIONS] [ARCHIVE_FILES]...
+            \\Usage: claw unbundle [OPTIONS] [ARCHIVE_FILES]...
             \\
             \\Arguments:
             \\  [ARCHIVE_FILES]...  The .tar.zst files to unbundle
@@ -724,9 +724,9 @@ fn parseFormat(alloc: mem.Allocator, args: []const []const u8) std.mem.Allocator
             // We need to free the paths here because we aren't returning the .format variant
             paths.deinit();
             return CliArgs{ .help =
-            \\Format a .roc file or the .roc files contained in a directory using standard Roc formatting
+            \\Format a .claw file or the .claw files contained in a directory using standard Roc formatting
             \\
-            \\Usage: roc fmt [OPTIONS] [DIRECTORY_OR_FILES]
+            \\Usage: claw fmt [OPTIONS] [DIRECTORY_OR_FILES]
             \\
             \\Arguments:
             \\  [DIRECTORY_OR_FILES]
@@ -737,7 +737,7 @@ fn parseFormat(alloc: mem.Allocator, args: []const []const u8) std.mem.Allocator
             \\      --stdin  Format code from stdin; output to stdout
             \\  -h, --help   Print help
             \\
-            \\If DIRECTORY_OR_FILES is omitted, the .roc files in the current working directory are formatted.
+            \\If DIRECTORY_OR_FILES is omitted, the .claw files in the current working directory are formatted.
             \\
             };
         } else if (mem.eql(u8, arg, "--stdin")) {
@@ -769,14 +769,14 @@ fn parseTest(args: []const []const u8) CliArgs {
             return CliArgs{ .help =
             \\Run all top-level `expect`s in a main module and any modules it imports
             \\
-            \\Usage: roc test [OPTIONS] [ROC_FILE]
+            \\Usage: claw test [OPTIONS] [CLAW_FILE]
             \\
             \\Arguments:
-            \\  [ROC_FILE] The .roc file to test [default: main.roc]
+            \\  [CLAW_FILE] The .claw file to test [default: main.roc]
             \\
             \\Options:
             \\      --opt=<opt>                     Execution mode: dev (default, fast compilation), interpreter, size (LLVM) or speed (LLVM)
-            \\      --main <main>                   The .roc file of the main app/package module to resolve dependencies from
+            \\      --main <main>                   The .claw file of the main app/package module to resolve dependencies from
             \\      --verbose                       Enable verbose output showing individual test results
             \\      --no-cache                      Disable compilation caching, force re-run all tests
             \\      --watch                         Re-run when source inputs change
@@ -853,7 +853,7 @@ fn parseRepl(args: []const []const u8) CliArgs {
             return CliArgs{ .help =
             \\Launch the interactive Read Eval Print Loop (REPL)
             \\
-            \\Usage: roc repl [OPTIONS]
+            \\Usage: claw repl [OPTIONS]
             \\
             \\Options:
             \\      --opt=<opt>  Execution mode: dev (default, fast compilation), interpreter, size (LLVM) or speed (LLVM)
@@ -891,12 +891,12 @@ fn parseGlue(args: []const []const u8) CliArgs {
             return CliArgs{ .help =
             \\Generate glue code from a platform using a glue spec
             \\
-            \\Usage: roc glue [OPTIONS] <GLUE_SPEC> <GLUE_DIR> [ROC_FILE]
+            \\Usage: claw glue [OPTIONS] <GLUE_SPEC> <GLUE_DIR> [CLAW_FILE]
             \\
             \\Arguments:
-            \\  <GLUE_SPEC>  The glue spec .roc file that defines how to generate glue code
+            \\  <GLUE_SPEC>  The glue spec .claw file that defines how to generate glue code
             \\  <GLUE_DIR>   The output directory for generated glue files
-            \\  [ROC_FILE]   The platform .roc file to analyze [default: main.roc]
+            \\  [CLAW_FILE]   The platform .claw file to analyze [default: main.roc]
             \\
             \\Options:
             \\  --opt=<level>  Run the glue spec with dev or interpreter [default: dev]
@@ -936,12 +936,12 @@ fn parseGlue(args: []const []const u8) CliArgs {
         \\
         \\Generate glue code from a platform using a glue spec
         \\
-        \\Usage: roc glue [OPTIONS] <GLUE_SPEC> <GLUE_DIR> [ROC_FILE]
+        \\Usage: claw glue [OPTIONS] <GLUE_SPEC> <GLUE_DIR> [CLAW_FILE]
         \\
         \\Arguments:
-        \\  <GLUE_SPEC>  The glue spec .roc file that defines how to generate glue code
+        \\  <GLUE_SPEC>  The glue spec .claw file that defines how to generate glue code
         \\  <GLUE_DIR>   The output directory for generated glue files
-        \\  [ROC_FILE]   The platform .roc file to analyze [default: main.roc]
+        \\  [CLAW_FILE]   The platform .claw file to analyze [default: main.roc]
         \\
         \\Options:
         \\  --opt=<level>  Run the glue spec with dev or interpreter [default: dev]
@@ -957,12 +957,12 @@ fn parseGlue(args: []const []const u8) CliArgs {
         \\
         \\Generate glue code from a platform using a glue spec
         \\
-        \\Usage: roc glue [OPTIONS] <GLUE_SPEC> <GLUE_DIR> [ROC_FILE]
+        \\Usage: claw glue [OPTIONS] <GLUE_SPEC> <GLUE_DIR> [CLAW_FILE]
         \\
         \\Arguments:
-        \\  <GLUE_SPEC>  The glue spec .roc file that defines how to generate glue code
+        \\  <GLUE_SPEC>  The glue spec .claw file that defines how to generate glue code
         \\  <GLUE_DIR>   The output directory for generated glue files
-        \\  [ROC_FILE]   The platform .roc file to analyze [default: main.roc]
+        \\  [CLAW_FILE]   The platform .claw file to analyze [default: main.roc]
         \\
         \\Options:
         \\  --opt=<level>  Run the glue spec with dev or interpreter [default: dev]
@@ -985,7 +985,7 @@ fn parseVersion(args: []const []const u8) CliArgs {
             return CliArgs{ .help =
             \\Print the Roc compiler’s version
             \\
-            \\Usage: roc version
+            \\Usage: claw version
             \\
             \\Options:
             \\  -h, --help  Print help
@@ -1004,7 +1004,7 @@ fn parseLicenses(args: []const []const u8) CliArgs {
             return CliArgs{ .help =
             \\Prints license info for Roc as well as attributions to other projects used by Roc
             \\
-            \\Usage: roc licenses
+            \\Usage: claw licenses
             \\
             \\Options:
             \\  -h, --help  Print help
@@ -1033,13 +1033,13 @@ fn parseDocs(args: []const []const u8) CliArgs {
             return CliArgs{ .help =
             \\Generate documentation for a Roc package
             \\
-            \\Usage: roc docs [OPTIONS] [ROC_FILE]
+            \\Usage: claw docs [OPTIONS] [CLAW_FILE]
             \\
             \\Arguments:
-            \\  [ROC_FILE]  The .roc file to generate docs for [default: main.roc]
+            \\  [CLAW_FILE]  The .claw file to generate docs for [default: main.roc]
             \\
             \\Options:
-            \\      --main=<main>    The .roc file of the main app/package module to resolve dependencies from
+            \\      --main=<main>    The .claw file of the main app/package module to resolve dependencies from
             \\      --output=<dir>   Output directory for generated documentation [default: generated-docs]
             \\      --serve          Start an HTTP server to view the documentation
             \\      --with-lang-ref  Include the language reference articles from docs/langref
@@ -1098,7 +1098,7 @@ fn parseExperimentalLsp(args: []const []const u8) CliArgs {
             return CliArgs{ .help =
             \\Start the experimental Roc language server (LSP)
             \\
-            \\Usage: roc experimental-lsp [OPTIONS]
+            \\Usage: claw experimental-lsp [OPTIONS]
             \\
             \\Options:
             \\      --stdio            Communicate over stdio (the default and only
@@ -1245,7 +1245,7 @@ fn getFlagValue(arg: []const u8) ?[]const u8 {
     return iter.next();
 }
 
-test "default roc command" {
+test "default claw command" {
     const gpa = testing.allocator;
     {
         const result = try parse(gpa, testing.io, &[_][]const u8{});
@@ -1348,7 +1348,7 @@ test "default roc command" {
         try testing.expectEqual(@as(usize, 1), result.run.app_args.len);
         try testing.expectEqualStrings("onlyarg", result.run.app_args[0]);
     }
-    // Test flags after -- are treated as app args, not roc flags
+    // Test flags after -- are treated as app args, not claw flags
     {
         const result = try parse(gpa, testing.io, &[_][]const u8{ "foo.roc", "--", "--help", "-v", "--version" });
         defer result.deinit(gpa);
@@ -1358,7 +1358,7 @@ test "default roc command" {
         try testing.expectEqualStrings("-v", result.run.app_args[1]);
         try testing.expectEqualStrings("--version", result.run.app_args[2]);
     }
-    // Test -- with flags before it still parses roc flags
+    // Test -- with flags before it still parses claw flags
     {
         const result = try parse(gpa, testing.io, &[_][]const u8{ "--opt=speed", "foo.roc", "--", "arg1" });
         defer result.deinit(gpa);
@@ -1376,7 +1376,7 @@ test "default roc command" {
     }
 }
 
-test "roc build" {
+test "claw build" {
     const gpa = testing.allocator;
     {
         const result = try parse(gpa, testing.io, &[_][]const u8{"build"});
@@ -1493,7 +1493,7 @@ test "roc build" {
     }
 }
 
-test "roc fmt" {
+test "claw fmt" {
     const gpa = testing.allocator;
     {
         const result = try parse(gpa, testing.io, &[_][]const u8{"fmt"});
@@ -1551,7 +1551,7 @@ test "roc fmt" {
     }
 }
 
-test "roc test" {
+test "claw test" {
     const gpa = testing.allocator;
     {
         const result = try parse(gpa, testing.io, &[_][]const u8{"test"});
@@ -1614,7 +1614,7 @@ test "roc test" {
     }
 }
 
-test "roc check" {
+test "claw check" {
     const gpa = testing.allocator;
     {
         const result = try parse(gpa, testing.io, &[_][]const u8{"check"});
@@ -1735,7 +1735,7 @@ test "roc check" {
     }
 }
 
-test "roc repl" {
+test "claw repl" {
     const gpa = testing.allocator;
     {
         const result = try parse(gpa, testing.io, &[_][]const u8{"repl"});
@@ -1765,7 +1765,7 @@ test "roc repl" {
     }
 }
 
-test "roc glue" {
+test "claw glue" {
     const gpa = testing.allocator;
     {
         const result = try parse(gpa, testing.io, &[_][]const u8{ "glue", "Glue.roc", "glue-out" });
@@ -1801,7 +1801,7 @@ test "roc glue" {
     }
 }
 
-test "roc experimental-lsp" {
+test "claw experimental-lsp" {
     const gpa = testing.allocator;
     {
         const result = try parse(gpa, testing.io, &[_][]const u8{"experimental-lsp"});
@@ -1835,7 +1835,7 @@ test "roc experimental-lsp" {
     }
 }
 
-test "roc version" {
+test "claw version" {
     const gpa = testing.allocator;
     {
         const result = try parse(gpa, testing.io, &[_][]const u8{"version"});
@@ -1859,7 +1859,7 @@ test "roc version" {
     }
 }
 
-test "roc docs" {
+test "claw docs" {
     const gpa = testing.allocator;
     {
         const result = try parse(gpa, testing.io, &[_][]const u8{"docs"});
@@ -1944,7 +1944,7 @@ test "roc docs" {
     }
 }
 
-test "roc help" {
+test "claw help" {
     const gpa = testing.allocator;
     {
         const result = try parse(gpa, testing.io, &[_][]const u8{"help"});
@@ -1958,7 +1958,7 @@ test "roc help" {
     }
 }
 
-test "roc licenses" {
+test "claw licenses" {
     const gpa = testing.allocator;
     {
         const result = try parse(gpa, testing.io, &[_][]const u8{"licenses"});
