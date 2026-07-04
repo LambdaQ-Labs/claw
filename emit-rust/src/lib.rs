@@ -87,6 +87,18 @@ pub fn emit_expr(e: &Expr, names: &NameMap) -> Result<String, EmitError> {
             let a: Result<Vec<String>, _> = args.iter().map(|x| emit_expr(x, names)).collect();
             Ok(format!("{f}({})", a?.join(", ")))
         }
+        Expr::If { cond, then, els } => Ok(format!(
+            "if {} {{ {} }} else {{ {} }}",
+            emit_expr(cond, names)?,
+            emit_expr(then, names)?,
+            emit_expr(els, names)?
+        )),
+        Expr::Let { name, value, body } => Ok(format!(
+            "{{ let {} = {}; {} }}",
+            sanitize_ident(name),
+            emit_expr(value, names)?,
+            emit_expr(body, names)?
+        )),
     }
 }
 

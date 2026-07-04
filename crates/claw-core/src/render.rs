@@ -39,6 +39,15 @@ pub fn render_expr(e: &Expr) -> String {
             };
             format!("{}({})", head, a.join(", "))
         }
+        Expr::If { cond, then, els } => format!(
+            "if {} {} else {}",
+            render_expr(cond),
+            render_expr(then),
+            render_expr(els)
+        ),
+        Expr::Let { name, value, body } => {
+            format!("{name} = {}\n{}", render_expr(value), render_expr(body))
+        }
     }
 }
 

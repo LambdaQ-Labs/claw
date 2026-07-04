@@ -115,6 +115,19 @@ fn eval_step(
             }
             apply(f, argv, res, b)
         }
+        // Lazy: evaluate the condition, then only the taken branch. A
+        // non-taken branch that would error (or diverge) does not run.
+        Expr::If { cond, then, els } => match eval_inner(cond, env, res, b)? {
+            Value::Bool(true) => eval_inner(then, env, res, b),
+            Value::Bool(false) => eval_inner(els, env, res, b),
+            _ => Err(RunError::Builtin("if: condition is not a Bool".into())),
+        },
+        Expr::Let { name, value, body } => {
+            let v = eval_inner(value, env, res, b)?;
+            let mut env2 = env.clone();
+            env2.insert(name.clone(), v);
+            eval_inner(body, &env2, res, b)
+        }
     }
 }
 
@@ -289,6 +302,46 @@ mod tests {
             eval(&Expr::Var("nope".into()), &Env::new(), &BuiltinResolver),
             Err(RunError::Unbound("nope".into()))
         );
+    }
+
+    #[test]
+    fn if_is_lazy_untaken_branch_never_runs() {
+        // if True then 1 else <unbound> — the else must NOT be evaluated.
+        let e = Expr::If {
+            cond: Box::new(Expr::Lit(Lit::Int(1))), // stand-in bool below
+            then: Box::new(Expr::Lit(Lit::Int(1))),
+            els: Box::new(Expr::Var("would_error".into())),
+        };
+        // condition must be a Bool; use a real bool via a builtin.
+        let cond_true = Expr::App {
+            func: Box::new(refb("Nat.isZero")),
+            args: vec![Expr::Lit(Lit::Int(0))],
+        };
+        let taken = Expr::If {
+            cond: Box::new(cond_true),
+            then: Box::new(Expr::Lit(Lit::Int(42))),
+            els: Box::new(Expr::Var("would_error".into())),
+        };
+        assert_eq!(eval(&taken, &Env::new(), &BuiltinResolver), Ok(Value::Int(42)));
+        // a non-bool condition is a clean error, not a panic
+        assert!(matches!(
+            eval(&e, &Env::new(), &BuiltinResolver),
+            Err(RunError::Builtin(_))
+        ));
+    }
+
+    #[test]
+    fn let_binds_in_body() {
+        // let x = 20 in Nat.add x x  == 40
+        let e = Expr::Let {
+            name: "x".into(),
+            value: Box::new(Expr::Lit(Lit::Int(20))),
+            body: Box::new(Expr::App {
+                func: Box::new(refb("Nat.add")),
+                args: vec![Expr::Var("x".into()), Expr::Var("x".into())],
+            }),
+        };
+        assert_eq!(eval(&e, &Env::new(), &BuiltinResolver), Ok(Value::Int(40)));
     }
 
     #[test]

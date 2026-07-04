@@ -110,6 +110,20 @@ pub enum Expr {
     },
     /// Application: `f x y`.
     App { func: Box<Expr>, args: Vec<Expr> },
+    /// Conditional: `if cond then a else b`. Lazy — only the taken branch
+    /// is evaluated (unlike a `Bool.if` builtin over pre-evaluated args).
+    If {
+        cond: Box<Expr>,
+        then: Box<Expr>,
+        els: Box<Expr>,
+    },
+    /// A let-binding in a block: `name = value; body`. `name` is bound in
+    /// `body` (not in `value`).
+    Let {
+        name: String,
+        value: Box<Expr>,
+        body: Box<Expr>,
+    },
 }
 
 impl Expr {
@@ -131,6 +145,15 @@ impl Expr {
                 for a in args {
                     a.walk_refs(out);
                 }
+            }
+            Expr::If { cond, then, els } => {
+                cond.walk_refs(out);
+                then.walk_refs(out);
+                els.walk_refs(out);
+            }
+            Expr::Let { value, body, .. } => {
+                value.walk_refs(out);
+                body.walk_refs(out);
             }
             Expr::Var(_) | Expr::Lit(_) => {}
         }
@@ -164,6 +187,18 @@ impl Expr {
                 for a in args {
                     a.walk_free(bound, out);
                 }
+            }
+            Expr::If { cond, then, els } => {
+                cond.walk_free(bound, out);
+                then.walk_free(bound, out);
+                els.walk_free(bound, out);
+            }
+            Expr::Let { name, value, body } => {
+                // `value` is in the outer scope; `name` is bound in `body`.
+                value.walk_free(bound, out);
+                bound.push(name.clone());
+                body.walk_free(bound, out);
+                bound.pop();
             }
             Expr::Ref(_) | Expr::Lit(_) => {}
         }
