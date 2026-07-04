@@ -80,25 +80,48 @@ fn real_main() -> anyhow::Result<()> {
     }
 }
 
-/// `claw new <name>` — scaffold a runnable project.
+/// `claw new <name> [--platform http|cli]` — scaffold a runnable project.
+/// Without --platform, a headerless print-and-compute program. With one, a
+/// project targeting a bundled platform (an HTTP server, or stdin/stdout).
 fn new_cmd(args: &[String]) -> anyhow::Result<()> {
-    let name = need(args, 0, "project name")?;
+    // --platform <name>
+    let platform = args
+        .iter()
+        .position(|a| a == "--platform")
+        .and_then(|i| args.get(i + 1))
+        .cloned();
+    let name = args
+        .iter()
+        .find(|a| !a.starts_with("--") && a.as_str() != platform.as_deref().unwrap_or(""))
+        .ok_or_else(|| anyhow::anyhow!("usage: claw new <name> [--platform http|cli]"))?;
     let dir = Path::new(name);
     anyhow::ensure!(!dir.exists(), "`{name}` already exists");
     std::fs::create_dir_all(dir)?;
 
-    std::fs::write(
-        dir.join("main.claw"),
-        "# Welcome to Claw. Run with `claw run`.\n\
-         greet = |who| \"Hello, ${who}!\"\n\n\
-         main! = |_args| {\n    \
-         echo!(greet(\"world\"))\n    \
-         Ok({})\n\
-         }\n",
-    )?;
+    let (entry, source) = match platform.as_deref() {
+        None => ("main.claw", DEFAULT_STARTER.to_string()),
+        Some(p) => {
+            // Copy the bundled platform into the project, generate an app.
+            let src = find_platform(p)?;
+            copy_dir(&src, &dir.join("platform"))?;
+            (
+                "app.claw",
+                match p {
+                    "http" => HTTP_STARTER.to_string(),
+                    "cli" => CLI_STARTER.to_string(),
+                    other => anyhow::bail!("unknown platform `{other}` (try: http, cli)"),
+                },
+            )
+        }
+    };
+
+    std::fs::write(dir.join(entry), source)?;
     std::fs::write(
         dir.join("claw.toml"),
-        format!("[project]\nname = \"{name}\"\nversion = \"0.1.0\"\nentry = \"main.claw\"\n"),
+        format!(
+            "[project]\nname = \"{name}\"\nversion = \"0.1.0\"\nentry = \"{entry}\"\nplatform = \"{}\"\n",
+            platform.as_deref().unwrap_or("print")
+        ),
     )?;
     std::fs::write(dir.join(".gitignore"), "/claw.cdb\n/dist\n*.o\n")?;
     std::fs::write(
@@ -108,13 +131,38 @@ fn new_cmd(args: &[String]) -> anyhow::Result<()> {
 
     // Best-effort initial index so the AI guardrail works immediately.
     if let Ok(mut cdb) = Cdb::open(&dir.join("claw.cdb")) {
-        let _ = ingest(&mut cdb, &dir.join("main.claw"));
+        let _ = ingest(&mut cdb, &dir.join(entry));
     }
 
     eprintln!("created project `{name}`");
     eprintln!("  cd {name} && claw run");
     Ok(())
 }
+
+const DEFAULT_STARTER: &str = "# Welcome to Claw. Run with `claw run`.\n\
+    greet = |who| \"Hello, ${who}!\"\n\n\
+    main! = |_args| {\n    \
+    echo!(greet(\"world\"))\n    \
+    Ok({})\n\
+    }\n";
+
+const HTTP_STARTER: &str = "app [main!] { pf: platform \"./platform/main.roc\" }\n\n\
+    # An HTTP handler. The host passes the raw request headers; return a U64.\n\
+    # Run `claw run` — it prints the port it bound, then serves a request.\n\
+    main! : Str => U64\n\
+    main! = |headers| {\n    \
+    if Str.contains(headers, \"X-Auth-Token: let-me-in\") 200\n    \
+    else if Str.contains(headers, \"X-Auth-Token:\") 403\n    \
+    else 401\n\
+    }\n";
+
+const CLI_STARTER: &str = "app [main!] { pf: platform \"./platform/main.roc\" }\n\n\
+    import pf.Stdout\n\n\
+    main! : List(Str) => Try({}, [Exit(I32), ..])\n\
+    main! = |_args| {\n    \
+    Stdout.line!(\"Hello from a Claw CLI app!\")\n    \
+    Ok({})\n\
+    }\n";
 
 /// The project's entry file: an explicit arg, else `claw.toml`'s entry,
 /// else `main.claw`. Searches up from the cwd for `claw.toml`.
@@ -283,6 +331,58 @@ fn mcp_install_cmd() -> anyhow::Result<()> {
     eprintln!("wrote {}", cfg_path.display());
     eprintln!("Claude Code will connect the `claw` MCP server in this project.");
     eprintln!("Its tools (claw_symbols/claw_candidates/claw_mask) answer over your real code.");
+    Ok(())
+}
+
+/// Resolve a bundled platform directory by short name. Order: $CLAW_PLATFORMS,
+/// then the packaged layout (<bindir>/../platforms/<name>), then the dev
+/// monorepo (compiler/test/<mapped>/platform).
+fn find_platform(name: &str) -> anyhow::Result<PathBuf> {
+    // dev monorepo mapping: short name → compiler test platform dir
+    let mapped = match name {
+        "http" => "http-headers",
+        "cli" => "fx-open",
+        other => anyhow::bail!("unknown platform `{other}` (try: http, cli)"),
+    };
+    if let Ok(root) = std::env::var("CLAW_PLATFORMS") {
+        let p = Path::new(&root).join(name);
+        if p.exists() {
+            return Ok(p);
+        }
+    }
+    if let Ok(exe) = std::env::current_exe() {
+        // packaged: bin/../platforms/<name>
+        if let Some(bindir) = exe.parent() {
+            let p = bindir.join("..").join("platforms").join(name);
+            if p.exists() {
+                return Ok(p);
+            }
+        }
+        // dev: walk up to compiler/test/<mapped>/platform
+        let mut dir = exe;
+        while dir.pop() {
+            let p = dir.join("compiler/test").join(mapped).join("platform");
+            if p.exists() {
+                return Ok(p);
+            }
+        }
+    }
+    anyhow::bail!("could not locate the `{name}` platform (set CLAW_PLATFORMS)")
+}
+
+/// Recursively copy a directory.
+fn copy_dir(src: &Path, dst: &Path) -> anyhow::Result<()> {
+    std::fs::create_dir_all(dst)?;
+    for entry in std::fs::read_dir(src)? {
+        let entry = entry?;
+        let from = entry.path();
+        let to = dst.join(entry.file_name());
+        if from.is_dir() {
+            copy_dir(&from, &to)?;
+        } else {
+            std::fs::copy(&from, &to)?;
+        }
+    }
     Ok(())
 }
 

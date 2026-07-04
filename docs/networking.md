@@ -6,10 +6,17 @@ platform, but the toolchain ships richer platforms you can target with an
 explicit app header. This page shows a **real HTTP server written in Claw**,
 verified end-to-end with `curl`.
 
-> Status: **experimental.** The HTTP platform lives in the compiler tree with
-> prebuilt hosts for macOS (arm64). Packaging it as a first-class,
-> `claw new --platform http` target (and building the Linux host) is planned.
-> But it runs today — everything below is real output.
+> Status: **experimental (macOS).** One command scaffolds a networked
+> project:
+>
+> ```sh
+> claw new myapi --platform http
+> cd myapi && claw run     # prints the port, then serves a request
+> ```
+>
+> This copies the bundled HTTP platform into your project and generates the
+> handler below. Prebuilt hosts are macOS (arm64); the Linux host is a
+> roadmap item. Everything here is real output.
 
 ## A Claw HTTP auth gateway
 

@@ -35,8 +35,15 @@ cp compiler/zig-out/bin/clawc "$STAGE/bin/"
 cp compiler/zig-out/bin/snapshot "$STAGE/bin/"
 chmod +x "$STAGE/bin/"*
 
+# Bundled platforms (for `claw new --platform http|cli`). Prebuilt hosts are
+# macOS-only today; the Linux host is a roadmap item.
+echo ">> bundling platforms (http, cli)"
+mkdir -p "$STAGE/platforms"
+cp -R compiler/test/http-headers/platform "$STAGE/platforms/http"
+cp -R compiler/test/fx-open/platform "$STAGE/platforms/cli"
+
 mkdir -p "$ROOT/dist"
 OUT="$ROOT/dist/claw-$VERSION-$TARGET.tar.gz"
-tar -czf "$OUT" -C "$STAGE" bin
+tar -czf "$OUT" -C "$STAGE" bin platforms
 echo ">> wrote $OUT"
-tar -tzf "$OUT"
+tar -tzf "$OUT" | head
