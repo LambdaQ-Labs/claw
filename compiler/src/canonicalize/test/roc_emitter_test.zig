@@ -7,7 +7,7 @@ const std = @import("std");
 const Allocator = std.mem.Allocator;
 const base = @import("base");
 
-const Emitter = @import("../RocEmitter.zig");
+const Emitter = @import("../ClawEmitter.zig");
 const ModuleEnv = @import("../ModuleEnv.zig");
 const CIR = @import("../CIR.zig");
 

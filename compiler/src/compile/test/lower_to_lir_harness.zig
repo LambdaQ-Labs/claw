@@ -209,7 +209,7 @@ fn lowerAppPathToLir(
         gpa,
         .single_threaded,
         1,
-        roc_target.RocTarget.detectNative(),
+        roc_target.ClawTarget.detectNative(),
         &builtin_modules,
         build_options.compiler_version,
         null,

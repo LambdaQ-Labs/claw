@@ -144,12 +144,12 @@ pub const ExecutableMemory = struct {
         return func();
     }
 
-    /// Call using the RocCall ABI: fn(roc_ops, ret_ptr, args_ptr) callconv(.c) void
+    /// Call using the ClawCall ABI: fn(roc_ops, ret_ptr, args_ptr) callconv(.c) void
     pub fn callRocABI(self: *const Self, roc_ops: *anyopaque, ret_ptr: *anyopaque, args_ptr: ?*anyopaque) void {
         self.callRocABIAt(self.entry_offset, roc_ops, ret_ptr, args_ptr);
     }
 
-    /// Call using the RocCall ABI at a specific code offset.
+    /// Call using the ClawCall ABI at a specific code offset.
     pub fn callRocABIAt(self: *const Self, entry_offset: usize, roc_ops: *anyopaque, ret_ptr: *anyopaque, args_ptr: ?*anyopaque) void {
         const func: *const fn (*anyopaque, *anyopaque, ?*anyopaque) callconv(.c) void =
             @ptrCast(@alignCast(self.memory.ptr + entry_offset));

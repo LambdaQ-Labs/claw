@@ -18,7 +18,7 @@ const testing = std.testing;
 const util = @import("util.zig");
 const fx_test_specs = @import("fx_test_specs.zig");
 
-const FxPlatformTestError = util.RocRunError || util.ChildTimeoutError || util.ResultCheckError || std.mem.Allocator.Error || std.Io.Dir.RealPathFileAllocError || std.Io.Dir.CreateDirPathError || std.Io.Dir.ReadFileAllocError || error{
+const FxPlatformTestError = util.ClawRunError || util.ChildTimeoutError || util.ResultCheckError || std.mem.Allocator.Error || std.Io.Dir.RealPathFileAllocError || std.Io.Dir.CreateDirPathError || std.Io.Dir.ReadFileAllocError || error{
     DevBackendBuildFailed,
     DivisionByZeroNotHandled,
     StackOverflowNotHandled,
@@ -342,11 +342,11 @@ test "fx platform boxed erased callable host boundary (dev backend)" {
     try runIoSpecTest("--opt=dev", fx_test_specs.host_boxed_fn_boundary_test);
 }
 
-test "fx platform direct run preserves RocOps after F32.abs before list allocation" {
+test "fx platform direct run preserves ClawOps after F32.abs before list allocation" {
     const allocator = testing.allocator;
 
     // Repro for https://github.com/roc-lang/roc/issues/9846:
-    // direct-run should preserve RocOps across F32.abs and the later list allocation.
+    // direct-run should preserve ClawOps across F32.abs and the later list allocation.
     const result = try util.runRocCommand(std.testing.io, allocator, &.{
         "test/fx/issue_9846_direct_abs_list.roc",
         "--",

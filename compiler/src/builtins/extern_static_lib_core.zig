@@ -1,6 +1,6 @@
 //! Root for the extern-symbol-mode core builtin bitcode. Identical to
 //! static_lib_core.zig except that builtins reach the host through
-//! linker-resolved symbols (roc_alloc and friends) instead of the RocOps
+//! linker-resolved symbols (roc_alloc and friends) instead of the ClawOps
 //! vtable, which is what compiled output links against under the symbol ABI.
 
 const static_lib_core = @import("static_lib_core.zig");

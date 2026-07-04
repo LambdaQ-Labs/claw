@@ -21,11 +21,11 @@ pub const std_options_debug_io = shim_io.io();
 /// Disables threaded debug IO to prevent the threaded vtable from being linked into user programs.
 pub const std_options_debug_threaded_io = null;
 
-/// Disables stack-trace capture in the shim; panics here go through the host's RocOps.
+/// Disables stack-trace capture in the shim; panics here go through the host's ClawOps.
 pub const std_options = shim_io.std_options_no_stack_tracing;
 
 const Allocator = std.mem.Allocator;
-const RocOps = builtins.host_abi.RocOps;
+const ClawOps = builtins.host_abi.ClawOps;
 const SharedMemoryAllocator = ipc.SharedMemoryAllocator;
 const hot_reload = ipc.hot_reload;
 const RunImage = backend.RunImage;
@@ -147,7 +147,7 @@ fn openRuntimeState(gpa: Allocator) RuntimeStateError!RuntimeState {
     };
 }
 
-fn ensureRuntimeState(ops: *RocOps) ShimError!*RuntimeState {
+fn ensureRuntimeState(ops: *ClawOps) ShimError!*RuntimeState {
     if (runtime_state_initialized.load(.acquire)) return &runtime_state;
 
     runtime_state_mutex.lockUncancelable(shimIo());
@@ -472,7 +472,7 @@ fn devEntrypointForOrdinal(entrypoints: []const RunImage.Entrypoint, ordinal: u3
 fn executeDevEntrypoint(
     program: *const DevProgram,
     entry_idx: u32,
-    ops: *RocOps,
+    ops: *ClawOps,
     ret_ptr: ?*anyopaque,
     arg_ptr: ?*anyopaque,
 ) ShimError!void {
@@ -659,7 +659,7 @@ fn refreshRuntimeProgramIfNeeded(
 
 fn evaluateEntrypoint(
     entry_idx: u32,
-    ops: *RocOps,
+    ops: *ClawOps,
     ret_ptr: ?*anyopaque,
     arg_ptr: ?*anyopaque,
 ) ShimError!void {
@@ -707,7 +707,7 @@ export fn roc_shim_get_ops() callconv(.c) *anyopaque {
 
 export fn roc_entrypoint(
     entry_idx: u32,
-    ops: *RocOps,
+    ops: *ClawOps,
     ret_ptr: ?*anyopaque,
     arg_ptr: ?*anyopaque,
 ) callconv(.c) void {

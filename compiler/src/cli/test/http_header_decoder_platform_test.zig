@@ -7,7 +7,7 @@ const util = @import("util.zig");
 /// Explicit (superset) error set for this file's test helpers, composed from the portable
 /// named std/util error sets they use plus the custom errors they return. Declaring a
 /// broader set than any single helper needs is fine and keeps every helper explicit.
-const TestError = util.RocRunError ||
+const TestError = util.ClawRunError ||
     std.Io.File.ReadStreamingError ||
     std.Io.File.Reader.Error ||
     std.Io.File.Writer.Error ||
@@ -26,7 +26,7 @@ const TestError = util.RocRunError ||
         ServerExitedBeforePort,
         ResponseTooLarge,
         StderrTooLarge,
-        RocBuildFailed,
+        ClawBuildFailed,
         BinaryContainsOriginalFieldName,
         EmptyPortLine,
         InvalidPortLine,
@@ -131,7 +131,7 @@ test "HTTP header parsing platform derives structural parser without runtime all
                         build_result.stdout,
                         build_result.stderr,
                     });
-                    return error.RocBuildFailed;
+                    return error.ClawBuildFailed;
                 }
             },
             else => {
@@ -140,7 +140,7 @@ test "HTTP header parsing platform derives structural parser without runtime all
                     build_result.stdout,
                     build_result.stderr,
                 });
-                return error.RocBuildFailed;
+                return error.ClawBuildFailed;
             },
         }
     }

@@ -1,4 +1,4 @@
-//! RocOps environment for native dev-backend compile-time evaluation.
+//! ClawOps environment for native dev-backend compile-time evaluation.
 //!
 //! Each compile-time root gets its own host env. Runtime allocations go into a
 //! root-local arena and are bulk-freed after the result has been copied into the
@@ -12,7 +12,7 @@ const lir = @import("lir");
 const sljmp = @import("sljmp");
 
 const Allocator = std.mem.Allocator;
-const RocOps = builtins.host_abi.RocOps;
+const ClawOps = builtins.host_abi.ClawOps;
 const JmpBuf = sljmp.JmpBuf;
 const setjmp = sljmp.setjmp;
 const longjmp = sljmp.longjmp;
@@ -64,7 +64,7 @@ pub const ComptimeBranchHit = struct {
 allocator: Allocator,
 arena: base.SingleThreadArena,
 allocations: std.AutoHashMap(usize, Allocation),
-roc_ops: ?RocOps = null,
+roc_ops: ?ClawOps = null,
 events: std.ArrayListUnmanaged(HostEvent) = .empty,
 comptime_branch_hits: std.ArrayListUnmanaged(ComptimeBranchHit) = .empty,
 call_regions: std.ArrayListUnmanaged(base.Region) = .empty,
@@ -91,8 +91,8 @@ pub fn deinit(self: *CompileTimeHost) void {
     self.* = undefined;
 }
 
-/// Return the RocOps table passed to the generated root wrapper.
-pub fn ops(self: *CompileTimeHost) *RocOps {
+/// Return the ClawOps table passed to the generated root wrapper.
+pub fn ops(self: *CompileTimeHost) *ClawOps {
     if (self.roc_ops == null) {
         self.roc_ops = .{
             .env = @ptrCast(self),
@@ -161,7 +161,7 @@ pub fn crashMessage(self: *const CompileTimeHost) ?[]const u8 {
 }
 
 /// Dev-backend hook called when a compile-time branch marker is reached.
-pub fn rocComptimeBranchTaken(roc_ops: *RocOps, site_raw: u32, branch_index: u32) callconv(.c) void {
+pub fn rocComptimeBranchTaken(roc_ops: *ClawOps, site_raw: u32, branch_index: u32) callconv(.c) void {
     const self: *CompileTimeHost = @ptrCast(@alignCast(roc_ops.env));
     self.comptime_branch_hits.append(self.allocator, .{
         .site = @enumFromInt(site_raw),
@@ -172,20 +172,20 @@ pub fn rocComptimeBranchTaken(roc_ops: *RocOps, site_raw: u32, branch_index: u32
 }
 
 /// Dev-backend hook called when empirical exhaustiveness fails.
-pub fn rocComptimeExhaustivenessFailed(roc_ops: *RocOps, site_raw: u32) callconv(.c) void {
+pub fn rocComptimeExhaustivenessFailed(roc_ops: *ClawOps, site_raw: u32) callconv(.c) void {
     const self: *CompileTimeHost = @ptrCast(@alignCast(roc_ops.env));
     self.comptime_failed_site = @enumFromInt(site_raw);
     self.jump(.comptime_exhaustiveness);
 }
 
 /// Dev-backend hook recording the source region for an imminent failure.
-pub fn rocComptimeFailureRegion(roc_ops: *RocOps, start_offset: u32, end_offset: u32) callconv(.c) void {
+pub fn rocComptimeFailureRegion(roc_ops: *ClawOps, start_offset: u32, end_offset: u32) callconv(.c) void {
     const self: *CompileTimeHost = @ptrCast(@alignCast(roc_ops.env));
     self.failed_region = base.Region.from_raw_offsets(start_offset, end_offset);
 }
 
 /// Dev-backend hook pushing a source region for a generated call frame.
-pub fn rocComptimeCallEnter(roc_ops: *RocOps, start_offset: u32, end_offset: u32) callconv(.c) void {
+pub fn rocComptimeCallEnter(roc_ops: *ClawOps, start_offset: u32, end_offset: u32) callconv(.c) void {
     const self: *CompileTimeHost = @ptrCast(@alignCast(roc_ops.env));
     self.call_regions.append(self.allocator, base.Region.from_raw_offsets(start_offset, end_offset)) catch {
         self.jump(.host_oom);
@@ -193,7 +193,7 @@ pub fn rocComptimeCallEnter(roc_ops: *RocOps, start_offset: u32, end_offset: u32
 }
 
 /// Dev-backend hook popping the source region for a generated call frame.
-pub fn rocComptimeCallExit(roc_ops: *RocOps) callconv(.c) void {
+pub fn rocComptimeCallExit(roc_ops: *ClawOps) callconv(.c) void {
     const self: *CompileTimeHost = @ptrCast(@alignCast(roc_ops.env));
     if (self.call_regions.items.len == 0) {
         @panic("compile-time call-region stack underflow");
@@ -239,7 +239,7 @@ fn jump(self: *CompileTimeHost, termination: Termination) noreturn {
     @panic("compile-time host failure escaped without an active crash boundary");
 }
 
-fn rocAlloc(roc_ops: *RocOps, length: usize, alignment: usize) callconv(.c) ?*anyopaque {
+fn rocAlloc(roc_ops: *ClawOps, length: usize, alignment: usize) callconv(.c) ?*anyopaque {
     const self: *CompileTimeHost = @ptrCast(@alignCast(roc_ops.env));
     const alloc_len = @max(length, 1);
     const arena_allocator = self.arena.allocator();
@@ -252,17 +252,17 @@ fn rocAlloc(roc_ops: *RocOps, length: usize, alignment: usize) callconv(.c) ?*an
     return @ptrCast(ptr);
 }
 
-fn rocDealloc(roc_ops: *RocOps, ptr: *anyopaque, _: usize) callconv(.c) void {
+fn rocDealloc(roc_ops: *ClawOps, ptr: *anyopaque, _: usize) callconv(.c) void {
     const self: *CompileTimeHost = @ptrCast(@alignCast(roc_ops.env));
     _ = self.allocations.fetchRemove(@intFromPtr(ptr)) orelse {
-        @panic("compile-time RocOps deallocated unknown pointer");
+        @panic("compile-time ClawOps deallocated unknown pointer");
     };
 }
 
-fn rocRealloc(roc_ops: *RocOps, ptr: *anyopaque, new_length: usize, alignment: usize) callconv(.c) ?*anyopaque {
+fn rocRealloc(roc_ops: *ClawOps, ptr: *anyopaque, new_length: usize, alignment: usize) callconv(.c) ?*anyopaque {
     const self: *CompileTimeHost = @ptrCast(@alignCast(roc_ops.env));
     const old_info = self.allocations.get(@intFromPtr(ptr)) orelse {
-        @panic("compile-time RocOps reallocated unknown pointer");
+        @panic("compile-time ClawOps reallocated unknown pointer");
     };
     const alloc_len = @max(new_length, 1);
     const arena_allocator = self.arena.allocator();
@@ -278,17 +278,17 @@ fn rocRealloc(roc_ops: *RocOps, ptr: *anyopaque, new_length: usize, alignment: u
     return @ptrCast(new_ptr);
 }
 
-fn rocDbg(roc_ops: *RocOps, bytes: [*]const u8, len: usize) callconv(.c) void {
+fn rocDbg(roc_ops: *ClawOps, bytes: [*]const u8, len: usize) callconv(.c) void {
     const self: *CompileTimeHost = @ptrCast(@alignCast(roc_ops.env));
     self.appendEvent(.dbg, bytes[0..len]);
 }
 
-fn rocExpectFailed(roc_ops: *RocOps, bytes: [*]const u8, len: usize) callconv(.c) void {
+fn rocExpectFailed(roc_ops: *ClawOps, bytes: [*]const u8, len: usize) callconv(.c) void {
     const self: *CompileTimeHost = @ptrCast(@alignCast(roc_ops.env));
     self.appendEvent(.expect_failed, bytes[0..len]);
 }
 
-fn rocCrashed(roc_ops: *RocOps, bytes: [*]const u8, len: usize) callconv(.c) void {
+fn rocCrashed(roc_ops: *ClawOps, bytes: [*]const u8, len: usize) callconv(.c) void {
     const self: *CompileTimeHost = @ptrCast(@alignCast(roc_ops.env));
     if (self.failed_region == null and self.call_regions.items.len > 0) {
         self.failed_region = self.call_regions.items[self.call_regions.items.len - 1];
@@ -304,7 +304,7 @@ fn allocateBytes(allocator: Allocator, len: usize, alignment: usize) ?[*]u8 {
         4 => (allocator.alignedAlloc(u8, .@"4", len) catch return null).ptr,
         8 => (allocator.alignedAlloc(u8, .@"8", len) catch return null).ptr,
         16 => (allocator.alignedAlloc(u8, .@"16", len) catch return null).ptr,
-        else => @panic("unsupported compile-time RocOps allocation alignment"),
+        else => @panic("unsupported compile-time ClawOps allocation alignment"),
     };
 }
 

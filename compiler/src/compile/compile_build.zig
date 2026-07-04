@@ -157,7 +157,7 @@ pub const BuildEnv = struct {
     gpa: Allocator,
     mode: Mode,
     max_threads: usize,
-    target: roc_target.RocTarget,
+    target: roc_target.ClawTarget,
     compiler_version: []const u8 = build_options.compiler_version,
 
     // Workspace roots for sandboxing (absolute, canonical)
@@ -243,7 +243,7 @@ pub const BuildEnv = struct {
         import_name: []const u8, // e.g., "pf.Stdout"
     };
 
-    pub fn init(gpa: Allocator, mode: Mode, max_threads: usize, target: roc_target.RocTarget, cwd: []const u8, std_io: std.Io) InitError!BuildEnv {
+    pub fn init(gpa: Allocator, mode: Mode, max_threads: usize, target: roc_target.ClawTarget, cwd: []const u8, std_io: std.Io) InitError!BuildEnv {
         // Allocate builtin modules on heap to prevent moves that would invalidate internal pointers
         const builtin_modules = try gpa.create(BuiltinModules);
         errdefer gpa.destroy(builtin_modules);
@@ -258,7 +258,7 @@ pub const BuildEnv = struct {
         gpa: Allocator,
         mode: Mode,
         max_threads: usize,
-        target: roc_target.RocTarget,
+        target: roc_target.ClawTarget,
         cwd: []const u8,
         std_io: std.Io,
         builtin_modules: *BuiltinModules,
@@ -270,7 +270,7 @@ pub const BuildEnv = struct {
         gpa: Allocator,
         mode: Mode,
         max_threads: usize,
-        target: roc_target.RocTarget,
+        target: roc_target.ClawTarget,
         cwd: []const u8,
         std_io: std.Io,
         builtin_modules: *BuiltinModules,
@@ -452,7 +452,7 @@ pub const BuildEnv = struct {
 
     /// Set the target for this build environment.
     /// Must be called before compileDiscovered() if target needs to change after discovery.
-    pub fn setTarget(self: *BuildEnv, target: roc_target.RocTarget) void {
+    pub fn setTarget(self: *BuildEnv, target: roc_target.ClawTarget) void {
         self.target = target;
     }
 
@@ -3184,7 +3184,7 @@ test "BuildEnv collectWatchInputStates includes package root state" {
         allocator,
         .single_threaded,
         1,
-        roc_target.RocTarget.detectNative(),
+        roc_target.ClawTarget.detectNative(),
         cwd,
         testing.io,
     );
@@ -3241,7 +3241,7 @@ test "BuildEnv collectWatchInputStates resolves file dependencies from module so
         allocator,
         .single_threaded,
         1,
-        roc_target.RocTarget.detectNative(),
+        roc_target.ClawTarget.detectNative(),
         tmp_root,
         testing.io,
     );
@@ -3268,7 +3268,7 @@ test "BuildEnv collectWatchInputStates resolves file dependencies from module so
         generated_dir,
         .single_threaded,
         1,
-        roc_target.RocTarget.detectNative(),
+        roc_target.ClawTarget.detectNative(),
         .{ .ctx = null, .emitFn = NoopSink.emit },
         ScheduleHook.noOp(),
         build_options.compiler_version,
@@ -3287,7 +3287,7 @@ test "BuildEnv collectWatchInputStates resolves file dependencies from module so
         allocator,
         .single_threaded,
         1,
-        roc_target.RocTarget.detectNative(),
+        roc_target.ClawTarget.detectNative(),
         env.builtin_modules,
         build_options.compiler_version,
         null,
@@ -3347,7 +3347,7 @@ test "BuildEnv header watch state hashes raw CRLF source bytes" {
         allocator,
         .single_threaded,
         1,
-        roc_target.RocTarget.detectNative(),
+        roc_target.ClawTarget.detectNative(),
         tmp_root,
         testing.io,
     );

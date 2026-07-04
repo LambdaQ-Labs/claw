@@ -4,7 +4,7 @@
 //! using the dev backend. It generates ABI-compliant entrypoint wrappers that
 //! can be linked with platform hosts.
 //!
-//! Supports cross-compilation to any supported RocTarget, not just the host.
+//! Supports cross-compilation to any supported ClawTarget, not just the host.
 //!
 //! The compilation pipeline:
 //! ```
@@ -20,7 +20,7 @@ const lir = @import("lir");
 const CoreCtx = @import("ctx").CoreCtx;
 const LirStore = lir.LirStore;
 const LirProcSpec = lir.LirProcSpec;
-const RocTarget = @import("roc_target").RocTarget;
+const ClawTarget = @import("roc_target").ClawTarget;
 const Dwarf = @import("Dwarf.zig");
 
 const ObjectWriter = @import("ObjectWriter.zig");
@@ -65,7 +65,7 @@ pub const CompilationError = error{
 };
 
 /// Object file compiler that generates object files from LIR.
-/// Supports compilation to any RocTarget via runtime-to-comptime dispatch.
+/// Supports compilation to any ClawTarget via runtime-to-comptime dispatch.
 pub const ObjectFileCompiler = struct {
     allocator: Allocator,
     enable_default_platform_runtime: bool = false,
@@ -74,7 +74,7 @@ pub const ObjectFileCompiler = struct {
         return .{ .allocator = allocator };
     }
 
-    /// Compile LIR to a native object file for the given RocTarget.
+    /// Compile LIR to a native object file for the given ClawTarget.
     ///
     /// Dispatches at runtime to the correct compile-time LirCodeGen
     /// instantiation for the requested target. Works for both native and
@@ -88,7 +88,7 @@ pub const ObjectFileCompiler = struct {
         entrypoints: []const Entrypoint,
         static_data_exports: []const StaticDataExport,
         proc_specs: []const LirProcSpec,
-        target: RocTarget,
+        target: ClawTarget,
     ) CompilationError!CompilationResult {
         return crossCompileDispatch(self.allocator, lir_store, layout_store, entrypoints, static_data_exports, proc_specs, target, self.enable_default_platform_runtime);
     }
@@ -101,7 +101,7 @@ pub const ObjectFileCompiler = struct {
         entrypoints: []const Entrypoint,
         static_data_exports: []const StaticDataExport,
         proc_specs: []const LirProcSpec,
-        target: RocTarget,
+        target: ClawTarget,
         output_path: []const u8,
         roc_ctx: CoreCtx,
     ) CompilationError!void {
@@ -128,7 +128,7 @@ pub const ObjectFileCompiler = struct {
     pub fn compileStaticDataObject(
         self: *ObjectFileCompiler,
         static_data_exports: []const StaticDataExport,
-        target: RocTarget,
+        target: ClawTarget,
     ) CompilationError!CompilationResult {
         return compileStaticDataObjectBytes(self.allocator, static_data_exports, target);
     }
@@ -137,7 +137,7 @@ pub const ObjectFileCompiler = struct {
     pub fn compileStaticDataObjectAndWrite(
         self: *ObjectFileCompiler,
         static_data_exports: []const StaticDataExport,
-        target: RocTarget,
+        target: ClawTarget,
         output_path: []const u8,
         roc_ctx: CoreCtx,
     ) CompilationError!void {
@@ -184,7 +184,7 @@ fn compileWithCodeGen(
     entrypoints: []const Entrypoint,
     static_data_exports: []const StaticDataExport,
     proc_specs: []const LirProcSpec,
-    target: RocTarget,
+    target: ClawTarget,
     enable_default_platform_runtime: bool,
 ) CompilationError!CompilationResult {
     if (entrypoints.len == 0 and static_data_exports.len == 0) {
@@ -500,7 +500,7 @@ fn appendStaticDataExport(
 fn compileStaticDataObjectBytes(
     allocator: Allocator,
     static_data_exports: []const StaticDataExport,
-    target: RocTarget,
+    target: ClawTarget,
 ) CompilationError!CompilationResult {
     if (static_data_exports.len == 0) {
         return CompilationError.NoEntrypoints;
@@ -576,7 +576,7 @@ fn compileStaticDataObjectBytes(
 }
 
 /// Runtime-to-comptime dispatch for compilation.
-/// Uses inline for over RocTarget enum fields to select the correct LirCodeGen instantiation.
+/// Uses inline for over ClawTarget enum fields to select the correct LirCodeGen instantiation.
 fn crossCompileDispatch(
     allocator: Allocator,
     lir_store: *const LirStore,
@@ -584,12 +584,12 @@ fn crossCompileDispatch(
     entrypoints: []const Entrypoint,
     static_data_exports: []const StaticDataExport,
     proc_specs: []const LirProcSpec,
-    target: RocTarget,
+    target: ClawTarget,
     enable_default_platform_runtime: bool,
 ) CompilationError!CompilationResult {
-    const enum_info = @typeInfo(RocTarget).@"enum";
+    const enum_info = @typeInfo(ClawTarget).@"enum";
     inline for (enum_info.fields) |field| {
-        const comptime_target: RocTarget = @enumFromInt(field.value);
+        const comptime_target: ClawTarget = @enumFromInt(field.value);
         if (target == comptime_target) {
             const arch = comptime comptime_target.toCpuArch();
             if (comptime (arch == .x86_64 or arch == .aarch64 or arch == .aarch64_be)) {

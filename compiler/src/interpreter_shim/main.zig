@@ -24,11 +24,11 @@ pub const std_options_debug_io = shim_io.io();
 /// Disables threaded debug IO to prevent the threaded vtable from being linked into user programs.
 pub const std_options_debug_threaded_io = null;
 
-/// Disables stack-trace capture in the shim; panics here go through the host's RocOps.
+/// Disables stack-trace capture in the shim; panics here go through the host's ClawOps.
 pub const std_options = shim_io.std_options_no_stack_tracing;
 
 const Allocator = std.mem.Allocator;
-const RocOps = builtins.host_abi.RocOps;
+const ClawOps = builtins.host_abi.ClawOps;
 const SharedMemoryAllocator = ipc.SharedMemoryAllocator;
 
 const RuntimeState = struct {
@@ -81,7 +81,7 @@ fn openRuntimeState(gpa: Allocator) RuntimeStateError!RuntimeState {
     };
 }
 
-fn ensureRuntimeState(ops: *RocOps) ShimError!*RuntimeState {
+fn ensureRuntimeState(ops: *ClawOps) ShimError!*RuntimeState {
     if (runtime_state_initialized) return &runtime_state;
 
     runtime_state_mutex.lockUncancelable(shimIo());
@@ -121,7 +121,7 @@ fn argLayoutsForProc(
     return arg_layouts;
 }
 
-fn reportEvalError(ops: *RocOps, interpreter: *const eval.LirInterpreter, err: eval.LirInterpreter.Error) void {
+fn reportEvalError(ops: *ClawOps, interpreter: *const eval.LirInterpreter, err: eval.LirInterpreter.Error) void {
     const message = switch (err) {
         error.OutOfMemory => "Roc interpreter ran out of memory",
         error.RuntimeError => interpreter.getRuntimeErrorMessage() orelse "Roc runtime error",
@@ -137,7 +137,7 @@ fn reportEvalError(ops: *RocOps, interpreter: *const eval.LirInterpreter, err: e
 
 fn evaluateEntrypoint(
     entry_idx: u32,
-    ops: *RocOps,
+    ops: *ClawOps,
     ret_ptr: ?*anyopaque,
     arg_ptr: ?*anyopaque,
 ) ShimError!void {
@@ -148,7 +148,7 @@ fn evaluateEntrypoint(
 fn evaluateEntrypointInView(
     view: *const lir.LirImage.ProgramView,
     entry_idx: u32,
-    ops: *RocOps,
+    ops: *ClawOps,
     ret_ptr: ?*anyopaque,
     arg_ptr: ?*anyopaque,
 ) ShimError!void {
@@ -190,7 +190,7 @@ fn evaluateEntrypointInView(
     };
 }
 
-fn viewEmbeddedLirImage(image_base: *anyopaque, image_len: usize, ops: *RocOps) ShimError!lir.LirImage.ProgramView {
+fn viewEmbeddedLirImage(image_base: *anyopaque, image_len: usize, ops: *ClawOps) ShimError!lir.LirImage.ProgramView {
     if (image_len < @sizeOf(SharedMemoryAllocator.Header) + @sizeOf(lir.LirImage.Header)) {
         ops.crash("LIR shim received an invalid embedded LIR image");
         return error.ImageUnavailable;
@@ -214,7 +214,7 @@ export fn roc_shim_get_ops() callconv(.c) *anyopaque {
 
 export fn roc_entrypoint(
     entry_idx: u32,
-    ops: *RocOps,
+    ops: *ClawOps,
     ret_ptr: ?*anyopaque,
     arg_ptr: ?*anyopaque,
 ) callconv(.c) void {
@@ -228,7 +228,7 @@ export fn roc_entrypoint(
 
 export fn roc_entrypoint_from_image(
     entry_idx: u32,
-    ops: *RocOps,
+    ops: *ClawOps,
     ret_ptr: ?*anyopaque,
     arg_ptr: ?*anyopaque,
     image_base: ?*anyopaque,

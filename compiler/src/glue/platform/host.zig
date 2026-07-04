@@ -140,7 +140,7 @@ fn handleRocArithmeticError() noreturn {
 }
 
 /// Tracking entry for a Roc allocation
-const RocAllocation = struct {
+const ClawAllocation = struct {
     ptr: [*]u8, // Base pointer (before user data, includes size metadata)
     total_size: usize,
     alignment: std.mem.Alignment,
@@ -151,7 +151,7 @@ const HostEnv = struct {
     gpa: std.heap.DebugAllocator(.{ .safety = true }),
     std_io: std.Io,
     /// Track Roc allocations for cleanup on test failure
-    roc_allocations: std.ArrayListUnmanaged(RocAllocation) = .{ .items = &.{}, .capacity = 0 },
+    roc_allocations: std.ArrayListUnmanaged(ClawAllocation) = .{ .items = &.{}, .capacity = 0 },
     /// Allocation counters for diagnostics
     alloc_count: usize = 0,
     dealloc_count: usize = 0,
@@ -167,7 +167,7 @@ fn hostAllocFailed(host: *HostEnv) noreturn {
 }
 
 /// Roc allocation function with size-tracking metadata
-fn rocAllocFn(ops: *builtins.host_abi.RocOps, length: usize, alignment: usize) callconv(.c) ?*anyopaque {
+fn rocAllocFn(ops: *builtins.host_abi.ClawOps, length: usize, alignment: usize) callconv(.c) ?*anyopaque {
     const env = ops.env;
     const env_addr = @intFromPtr(env);
     if (env_addr % @alignOf(HostEnv) != 0) {
@@ -217,7 +217,7 @@ fn rocAllocFn(ops: *builtins.host_abi.RocOps, length: usize, alignment: usize) c
 }
 
 /// Roc deallocation function with size-tracking metadata
-fn rocDeallocFn(ops: *builtins.host_abi.RocOps, ptr: *anyopaque, alignment: usize) callconv(.c) void {
+fn rocDeallocFn(ops: *builtins.host_abi.ClawOps, ptr: *anyopaque, alignment: usize) callconv(.c) void {
     const env = ops.env;
     const env_addr = @intFromPtr(env);
     if (env_addr % @alignOf(HostEnv) != 0) {
@@ -257,7 +257,7 @@ fn rocDeallocFn(ops: *builtins.host_abi.RocOps, ptr: *anyopaque, alignment: usiz
 }
 
 /// Roc reallocation function with size-tracking metadata
-fn rocReallocFn(ops: *builtins.host_abi.RocOps, ptr: *anyopaque, new_length: usize, alignment: usize) callconv(.c) ?*anyopaque {
+fn rocReallocFn(ops: *builtins.host_abi.ClawOps, ptr: *anyopaque, new_length: usize, alignment: usize) callconv(.c) ?*anyopaque {
     const env = ops.env;
     const env_addr = @intFromPtr(env);
     if (env_addr % @alignOf(HostEnv) != 0) {
@@ -314,20 +314,20 @@ fn rocReallocFn(ops: *builtins.host_abi.RocOps, ptr: *anyopaque, new_length: usi
 }
 
 /// Roc debug function
-fn rocDbgFn(_: *builtins.host_abi.RocOps, bytes: [*]const u8, len: usize) callconv(.c) void {
+fn rocDbgFn(_: *builtins.host_abi.ClawOps, bytes: [*]const u8, len: usize) callconv(.c) void {
     const message = bytes[0..len];
     std.debug.print("ROC DBG: {s}\n", .{message});
 }
 
 /// Roc expect failed function
-fn rocExpectFailedFn(_: *builtins.host_abi.RocOps, bytes: [*]const u8, len: usize) callconv(.c) void {
+fn rocExpectFailedFn(_: *builtins.host_abi.ClawOps, bytes: [*]const u8, len: usize) callconv(.c) void {
     const source_bytes = bytes[0..len];
     const trimmed = std.mem.trim(u8, source_bytes, " \t\n\r");
     std.debug.print("Expect failed: {s}\n", .{trimmed});
 }
 
 /// Roc crashed function
-fn rocCrashedFn(ops: *builtins.host_abi.RocOps, bytes: [*]const u8, len: usize) callconv(.c) void {
+fn rocCrashedFn(ops: *builtins.host_abi.ClawOps, bytes: [*]const u8, len: usize) callconv(.c) void {
     const host: *HostEnv = @ptrCast(@alignCast(ops.env));
     const message = bytes[0..len];
     const stderr: std.Io.File = .stderr();
@@ -339,8 +339,8 @@ fn rocCrashedFn(ops: *builtins.host_abi.RocOps, bytes: [*]const u8, len: usize) 
 }
 
 // Use the actual types from builtins
-const RocStr = builtins.str.RocStr;
-const RocList = builtins.list.RocList;
+const ClawStr = builtins.str.ClawStr;
+const ClawList = builtins.list.ClawList;
 
 // Roc Type Definitions for Glue Platform
 
@@ -350,46 +350,46 @@ const TypeId = u64;
 /// File record - matches Roc { name : Str, content : Str }
 /// Roc orders record fields alphabetically: content, name
 const File = extern struct {
-    content: RocStr,
-    name: RocStr,
+    content: ClawStr,
+    name: ClawStr,
 };
 
 /// EntryPoint record: { name : Str, type_id : U64 }
 /// Roc records are ordered alphabetically by field name: name < type_id
 const EntryPoint = extern struct {
-    name: RocStr,
+    name: ClawStr,
     type_id: TypeId,
 };
 
 /// FunctionInfo record: { name : Str, type_str : Str }
 /// Roc records are ordered alphabetically by field name: name < type_str
 const FunctionInfoRoc = extern struct {
-    name: RocStr,
-    type_str: RocStr,
+    name: ClawStr,
+    type_str: ClawStr,
 };
 
 /// HostedFunctionInfo record: { index : U64, name : Str, type_str : Str }
 /// Roc records are ordered alphabetically: index < name < type_str
 const HostedFunctionInfoRoc = extern struct {
     index: u64,
-    name: RocStr,
-    type_str: RocStr,
+    name: ClawStr,
+    type_str: ClawStr,
 };
 
 /// ModuleTypeInfo record: { functions : List(FunctionInfo), hosted_functions : List(HostedFunctionInfo), main_type : Str, name : Str }
 /// Roc records are ordered alphabetically: functions < hosted_functions < main_type < name
 const ModuleTypeInfoRoc = extern struct {
-    functions: RocList, // List(FunctionInfo)
-    hosted_functions: RocList, // List(HostedFunctionInfo)
-    main_type: RocStr,
-    name: RocStr,
+    functions: ClawList, // List(FunctionInfo)
+    hosted_functions: ClawList, // List(HostedFunctionInfo)
+    main_type: ClawStr,
+    name: ClawStr,
 };
 
 /// ProvidesEntry := { ffi_symbol : Str, name : Str, type_id : U64 }
 /// Fields ordered by alignment descending, then alphabetically
 const ProvidesEntry = extern struct {
-    ffi_symbol: RocStr,
-    name: RocStr,
+    ffi_symbol: ClawStr,
+    name: ClawStr,
     type_id: u64,
 };
 
@@ -397,10 +397,10 @@ const ProvidesEntry = extern struct {
 /// Fields ordered by alignment descending, then alphabetically
 /// Types record: { entrypoints : List(EntryPoint), modules : List(ModuleTypeInfo), provides_entries : List(ProvidesEntry), type_table : List(TypeRepr) }
 const TypesInner = extern struct {
-    entrypoints: RocList, // List({ name : Str, type_id : U64 })
-    modules: RocList, // List(ModuleTypeInfo)
-    provides_entries: RocList, // List(ProvidesEntry)
-    type_table: RocList, // List(TypeRepr)
+    entrypoints: ClawList, // List({ name : Str, type_id : U64 })
+    modules: ClawList, // List(ModuleTypeInfo)
+    provides_entries: ClawList, // List(ProvidesEntry)
+    type_table: ClawList, // List(TypeRepr)
 };
 
 /// Result (List File) Str - Roc Result type
@@ -412,20 +412,20 @@ const ResultTag = enum(u8) {
 
 const ResultListFileStr = extern struct {
     payload: extern union {
-        ok: RocList, // List File
-        err: RocStr,
+        ok: ClawList, // List File
+        err: ClawStr,
     },
     tag: ResultTag,
 };
 
 // The app's entrypoint, exported under its provides symbol with its natural
 // C ABI: make_glue_for_host takes List(Types) and returns Try(List(File), Str).
-extern fn roc_make_glue(types_list: RocList) callconv(.c) ResultListFileStr;
+extern fn roc_make_glue(types_list: ClawList) callconv(.c) ResultListFileStr;
 
-// The host's private RocOps. The exported runtime symbols below and the
+// The host's private ClawOps. The exported runtime symbols below and the
 // builtins helpers reach the host allocator through this global, set by
 // platform_main before any Roc code runs.
-var g_roc_ops: ?*builtins.host_abi.RocOps = null;
+var g_roc_ops: ?*builtins.host_abi.ClawOps = null;
 
 fn hostAlloc(length: usize, alignment: usize) callconv(.c) ?*anyopaque {
     return rocAllocFn(g_roc_ops.?, length, alignment);
@@ -494,10 +494,10 @@ fn main(argc: c_int, argv: [*][*:0]u8) callconv(.c) c_int {
     return exit_code;
 }
 
-const SMALL_STRING_SIZE = @sizeOf(RocStr);
+const SMALL_STRING_SIZE = @sizeOf(ClawStr);
 
-/// Create a big RocStr from a slice (avoids small string encoding issues)
-fn createBigRocStr(str: []const u8, roc_ops: *builtins.host_abi.RocOps) RocStr {
+/// Create a big ClawStr from a slice (avoids small string encoding issues)
+fn createBigRocStr(str: []const u8, roc_ops: *builtins.host_abi.ClawOps) ClawStr {
     if (str.len < SMALL_STRING_SIZE) {
         // Force big string allocation by allocating at least 24 bytes
         const first_element = builtins.utils.allocateWithRefcount(
@@ -509,13 +509,13 @@ fn createBigRocStr(str: []const u8, roc_ops: *builtins.host_abi.RocOps) RocStr {
         @memcpy(first_element[0..str.len], str);
         @memset(first_element[str.len..SMALL_STRING_SIZE], 0);
 
-        return RocStr{
+        return ClawStr{
             .bytes = first_element,
-            .capacity_or_alloc_ptr = RocStr.encodeCapacity(SMALL_STRING_SIZE),
+            .capacity_or_alloc_ptr = ClawStr.encodeCapacity(SMALL_STRING_SIZE),
             .length = str.len,
         };
     } else {
-        return RocStr.fromSlice(str, roc_ops);
+        return ClawStr.fromSlice(str, roc_ops);
     }
 }
 
@@ -539,7 +539,7 @@ const JsonModuleTypeInfo = struct {
 };
 
 /// Clean up result payload from roc_make_glue
-fn cleanupResult(result: *ResultListFileStr, roc_ops: *builtins.host_abi.RocOps) void {
+fn cleanupResult(result: *ResultListFileStr, roc_ops: *builtins.host_abi.ClawOps) void {
     switch (result.tag) {
         .Ok => {
             const files = result.payload.ok;
@@ -559,14 +559,14 @@ fn cleanupResult(result: *ResultListFileStr, roc_ops: *builtins.host_abi.RocOps)
     }
 }
 
-/// Parse types_json and build RocList of ModuleTypeInfoRoc
+/// Parse types_json and build ClawList of ModuleTypeInfoRoc
 /// All list allocations use Roc's allocation scheme (allocateWithRefcount) so that
 /// Roc's compiled code can properly check refcounts at bytes-8.
 fn parseTypesJson(
     allocator: std.mem.Allocator,
     json_str: []const u8,
-    roc_ops: *builtins.host_abi.RocOps,
-) Allocator.Error!RocList {
+    roc_ops: *builtins.host_abi.ClawOps,
+) Allocator.Error!ClawList {
     const host: *HostEnv = @ptrCast(@alignCast(roc_ops.env));
     // Parse the JSON
     const parsed = std.json.parseFromSlice([]const JsonModuleTypeInfo, allocator, json_str, .{}) catch |err| {
@@ -575,22 +575,22 @@ fn parseTypesJson(
         var buf: [64]u8 = undefined;
         const msg = std.fmt.bufPrint(&buf, "{}\n", .{err}) catch "unknown error\n";
         stderr.writeStreamingAll(host.std_io, msg) catch {};
-        return RocList.empty();
+        return ClawList.empty();
     };
     defer parsed.deinit();
 
     const modules = parsed.value;
     if (modules.len == 0) {
-        return RocList.empty();
+        return ClawList.empty();
     }
 
     // Allocate array for ModuleTypeInfoRoc entries using Roc's allocation scheme
-    // ModuleTypeInfoRoc contains RocStr and RocList fields which are refcounted
+    // ModuleTypeInfoRoc contains ClawStr and ClawList fields which are refcounted
     const modules_data_size = modules.len * @sizeOf(ModuleTypeInfoRoc);
     const modules_bytes = builtins.utils.allocateWithRefcount(
         modules_data_size,
         @alignOf(ModuleTypeInfoRoc),
-        true, // elements ARE refcounted (ModuleTypeInfoRoc contains RocStr/RocList)
+        true, // elements ARE refcounted (ModuleTypeInfoRoc contains ClawStr/ClawList)
         roc_ops,
     );
 
@@ -598,13 +598,13 @@ fn parseTypesJson(
 
     for (modules, 0..) |mod, mod_idx| {
         // Build functions list using Roc's allocation scheme
-        // FunctionInfoRoc contains RocStr fields which are refcounted
+        // FunctionInfoRoc contains ClawStr fields which are refcounted
         const functions_list = if (mod.functions.len > 0) blk: {
             const funcs_data_size = mod.functions.len * @sizeOf(FunctionInfoRoc);
             const funcs_bytes = builtins.utils.allocateWithRefcount(
                 funcs_data_size,
                 @alignOf(FunctionInfoRoc),
-                true, // elements ARE refcounted (FunctionInfoRoc contains RocStr)
+                true, // elements ARE refcounted (FunctionInfoRoc contains ClawStr)
                 roc_ops,
             );
 
@@ -617,21 +617,21 @@ fn parseTypesJson(
                 };
             }
 
-            break :blk RocList{
+            break :blk ClawList{
                 .bytes = funcs_bytes,
                 .length = mod.functions.len,
-                .capacity_or_alloc_ptr = RocList.encodeCapacity(mod.functions.len),
+                .capacity_or_alloc_ptr = ClawList.encodeCapacity(mod.functions.len),
             };
-        } else RocList.empty();
+        } else ClawList.empty();
 
         // Build hosted_functions list using Roc's allocation scheme
-        // HostedFunctionInfoRoc contains RocStr fields which are refcounted
+        // HostedFunctionInfoRoc contains ClawStr fields which are refcounted
         const hosted_functions_list = if (mod.hosted_functions.len > 0) blk: {
             const hosted_data_size = mod.hosted_functions.len * @sizeOf(HostedFunctionInfoRoc);
             const hosted_bytes = builtins.utils.allocateWithRefcount(
                 hosted_data_size,
                 @alignOf(HostedFunctionInfoRoc),
-                true, // elements ARE refcounted (HostedFunctionInfoRoc contains RocStr)
+                true, // elements ARE refcounted (HostedFunctionInfoRoc contains ClawStr)
                 roc_ops,
             );
 
@@ -645,12 +645,12 @@ fn parseTypesJson(
                 };
             }
 
-            break :blk RocList{
+            break :blk ClawList{
                 .bytes = hosted_bytes,
                 .length = mod.hosted_functions.len,
-                .capacity_or_alloc_ptr = RocList.encodeCapacity(mod.hosted_functions.len),
+                .capacity_or_alloc_ptr = ClawList.encodeCapacity(mod.hosted_functions.len),
             };
-        } else RocList.empty();
+        } else ClawList.empty();
 
         modules_ptr[mod_idx] = ModuleTypeInfoRoc{
             .functions = functions_list,
@@ -660,10 +660,10 @@ fn parseTypesJson(
         };
     }
 
-    return RocList{
+    return ClawList{
         .bytes = modules_bytes,
         .length = modules.len,
-        .capacity_or_alloc_ptr = RocList.encodeCapacity(modules.len),
+        .capacity_or_alloc_ptr = ClawList.encodeCapacity(modules.len),
     };
 }
 
@@ -743,9 +743,9 @@ fn platform_main(args: [][*:0]u8, std_io: std.Io) (Allocator.Error || error{ Mis
         }
     }
 
-    // The host's private RocOps for using builtins helpers (RocStr/RocList
+    // The host's private ClawOps for using builtins helpers (ClawStr/ClawList
     // allocation, decref). Not part of the ABI.
-    var roc_ops = builtins.host_abi.RocOps{
+    var roc_ops = builtins.host_abi.ClawOps{
         .env = @as(*anyopaque, @ptrCast(&host_env)),
         .roc_alloc = rocAllocFn,
         .roc_dealloc = rocDeallocFn,
@@ -771,14 +771,14 @@ fn platform_main(args: [][*:0]u8, std_io: std.Io) (Allocator.Error || error{ Mis
     // Allocate array for EntryPoint entries using Roc's allocation scheme
     // This ensures a valid refcount is present at bytes-8, which Roc's
     // list operations expect when checking isUnique() etc.
-    // EntryPoint contains RocStr which is refcounted, so use elements_refcounted=true
+    // EntryPoint contains ClawStr which is refcounted, so use elements_refcounted=true
     // to allocate 16 bytes of header space (refcount + element count).
     const tuple1_size = @sizeOf(EntryPoint);
     const entrypoints_data_size = entry_point_names.len * tuple1_size;
     const entrypoints_bytes = builtins.utils.allocateWithRefcount(
         entrypoints_data_size,
         @alignOf(EntryPoint),
-        true, // elements ARE refcounted (EntryPoint contains RocStr)
+        true, // elements ARE refcounted (EntryPoint contains ClawStr)
         &roc_ops,
     );
 
@@ -801,14 +801,14 @@ fn platform_main(args: [][*:0]u8, std_io: std.Io) (Allocator.Error || error{ Mis
             @memcpy(first_element[0..name.len], name);
             @memset(first_element[name.len..SMALL_STRING_SIZE], 0);
 
-            break :blk RocStr{
+            break :blk ClawStr{
                 .bytes = first_element,
-                .capacity_or_alloc_ptr = RocStr.encodeCapacity(SMALL_STRING_SIZE),
+                .capacity_or_alloc_ptr = ClawStr.encodeCapacity(SMALL_STRING_SIZE),
                 .length = name.len,
             };
         } else blk: {
             // For strings >= 24 bytes, fromSlice already creates a big string
-            break :blk RocStr.fromSlice(name, &roc_ops);
+            break :blk ClawStr.fromSlice(name, &roc_ops);
         };
 
         entrypoints_ptr[idx] = EntryPoint{
@@ -817,18 +817,18 @@ fn platform_main(args: [][*:0]u8, std_io: std.Io) (Allocator.Error || error{ Mis
         };
     }
 
-    // Create RocList for entrypoints
-    const entrypoints_list = RocList{
+    // Create ClawList for entrypoints
+    const entrypoints_list = ClawList{
         .bytes = entrypoints_bytes,
         .length = entry_point_names.len,
-        .capacity_or_alloc_ptr = RocList.encodeCapacity(entry_point_names.len),
+        .capacity_or_alloc_ptr = ClawList.encodeCapacity(entry_point_names.len),
     };
 
     // Parse types_json to create modules list
     const modules_list = if (types_json) |json|
-        parseTypesJson(allocator, json, &roc_ops) catch RocList.empty()
+        parseTypesJson(allocator, json, &roc_ops) catch ClawList.empty()
     else
-        RocList.empty();
+        ClawList.empty();
 
     // Build provides list from entry point names
     // In standalone mode, entry point names are FFI symbols, so use them as both name and ffi_symbol
@@ -837,7 +837,7 @@ fn platform_main(args: [][*:0]u8, std_io: std.Io) (Allocator.Error || error{ Mis
         const prov_bytes = builtins.utils.allocateWithRefcount(
             prov_data_size,
             @alignOf(ProvidesEntry),
-            true, // elements ARE refcounted (ProvidesEntry contains RocStr)
+            true, // elements ARE refcounted (ProvidesEntry contains ClawStr)
             &roc_ops,
         );
         const prov_ptr: [*]ProvidesEntry = @ptrCast(@alignCast(prov_bytes));
@@ -850,21 +850,21 @@ fn platform_main(args: [][*:0]u8, std_io: std.Io) (Allocator.Error || error{ Mis
             };
         }
 
-        break :pblk RocList{
+        break :pblk ClawList{
             .bytes = prov_bytes,
             .length = entry_point_names.len,
-            .capacity_or_alloc_ptr = RocList.encodeCapacity(entry_point_names.len),
+            .capacity_or_alloc_ptr = ClawList.encodeCapacity(entry_point_names.len),
         };
-    } else RocList.empty();
+    } else ClawList.empty();
 
     // Heap-allocate TypesInner using Roc's allocation scheme
     // This ensures a valid refcount is present at bytes-8, which Roc's
     // list operations expect when checking isUnique() etc.
-    // TypesInner contains RocList fields which are refcounted
+    // TypesInner contains ClawList fields which are refcounted
     const types_inner_bytes = builtins.utils.allocateWithRefcount(
         @sizeOf(TypesInner),
         @alignOf(TypesInner),
-        true, // elements ARE refcounted (TypesInner contains RocList)
+        true, // elements ARE refcounted (TypesInner contains ClawList)
         &roc_ops,
     );
 
@@ -873,14 +873,14 @@ fn platform_main(args: [][*:0]u8, std_io: std.Io) (Allocator.Error || error{ Mis
         .entrypoints = entrypoints_list,
         .modules = modules_list,
         .provides_entries = provides_list,
-        .type_table = RocList.empty(),
+        .type_table = ClawList.empty(),
     };
 
     // Create a List Types with one element (the Types structure)
-    const types_list = RocList{
+    const types_list = ClawList{
         .bytes = types_inner_bytes,
         .length = 1,
-        .capacity_or_alloc_ptr = RocList.encodeCapacity(1),
+        .capacity_or_alloc_ptr = ClawList.encodeCapacity(1),
     };
 
     // Call the Roc glue spec

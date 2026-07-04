@@ -37,7 +37,7 @@ pub const ExecutableMemory = if (builtin.os.tag == .freestanding)
 else
     @import("ExecutableMemory.zig").ExecutableMemory;
 
-// LirCodeGen - LIR-based code generator parameterized by RocTarget
+// LirCodeGen - LIR-based code generator parameterized by ClawTarget
 pub const LirCodeGenMod = @import("LirCodeGen.zig");
 
 /// Pre-instantiated LirCodeGen for the host platform (the machine running the compiler)
@@ -47,7 +47,7 @@ pub const HostLirCodeGen = LirCodeGenMod.HostLirCodeGen;
 pub const host_lir_codegen_available = LirCodeGenMod.host_lir_codegen_available;
 
 /// Object file compiler for generating object files from Mono IR.
-/// Supports cross-compilation to any RocTarget.
+/// Supports cross-compilation to any ClawTarget.
 /// Only available on non-freestanding targets (uses std.fs)
 pub const ObjectFileCompiler = if (builtin.os.tag == .freestanding) void else @import("ObjectFileCompiler.zig").ObjectFileCompiler;
 pub const Entrypoint = if (builtin.os.tag == .freestanding) void else @import("ObjectFileCompiler.zig").Entrypoint;

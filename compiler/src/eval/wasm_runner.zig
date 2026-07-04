@@ -343,7 +343,7 @@ pub fn runWasmStrWithStats(
 }
 
 fn hostDecMul(_: ?*anyopaque, module: *bytebox.ModuleInstance, params: [*]const bytebox.Val, _: [*]bytebox.Val) error{}!void {
-    const RocDec = builtins.dec.RocDec;
+    const ClawDec = builtins.dec.ClawDec;
     const buffer = module.store.getMemory(0).buffer();
     const lhs_ptr: usize = @intCast(params[0].I32);
     const rhs_ptr: usize = @intCast(params[1].I32);
@@ -355,8 +355,8 @@ fn hostDecMul(_: ?*anyopaque, module: *bytebox.ModuleInstance, params: [*]const 
     const rhs_low: u64 = readIntLittle(u64, buffer, rhs_ptr);
     const rhs_high: u64 = readIntLittle(u64, buffer, rhs_ptr + 8);
     const rhs_i128: i128 = @bitCast(@as(u128, rhs_high) << 64 | @as(u128, rhs_low));
-    const lhs_dec = RocDec{ .num = lhs_i128 };
-    const rhs_dec = RocDec{ .num = rhs_i128 };
+    const lhs_dec = ClawDec{ .num = lhs_i128 };
+    const rhs_dec = ClawDec{ .num = rhs_i128 };
     const result = lhs_dec.mulWithOverflow(rhs_dec);
     if (result.has_overflowed) {
         wasm_crash_state = .crashed;
@@ -368,7 +368,7 @@ fn hostDecMul(_: ?*anyopaque, module: *bytebox.ModuleInstance, params: [*]const 
 }
 
 fn hostDecToStr(_: ?*anyopaque, module: *bytebox.ModuleInstance, params: [*]const bytebox.Val, results: [*]bytebox.Val) error{}!void {
-    const RocDec = builtins.dec.RocDec;
+    const ClawDec = builtins.dec.ClawDec;
     const buffer = module.store.getMemory(0).buffer();
     const dec_ptr: usize = @intCast(params[0].I32);
     const buf_ptr: usize = @intCast(params[1].I32);
@@ -379,8 +379,8 @@ fn hostDecToStr(_: ?*anyopaque, module: *bytebox.ModuleInstance, params: [*]cons
     const low: u64 = readIntLittle(u64, buffer, dec_ptr);
     const high: u64 = readIntLittle(u64, buffer, dec_ptr + 8);
     const dec_i128: i128 = @bitCast(@as(u128, high) << 64 | @as(u128, low));
-    const dec = RocDec{ .num = dec_i128 };
-    var fmt_buf: [RocDec.max_str_length]u8 = undefined;
+    const dec = ClawDec{ .num = dec_i128 };
+    var fmt_buf: [ClawDec.max_str_length]u8 = undefined;
     const formatted = dec.format_to_buf(&fmt_buf);
     @memcpy(buffer[buf_ptr..][0..formatted.len], formatted);
     results[0] = .{ .I32 = @intCast(formatted.len) };
@@ -495,7 +495,7 @@ fn wasmByteSlice(buffer: []u8, ptr: usize, len: usize) []const u8 {
     return if (len == 0) buffer[0..0] else buffer[ptr..][0..len];
 }
 
-fn nativeRocListBytes(roc_list: builtins.list.RocList) []const u8 {
+fn nativeRocListBytes(roc_list: builtins.list.ClawList) []const u8 {
     if (roc_list.bytes) |ptr| return ptr[0..roc_list.length];
     std.debug.assert(roc_list.length == 0);
     return &.{};
@@ -516,7 +516,7 @@ fn writeWasmList(buffer: []u8, result_ptr: usize, bytes: []const u8) void {
     writeIntLittle(u32, buffer, result_ptr + 8, encodeWasmListCapacity(bytes.len));
 }
 
-fn writeNativeRocListToWasm(buffer: []u8, result_ptr: usize, roc_list: builtins.list.RocList) void {
+fn writeNativeRocListToWasm(buffer: []u8, result_ptr: usize, roc_list: builtins.list.ClawList) void {
     writeWasmList(buffer, result_ptr, nativeRocListBytes(roc_list));
 }
 
@@ -737,16 +737,16 @@ const DecUnaryMathOp = enum {
 };
 
 fn hostDecPow(_: ?*anyopaque, module: *bytebox.ModuleInstance, params: [*]const bytebox.Val, _: [*]bytebox.Val) error{}!void {
-    const RocDec = builtins.dec.RocDec;
+    const ClawDec = builtins.dec.ClawDec;
     const buffer = module.store.getMemory(0).buffer();
     const lhs_ptr: usize = @intCast(params[0].I32);
     const rhs_ptr: usize = @intCast(params[1].I32);
     const result_ptr: usize = @intCast(params[2].I32);
     if (lhs_ptr + 16 > buffer.len or rhs_ptr + 16 > buffer.len or result_ptr + 16 > buffer.len) return;
 
-    const base = RocDec{ .num = readI128FromMem(buffer, lhs_ptr) };
-    const exponent = RocDec{ .num = readI128FromMem(buffer, rhs_ptr) };
-    if ((base.num == 0 and exponent.num < 0) or (base.num <= 0 and i128h.rem_i128(exponent.num, RocDec.one_point_zero_i128) != 0)) {
+    const base = ClawDec{ .num = readI128FromMem(buffer, lhs_ptr) };
+    const exponent = ClawDec{ .num = readI128FromMem(buffer, rhs_ptr) };
+    if ((base.num == 0 and exponent.num < 0) or (base.num <= 0 and i128h.rem_i128(exponent.num, ClawDec.one_point_zero_i128) != 0)) {
         wasm_crash_state = .crashed;
         return;
     }
@@ -757,19 +757,19 @@ fn hostDecPow(_: ?*anyopaque, module: *bytebox.ModuleInstance, params: [*]const 
 }
 
 fn hostDecUnaryMath(module: *bytebox.ModuleInstance, params: [*]const bytebox.Val, comptime op: DecUnaryMathOp) void {
-    const RocDec = builtins.dec.RocDec;
+    const ClawDec = builtins.dec.ClawDec;
     const buffer = module.store.getMemory(0).buffer();
     const arg_ptr: usize = @intCast(params[0].I32);
     const result_ptr: usize = @intCast(params[1].I32);
     if (arg_ptr + 16 > buffer.len or result_ptr + 16 > buffer.len) return;
 
-    const arg = RocDec{ .num = readI128FromMem(buffer, arg_ptr) };
+    const arg = ClawDec{ .num = readI128FromMem(buffer, arg_ptr) };
     switch (op) {
         .sqrt => if (arg.num < 0) {
             wasm_crash_state = .crashed;
             return;
         },
-        .asin, .acos => if (arg.num < RocDec.neg_one_point_zero.num or arg.num > RocDec.one_point_zero.num) {
+        .asin, .acos => if (arg.num < ClawDec.neg_one_point_zero.num or arg.num > ClawDec.one_point_zero.num) {
             wasm_crash_state = .crashed;
             return;
         },
@@ -1221,14 +1221,14 @@ fn writeWasmEmptyStr(buffer: []u8, result_ptr: usize) void {
     buffer[result_ptr + 11] = 0x80;
 }
 
-fn rocStrFromWasmSlice(data: [*]const u8, len: usize) builtins.str.RocStr {
-    if (len < @sizeOf(builtins.str.RocStr)) {
-        return builtins.str.RocStr.fromSliceSmall(data[0..len]);
+fn rocStrFromWasmSlice(data: [*]const u8, len: usize) builtins.str.ClawStr {
+    if (len < @sizeOf(builtins.str.ClawStr)) {
+        return builtins.str.ClawStr.fromSliceSmall(data[0..len]);
     }
 
     return .{
         .bytes = @constCast(data),
-        .capacity_or_alloc_ptr = builtins.str.RocStr.encodeCapacity(len),
+        .capacity_or_alloc_ptr = builtins.str.ClawStr.encodeCapacity(len),
         .length = len,
     };
 }
@@ -1250,8 +1250,8 @@ fn allocWasmData(buffer: []u8, alignment: u32, length: usize) u32 {
     return data_ptr;
 }
 
-// RocOps callbacks follow the platform C ABI: a leading *RocOps (the i32 pointer to the
-// RocOps struct in linear memory, unused here) followed by the natural arguments, with the
+// ClawOps callbacks follow the platform C ABI: a leading *ClawOps (the i32 pointer to the
+// ClawOps struct in linear memory, unused here) followed by the natural arguments, with the
 // result returned directly rather than written back into an args struct.
 
 fn hostRocAlloc(_: ?*anyopaque, module: *bytebox.ModuleInstance, params: [*]const bytebox.Val, results: [*]bytebox.Val) error{}!void {
@@ -2075,14 +2075,14 @@ fn hostFloatFromStr(_: ?*anyopaque, module: *bytebox.ModuleInstance, params: [*]
     }
 }
 
-fn writeIntParseResult(comptime T: type, buffer: []u8, out_ptr: usize, disc_offset: usize, roc_str: builtins.str.RocStr) void {
+fn writeIntParseResult(comptime T: type, buffer: []u8, out_ptr: usize, disc_offset: usize, roc_str: builtins.str.ClawStr) void {
     const r = builtins.num.parseIntFromStr(T, roc_str);
     const value_bytes = std.mem.asBytes(&r.value);
     @memcpy(buffer[out_ptr..][0..value_bytes.len], value_bytes);
     buffer[out_ptr + disc_offset] = 1 - r.errorcode;
 }
 
-fn writeFloatParseResult(comptime T: type, buffer: []u8, out_ptr: usize, disc_offset: usize, roc_str: builtins.str.RocStr) void {
+fn writeFloatParseResult(comptime T: type, buffer: []u8, out_ptr: usize, disc_offset: usize, roc_str: builtins.str.ClawStr) void {
     const r = builtins.num.parseFloatFromStr(T, roc_str);
     const value_bytes = std.mem.asBytes(&r.value);
     @memcpy(buffer[out_ptr..][0..value_bytes.len], value_bytes);
@@ -2098,7 +2098,7 @@ var wasm_heap_ptr: u32 = 65536;
 var wasm_allocation_count: u32 = 0;
 var wasm_crash_state: WasmCrashState = .none;
 
-const WasmRocOps = builtins.host_abi.RocOps;
+const WasmRocOps = builtins.host_abi.ClawOps;
 
 fn wasmDecAlloc(_: *WasmRocOps, _: usize, _: usize) callconv(.c) ?*anyopaque {
     wasm_crash_state = .crashed;

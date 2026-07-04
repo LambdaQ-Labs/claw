@@ -1,6 +1,6 @@
 //! Wrapper functions for the dev backend
 //!
-//! These wrappers decompose RocStr/RocList structs into individual fields
+//! These wrappers decompose ClawStr/ClawList structs into individual fields
 //! so all arguments fit in registers and avoid platform-specific struct-passing ABI issues.
 //! They are used by both:
 //! - Native execution (dev evaluator) via direct function pointers
@@ -19,12 +19,12 @@ const i128h = @import("compiler_rt_128.zig");
 const float_tan = @import("float_math/tan.zig");
 const numeric_conversions = @import("numeric_conversions.zig");
 
-const RocStr = str.RocStr;
-const RocList = list.RocList;
+const ClawStr = str.ClawStr;
+const ClawList = list.ClawList;
 const FromUtf8Try = str.FromUtf8Try;
-// Use a local opaque pointer type for RocOps to avoid importing host_abi.zig
+// Use a local opaque pointer type for ClawOps to avoid importing host_abi.zig
 // which has a tracy dependency. The actual struct layout is handled by utils.zig.
-const RocOps = utils.RocOps;
+const ClawOps = utils.ClawOps;
 
 /// Field offsets for the dev backend's `Str.find_first` result copy.
 pub const StrFindFirstLayout = extern struct {
@@ -77,9 +77,9 @@ pub fn roc_builtins_hasher_write_bytes(seed: u64, domain: u8, bytes: ?[*]const u
     return hash.hasher_write_bytes(seed, domain, bytes, length);
 }
 
-/// C ABI wrapper for hashing RocStr contents.
+/// C ABI wrapper for hashing ClawStr contents.
 pub fn roc_builtins_hasher_write_str(seed: u64, str_bytes: ?[*]u8, str_len: usize, str_cap: usize) callconv(.c) u64 {
-    const value = RocStr{ .bytes = str_bytes, .length = str_len, .capacity_or_alloc_ptr = str_cap };
+    const value = ClawStr{ .bytes = str_bytes, .length = str_len, .capacity_or_alloc_ptr = str_cap };
     const bytes = value.asSlice();
     return hash.hasher_write_bytes(seed, @intFromEnum(hash.HasherDomain.str), bytes.ptr, bytes.len);
 }
@@ -95,42 +95,42 @@ pub fn roc_builtins_dict_pseudo_seed() callconv(.c) u64 {
 }
 
 /// C ABI wrapper for one-shot SHA-256 hashing.
-pub fn roc_builtins_crypto_sha256_hash_bytes(out: *RocList, bytes: ?[*]const u8, len: usize, _: usize, roc_ops: *RocOps) callconv(.c) void {
+pub fn roc_builtins_crypto_sha256_hash_bytes(out: *ClawList, bytes: ?[*]const u8, len: usize, _: usize, roc_ops: *ClawOps) callconv(.c) void {
     out.* = crypto.sha256HashBytes(bytes, len, roc_ops);
 }
 
 /// C ABI wrapper for creating an empty serialized SHA-256 state.
-pub fn roc_builtins_crypto_sha256_hasher_empty(out: *RocList, roc_ops: *RocOps) callconv(.c) void {
+pub fn roc_builtins_crypto_sha256_hasher_empty(out: *ClawList, roc_ops: *ClawOps) callconv(.c) void {
     out.* = crypto.sha256HasherEmpty(roc_ops);
 }
 
 /// C ABI wrapper for updating serialized SHA-256 state.
-pub fn roc_builtins_crypto_sha256_hasher_write(out: *RocList, state_bytes: ?[*]const u8, state_len: usize, _: usize, input_bytes: ?[*]const u8, input_len: usize, _: usize, roc_ops: *RocOps) callconv(.c) void {
+pub fn roc_builtins_crypto_sha256_hasher_write(out: *ClawList, state_bytes: ?[*]const u8, state_len: usize, _: usize, input_bytes: ?[*]const u8, input_len: usize, _: usize, roc_ops: *ClawOps) callconv(.c) void {
     out.* = crypto.sha256HasherWrite(state_bytes, state_len, input_bytes, input_len, roc_ops);
 }
 
 /// C ABI wrapper for finishing serialized SHA-256 state.
-pub fn roc_builtins_crypto_sha256_hasher_finish(out: *RocList, state_bytes: ?[*]const u8, state_len: usize, _: usize, roc_ops: *RocOps) callconv(.c) void {
+pub fn roc_builtins_crypto_sha256_hasher_finish(out: *ClawList, state_bytes: ?[*]const u8, state_len: usize, _: usize, roc_ops: *ClawOps) callconv(.c) void {
     out.* = crypto.sha256HasherFinish(state_bytes, state_len, roc_ops);
 }
 
 /// C ABI wrapper for one-shot BLAKE3 hashing.
-pub fn roc_builtins_crypto_blake3_hash_bytes(out: *RocList, bytes: ?[*]const u8, len: usize, _: usize, roc_ops: *RocOps) callconv(.c) void {
+pub fn roc_builtins_crypto_blake3_hash_bytes(out: *ClawList, bytes: ?[*]const u8, len: usize, _: usize, roc_ops: *ClawOps) callconv(.c) void {
     out.* = crypto.blake3HashBytes(bytes, len, roc_ops);
 }
 
 /// C ABI wrapper for creating an empty serialized BLAKE3 state.
-pub fn roc_builtins_crypto_blake3_hasher_empty(out: *RocList, roc_ops: *RocOps) callconv(.c) void {
+pub fn roc_builtins_crypto_blake3_hasher_empty(out: *ClawList, roc_ops: *ClawOps) callconv(.c) void {
     out.* = crypto.blake3HasherEmpty(roc_ops);
 }
 
 /// C ABI wrapper for updating serialized BLAKE3 state.
-pub fn roc_builtins_crypto_blake3_hasher_write(out: *RocList, state_bytes: ?[*]const u8, state_len: usize, _: usize, input_bytes: ?[*]const u8, input_len: usize, _: usize, roc_ops: *RocOps) callconv(.c) void {
+pub fn roc_builtins_crypto_blake3_hasher_write(out: *ClawList, state_bytes: ?[*]const u8, state_len: usize, _: usize, input_bytes: ?[*]const u8, input_len: usize, _: usize, roc_ops: *ClawOps) callconv(.c) void {
     out.* = crypto.blake3HasherWrite(state_bytes, state_len, input_bytes, input_len, roc_ops);
 }
 
 /// C ABI wrapper for finishing serialized BLAKE3 state.
-pub fn roc_builtins_crypto_blake3_hasher_finish(out: *RocList, state_bytes: ?[*]const u8, state_len: usize, _: usize, roc_ops: *RocOps) callconv(.c) void {
+pub fn roc_builtins_crypto_blake3_hasher_finish(out: *ClawList, state_bytes: ?[*]const u8, state_len: usize, _: usize, roc_ops: *ClawOps) callconv(.c) void {
     out.* = crypto.blake3HasherFinish(state_bytes, state_len, roc_ops);
 }
 
@@ -169,210 +169,210 @@ const listReleaseExcessCapacity = list.listReleaseExcessCapacity;
 const listWithCapacity = list.listWithCapacity;
 const listAppendUnsafe = list.listAppendUnsafe;
 const listDecref = list.listDecref;
-const RcDropFn = *const fn (?[*]u8, *RocOps) callconv(.c) void;
-const RcIncFn = *const fn (?[*]u8, isize, *RocOps) callconv(.c) void;
+const RcDropFn = *const fn (?[*]u8, *ClawOps) callconv(.c) void;
+const RcIncFn = *const fn (?[*]u8, isize, *ClawOps) callconv(.c) void;
 
 // ═══════════════════════════════════════════════════════════════════════════
 // String Wrappers
 // ═══════════════════════════════════════════════════════════════════════════
 
-/// Wrapper: strToUtf8C(RocStr, *RocOps) -> RocList
-pub fn roc_builtins_str_to_utf8(out: *RocList, str_bytes: ?[*]u8, str_len: usize, str_cap: usize, roc_ops: *RocOps) callconv(.c) void {
-    const arg = RocStr{ .bytes = str_bytes, .length = str_len, .capacity_or_alloc_ptr = str_cap };
+/// Wrapper: strToUtf8C(ClawStr, *ClawOps) -> ClawList
+pub fn roc_builtins_str_to_utf8(out: *ClawList, str_bytes: ?[*]u8, str_len: usize, str_cap: usize, roc_ops: *ClawOps) callconv(.c) void {
+    const arg = ClawStr{ .bytes = str_bytes, .length = str_len, .capacity_or_alloc_ptr = str_cap };
     out.* = strToUtf8C(arg, roc_ops);
 }
 
-/// Wrapper: strConcatC(RocStr, RocStr, UpdateMode, *RocOps) -> RocStr. The
+/// Wrapper: strConcatC(ClawStr, ClawStr, UpdateMode, *ClawOps) -> ClawStr. The
 /// update mode is forwarded to the builtin's uniqueness check; `.InPlace`
 /// skips it.
-pub fn roc_builtins_str_concat(out: *RocStr, a_bytes: ?[*]u8, a_len: usize, a_cap: usize, b_bytes: ?[*]u8, b_len: usize, b_cap: usize, update_mode: utils.UpdateMode, roc_ops: *RocOps) callconv(.c) void {
-    const a = RocStr{ .bytes = a_bytes, .length = a_len, .capacity_or_alloc_ptr = a_cap };
-    const b = RocStr{ .bytes = b_bytes, .length = b_len, .capacity_or_alloc_ptr = b_cap };
+pub fn roc_builtins_str_concat(out: *ClawStr, a_bytes: ?[*]u8, a_len: usize, a_cap: usize, b_bytes: ?[*]u8, b_len: usize, b_cap: usize, update_mode: utils.UpdateMode, roc_ops: *ClawOps) callconv(.c) void {
+    const a = ClawStr{ .bytes = a_bytes, .length = a_len, .capacity_or_alloc_ptr = a_cap };
+    const b = ClawStr{ .bytes = b_bytes, .length = b_len, .capacity_or_alloc_ptr = b_cap };
     out.* = strConcatC(a, b, update_mode, roc_ops);
 }
 
-/// Wrapper: strContains(RocStr, RocStr) -> bool
+/// Wrapper: strContains(ClawStr, ClawStr) -> bool
 pub fn roc_builtins_str_contains(a_bytes: ?[*]u8, a_len: usize, a_cap: usize, b_bytes: ?[*]u8, b_len: usize, b_cap: usize) callconv(.c) bool {
-    const a = RocStr{ .bytes = a_bytes, .length = a_len, .capacity_or_alloc_ptr = a_cap };
-    const b = RocStr{ .bytes = b_bytes, .length = b_len, .capacity_or_alloc_ptr = b_cap };
+    const a = ClawStr{ .bytes = a_bytes, .length = a_len, .capacity_or_alloc_ptr = a_cap };
+    const b = ClawStr{ .bytes = b_bytes, .length = b_len, .capacity_or_alloc_ptr = b_cap };
     return strContains(a, b);
 }
 
-/// Wrapper: startsWith(RocStr, RocStr) -> bool
+/// Wrapper: startsWith(ClawStr, ClawStr) -> bool
 pub fn roc_builtins_str_starts_with(a_bytes: ?[*]u8, a_len: usize, a_cap: usize, b_bytes: ?[*]u8, b_len: usize, b_cap: usize) callconv(.c) bool {
-    const a = RocStr{ .bytes = a_bytes, .length = a_len, .capacity_or_alloc_ptr = a_cap };
-    const b = RocStr{ .bytes = b_bytes, .length = b_len, .capacity_or_alloc_ptr = b_cap };
+    const a = ClawStr{ .bytes = a_bytes, .length = a_len, .capacity_or_alloc_ptr = a_cap };
+    const b = ClawStr{ .bytes = b_bytes, .length = b_len, .capacity_or_alloc_ptr = b_cap };
     return startsWith(a, b);
 }
 
-/// Wrapper: endsWith(RocStr, RocStr) -> bool
+/// Wrapper: endsWith(ClawStr, ClawStr) -> bool
 pub fn roc_builtins_str_ends_with(a_bytes: ?[*]u8, a_len: usize, a_cap: usize, b_bytes: ?[*]u8, b_len: usize, b_cap: usize) callconv(.c) bool {
-    const a = RocStr{ .bytes = a_bytes, .length = a_len, .capacity_or_alloc_ptr = a_cap };
-    const b = RocStr{ .bytes = b_bytes, .length = b_len, .capacity_or_alloc_ptr = b_cap };
+    const a = ClawStr{ .bytes = a_bytes, .length = a_len, .capacity_or_alloc_ptr = a_cap };
+    const b = ClawStr{ .bytes = b_bytes, .length = b_len, .capacity_or_alloc_ptr = b_cap };
     return endsWith(a, b);
 }
 
-/// Wrapper: strEqual(RocStr, RocStr) -> bool
+/// Wrapper: strEqual(ClawStr, ClawStr) -> bool
 pub fn roc_builtins_str_equal(a_bytes: ?[*]u8, a_len: usize, a_cap: usize, b_bytes: ?[*]u8, b_len: usize, b_cap: usize) callconv(.c) bool {
-    const a = RocStr{ .bytes = a_bytes, .length = a_len, .capacity_or_alloc_ptr = a_cap };
-    const b = RocStr{ .bytes = b_bytes, .length = b_len, .capacity_or_alloc_ptr = b_cap };
+    const a = ClawStr{ .bytes = a_bytes, .length = a_len, .capacity_or_alloc_ptr = a_cap };
+    const b = ClawStr{ .bytes = b_bytes, .length = b_len, .capacity_or_alloc_ptr = b_cap };
     return strEqual(a, b);
 }
 
-/// Wrapper: strEqualStaticSmall(RocStr, u64, u64, u64, u64) -> bool
+/// Wrapper: strEqualStaticSmall(ClawStr, u64, u64, u64, u64) -> bool
 pub fn roc_builtins_str_equal_static_small(a_bytes: ?[*]u8, a_len: usize, a_cap: usize, static_len: u64, word0: u64, word1: u64, word2: u64) callconv(.c) bool {
-    const a = RocStr{ .bytes = a_bytes, .length = a_len, .capacity_or_alloc_ptr = a_cap };
+    const a = ClawStr{ .bytes = a_bytes, .length = a_len, .capacity_or_alloc_ptr = a_cap };
     return str.strEqualStaticSmall(a, static_len, word0, word1, word2);
 }
 
-/// Wrapper: strStaticSmallWordEq(RocStr, u64, u64, u64) -> bool
+/// Wrapper: strStaticSmallWordEq(ClawStr, u64, u64, u64) -> bool
 pub fn roc_builtins_str_static_small_word_eq(a_bytes: ?[*]u8, a_len: usize, a_cap: usize, offset: u64, active_len: u64, word: u64) callconv(.c) bool {
-    const a = RocStr{ .bytes = a_bytes, .length = a_len, .capacity_or_alloc_ptr = a_cap };
+    const a = ClawStr{ .bytes = a_bytes, .length = a_len, .capacity_or_alloc_ptr = a_cap };
     return str.strStaticSmallWordEq(a, offset, active_len, word);
 }
 
-/// Wrapper: strStaticSmallWordCaselessEq(RocStr, u64, u64, u64) -> bool
+/// Wrapper: strStaticSmallWordCaselessEq(ClawStr, u64, u64, u64) -> bool
 pub fn roc_builtins_str_static_small_word_caseless_eq(a_bytes: ?[*]u8, a_len: usize, a_cap: usize, offset: u64, active_len: u64, word: u64) callconv(.c) bool {
-    const a = RocStr{ .bytes = a_bytes, .length = a_len, .capacity_or_alloc_ptr = a_cap };
+    const a = ClawStr{ .bytes = a_bytes, .length = a_len, .capacity_or_alloc_ptr = a_cap };
     return str.strStaticSmallWordCaselessEq(a, offset, active_len, word);
 }
 
-/// Wrapper: countUtf8Bytes(RocStr) -> u64
+/// Wrapper: countUtf8Bytes(ClawStr) -> u64
 pub fn roc_builtins_str_count_utf8_bytes(str_bytes: ?[*]u8, str_len: usize, str_cap: usize) callconv(.c) u64 {
-    const s = RocStr{ .bytes = str_bytes, .length = str_len, .capacity_or_alloc_ptr = str_cap };
+    const s = ClawStr{ .bytes = str_bytes, .length = str_len, .capacity_or_alloc_ptr = str_cap };
     return countUtf8Bytes(s);
 }
 
-/// Wrapper: findFirst(RocStr, RocStr, *RocOps) -> { before, found, after }
-pub fn roc_builtins_str_find_first(out: *anyopaque, a_bytes: ?[*]u8, a_len: usize, a_cap: usize, b_bytes: ?[*]u8, b_len: usize, b_cap: usize, layout: *const StrFindFirstLayout, roc_ops: *RocOps) callconv(.c) void {
-    const a = RocStr{ .bytes = a_bytes, .length = a_len, .capacity_or_alloc_ptr = a_cap };
-    const b = RocStr{ .bytes = b_bytes, .length = b_len, .capacity_or_alloc_ptr = b_cap };
+/// Wrapper: findFirst(ClawStr, ClawStr, *ClawOps) -> { before, found, after }
+pub fn roc_builtins_str_find_first(out: *anyopaque, a_bytes: ?[*]u8, a_len: usize, a_cap: usize, b_bytes: ?[*]u8, b_len: usize, b_cap: usize, layout: *const StrFindFirstLayout, roc_ops: *ClawOps) callconv(.c) void {
+    const a = ClawStr{ .bytes = a_bytes, .length = a_len, .capacity_or_alloc_ptr = a_cap };
+    const b = ClawStr{ .bytes = b_bytes, .length = b_len, .capacity_or_alloc_ptr = b_cap };
     const result = str.findFirst(a, b, roc_ops);
     const out_bytes: [*]u8 = @ptrCast(out);
 
-    @as(*RocStr, @ptrCast(@alignCast(out_bytes + layout.after_offset))).* = result.after;
-    @as(*RocStr, @ptrCast(@alignCast(out_bytes + layout.before_offset))).* = result.before;
+    @as(*ClawStr, @ptrCast(@alignCast(out_bytes + layout.after_offset))).* = result.after;
+    @as(*ClawStr, @ptrCast(@alignCast(out_bytes + layout.before_offset))).* = result.before;
     @as(*u8, @ptrCast(@alignCast(out_bytes + layout.found_offset))).* = if (result.found) 1 else 0;
 }
 
-/// Wrapper: strDropPrefixCaselessAscii(RocStr, RocStr, *RocOps) -> { after, found }
-pub fn roc_builtins_str_drop_prefix_caseless_ascii(out: *anyopaque, a_bytes: ?[*]u8, a_len: usize, a_cap: usize, b_bytes: ?[*]u8, b_len: usize, b_cap: usize, layout: *const StrDropPrefixCaselessAsciiLayout, roc_ops: *RocOps) callconv(.c) void {
-    const a = RocStr{ .bytes = a_bytes, .length = a_len, .capacity_or_alloc_ptr = a_cap };
-    const b = RocStr{ .bytes = b_bytes, .length = b_len, .capacity_or_alloc_ptr = b_cap };
+/// Wrapper: strDropPrefixCaselessAscii(ClawStr, ClawStr, *ClawOps) -> { after, found }
+pub fn roc_builtins_str_drop_prefix_caseless_ascii(out: *anyopaque, a_bytes: ?[*]u8, a_len: usize, a_cap: usize, b_bytes: ?[*]u8, b_len: usize, b_cap: usize, layout: *const StrDropPrefixCaselessAsciiLayout, roc_ops: *ClawOps) callconv(.c) void {
+    const a = ClawStr{ .bytes = a_bytes, .length = a_len, .capacity_or_alloc_ptr = a_cap };
+    const b = ClawStr{ .bytes = b_bytes, .length = b_len, .capacity_or_alloc_ptr = b_cap };
     const result = str.strDropPrefixCaselessAscii(a, b, roc_ops);
     const out_bytes: [*]u8 = @ptrCast(out);
 
-    @as(*RocStr, @ptrCast(@alignCast(out_bytes + layout.after_offset))).* = result.after;
+    @as(*ClawStr, @ptrCast(@alignCast(out_bytes + layout.after_offset))).* = result.after;
     @as(*u8, @ptrCast(@alignCast(out_bytes + layout.found_offset))).* = if (result.found) 1 else 0;
 }
 
-/// Wrapper: strCaselessAsciiEquals(RocStr, RocStr) -> bool
+/// Wrapper: strCaselessAsciiEquals(ClawStr, ClawStr) -> bool
 pub fn roc_builtins_str_caseless_ascii_equals(a_bytes: ?[*]u8, a_len: usize, a_cap: usize, b_bytes: ?[*]u8, b_len: usize, b_cap: usize) callconv(.c) bool {
-    const a = RocStr{ .bytes = a_bytes, .length = a_len, .capacity_or_alloc_ptr = a_cap };
-    const b = RocStr{ .bytes = b_bytes, .length = b_len, .capacity_or_alloc_ptr = b_cap };
+    const a = ClawStr{ .bytes = a_bytes, .length = a_len, .capacity_or_alloc_ptr = a_cap };
+    const b = ClawStr{ .bytes = b_bytes, .length = b_len, .capacity_or_alloc_ptr = b_cap };
     return strCaselessAsciiEquals(a, b);
 }
 
-/// Wrapper: repeatC(RocStr, u64, *RocOps) -> RocStr
-pub fn roc_builtins_str_repeat(out: *RocStr, str_bytes: ?[*]u8, str_len: usize, str_cap: usize, count: u64, roc_ops: *RocOps) callconv(.c) void {
-    const s = RocStr{ .bytes = str_bytes, .length = str_len, .capacity_or_alloc_ptr = str_cap };
+/// Wrapper: repeatC(ClawStr, u64, *ClawOps) -> ClawStr
+pub fn roc_builtins_str_repeat(out: *ClawStr, str_bytes: ?[*]u8, str_len: usize, str_cap: usize, count: u64, roc_ops: *ClawOps) callconv(.c) void {
+    const s = ClawStr{ .bytes = str_bytes, .length = str_len, .capacity_or_alloc_ptr = str_cap };
     out.* = repeatC(s, count, roc_ops);
 }
 
-/// Wrapper: strTrim(RocStr, UpdateMode, *RocOps) -> RocStr. The update mode
+/// Wrapper: strTrim(ClawStr, UpdateMode, *ClawOps) -> ClawStr. The update mode
 /// is forwarded to the builtin's uniqueness check; `.InPlace` skips it.
-pub fn roc_builtins_str_trim(out: *RocStr, str_bytes: ?[*]u8, str_len: usize, str_cap: usize, update_mode: utils.UpdateMode, roc_ops: *RocOps) callconv(.c) void {
-    const s = RocStr{ .bytes = str_bytes, .length = str_len, .capacity_or_alloc_ptr = str_cap };
+pub fn roc_builtins_str_trim(out: *ClawStr, str_bytes: ?[*]u8, str_len: usize, str_cap: usize, update_mode: utils.UpdateMode, roc_ops: *ClawOps) callconv(.c) void {
+    const s = ClawStr{ .bytes = str_bytes, .length = str_len, .capacity_or_alloc_ptr = str_cap };
     out.* = strTrim(s, update_mode, roc_ops);
 }
 
-/// Wrapper: strTrimStart(RocStr, UpdateMode, *RocOps) -> RocStr. The update
+/// Wrapper: strTrimStart(ClawStr, UpdateMode, *ClawOps) -> ClawStr. The update
 /// mode is forwarded to the builtin's uniqueness check; `.InPlace` skips it.
-pub fn roc_builtins_str_trim_start(out: *RocStr, str_bytes: ?[*]u8, str_len: usize, str_cap: usize, update_mode: utils.UpdateMode, roc_ops: *RocOps) callconv(.c) void {
-    const s = RocStr{ .bytes = str_bytes, .length = str_len, .capacity_or_alloc_ptr = str_cap };
+pub fn roc_builtins_str_trim_start(out: *ClawStr, str_bytes: ?[*]u8, str_len: usize, str_cap: usize, update_mode: utils.UpdateMode, roc_ops: *ClawOps) callconv(.c) void {
+    const s = ClawStr{ .bytes = str_bytes, .length = str_len, .capacity_or_alloc_ptr = str_cap };
     out.* = strTrimStart(s, update_mode, roc_ops);
 }
 
-/// Wrapper: strTrimEnd(RocStr, UpdateMode, *RocOps) -> RocStr. The update
+/// Wrapper: strTrimEnd(ClawStr, UpdateMode, *ClawOps) -> ClawStr. The update
 /// mode is forwarded to the builtin's uniqueness check; `.InPlace` skips it.
-pub fn roc_builtins_str_trim_end(out: *RocStr, str_bytes: ?[*]u8, str_len: usize, str_cap: usize, update_mode: utils.UpdateMode, roc_ops: *RocOps) callconv(.c) void {
-    const s = RocStr{ .bytes = str_bytes, .length = str_len, .capacity_or_alloc_ptr = str_cap };
+pub fn roc_builtins_str_trim_end(out: *ClawStr, str_bytes: ?[*]u8, str_len: usize, str_cap: usize, update_mode: utils.UpdateMode, roc_ops: *ClawOps) callconv(.c) void {
+    const s = ClawStr{ .bytes = str_bytes, .length = str_len, .capacity_or_alloc_ptr = str_cap };
     out.* = strTrimEnd(s, update_mode, roc_ops);
 }
 
-/// Wrapper: strSplitOn(RocStr, RocStr, *RocOps) -> RocList
-pub fn roc_builtins_str_split(out: *RocList, a_bytes: ?[*]u8, a_len: usize, a_cap: usize, b_bytes: ?[*]u8, b_len: usize, b_cap: usize, roc_ops: *RocOps) callconv(.c) void {
-    const a = RocStr{ .bytes = a_bytes, .length = a_len, .capacity_or_alloc_ptr = a_cap };
-    const b = RocStr{ .bytes = b_bytes, .length = b_len, .capacity_or_alloc_ptr = b_cap };
+/// Wrapper: strSplitOn(ClawStr, ClawStr, *ClawOps) -> ClawList
+pub fn roc_builtins_str_split(out: *ClawList, a_bytes: ?[*]u8, a_len: usize, a_cap: usize, b_bytes: ?[*]u8, b_len: usize, b_cap: usize, roc_ops: *ClawOps) callconv(.c) void {
+    const a = ClawStr{ .bytes = a_bytes, .length = a_len, .capacity_or_alloc_ptr = a_cap };
+    const b = ClawStr{ .bytes = b_bytes, .length = b_len, .capacity_or_alloc_ptr = b_cap };
     out.* = strSplitOn(a, b, roc_ops);
 }
 
-/// Wrapper: strJoinWithC(RocList, RocStr, *RocOps) -> RocStr
-pub fn roc_builtins_str_join_with(out: *RocStr, list_bytes: ?[*]u8, list_len: usize, list_cap: usize, sep_bytes: ?[*]u8, sep_len: usize, sep_cap: usize, roc_ops: *RocOps) callconv(.c) void {
-    const l = RocList{ .bytes = list_bytes, .length = list_len, .capacity_or_alloc_ptr = list_cap };
-    const sep = RocStr{ .bytes = sep_bytes, .length = sep_len, .capacity_or_alloc_ptr = sep_cap };
+/// Wrapper: strJoinWithC(ClawList, ClawStr, *ClawOps) -> ClawStr
+pub fn roc_builtins_str_join_with(out: *ClawStr, list_bytes: ?[*]u8, list_len: usize, list_cap: usize, sep_bytes: ?[*]u8, sep_len: usize, sep_cap: usize, roc_ops: *ClawOps) callconv(.c) void {
+    const l = ClawList{ .bytes = list_bytes, .length = list_len, .capacity_or_alloc_ptr = list_cap };
+    const sep = ClawStr{ .bytes = sep_bytes, .length = sep_len, .capacity_or_alloc_ptr = sep_cap };
     out.* = strJoinWithC(l, sep, roc_ops);
 }
 
-/// Wrapper: reserveC(RocStr, u64, UpdateMode, *RocOps) -> RocStr. The update
+/// Wrapper: reserveC(ClawStr, u64, UpdateMode, *ClawOps) -> ClawStr. The update
 /// mode is forwarded to the builtin's uniqueness check; `.InPlace` skips it.
-pub fn roc_builtins_str_reserve(out: *RocStr, str_bytes: ?[*]u8, str_len: usize, str_cap: usize, spare: u64, update_mode: utils.UpdateMode, roc_ops: *RocOps) callconv(.c) void {
-    const s = RocStr{ .bytes = str_bytes, .length = str_len, .capacity_or_alloc_ptr = str_cap };
+pub fn roc_builtins_str_reserve(out: *ClawStr, str_bytes: ?[*]u8, str_len: usize, str_cap: usize, spare: u64, update_mode: utils.UpdateMode, roc_ops: *ClawOps) callconv(.c) void {
+    const s = ClawStr{ .bytes = str_bytes, .length = str_len, .capacity_or_alloc_ptr = str_cap };
     out.* = reserveC(s, spare, update_mode, roc_ops);
 }
 
-/// Wrapper: strReleaseExcessCapacity(RocStr, UpdateMode, *RocOps) -> RocStr.
+/// Wrapper: strReleaseExcessCapacity(ClawStr, UpdateMode, *ClawOps) -> ClawStr.
 /// The update mode is forwarded to the builtin's uniqueness check; `.InPlace`
 /// skips it.
-pub fn roc_builtins_str_release_excess_capacity(out: *RocStr, str_bytes: ?[*]u8, str_len: usize, str_cap: usize, update_mode: utils.UpdateMode, roc_ops: *RocOps) callconv(.c) void {
-    const s = RocStr{ .bytes = str_bytes, .length = str_len, .capacity_or_alloc_ptr = str_cap };
+pub fn roc_builtins_str_release_excess_capacity(out: *ClawStr, str_bytes: ?[*]u8, str_len: usize, str_cap: usize, update_mode: utils.UpdateMode, roc_ops: *ClawOps) callconv(.c) void {
+    const s = ClawStr{ .bytes = str_bytes, .length = str_len, .capacity_or_alloc_ptr = str_cap };
     out.* = strReleaseExcessCapacity(s, update_mode, roc_ops);
 }
 
-/// Wrapper: withCapacityC(u64, *RocOps) -> RocStr
-pub fn roc_builtins_str_with_capacity(out: *RocStr, capacity: u64, roc_ops: *RocOps) callconv(.c) void {
+/// Wrapper: withCapacityC(u64, *ClawOps) -> ClawStr
+pub fn roc_builtins_str_with_capacity(out: *ClawStr, capacity: u64, roc_ops: *ClawOps) callconv(.c) void {
     out.* = withCapacityC(capacity, roc_ops);
 }
 
-/// Wrapper: strDropPrefix(RocStr, RocStr, *RocOps) -> RocStr
-pub fn roc_builtins_str_drop_prefix(out: *RocStr, a_bytes: ?[*]u8, a_len: usize, a_cap: usize, b_bytes: ?[*]u8, b_len: usize, b_cap: usize, roc_ops: *RocOps) callconv(.c) void {
-    const a = RocStr{ .bytes = a_bytes, .length = a_len, .capacity_or_alloc_ptr = a_cap };
-    const b = RocStr{ .bytes = b_bytes, .length = b_len, .capacity_or_alloc_ptr = b_cap };
+/// Wrapper: strDropPrefix(ClawStr, ClawStr, *ClawOps) -> ClawStr
+pub fn roc_builtins_str_drop_prefix(out: *ClawStr, a_bytes: ?[*]u8, a_len: usize, a_cap: usize, b_bytes: ?[*]u8, b_len: usize, b_cap: usize, roc_ops: *ClawOps) callconv(.c) void {
+    const a = ClawStr{ .bytes = a_bytes, .length = a_len, .capacity_or_alloc_ptr = a_cap };
+    const b = ClawStr{ .bytes = b_bytes, .length = b_len, .capacity_or_alloc_ptr = b_cap };
     out.* = strDropPrefix(a, b, roc_ops);
 }
 
-/// Wrapper: strDropSuffix(RocStr, RocStr, *RocOps) -> RocStr
-pub fn roc_builtins_str_drop_suffix(out: *RocStr, a_bytes: ?[*]u8, a_len: usize, a_cap: usize, b_bytes: ?[*]u8, b_len: usize, b_cap: usize, roc_ops: *RocOps) callconv(.c) void {
-    const a = RocStr{ .bytes = a_bytes, .length = a_len, .capacity_or_alloc_ptr = a_cap };
-    const b = RocStr{ .bytes = b_bytes, .length = b_len, .capacity_or_alloc_ptr = b_cap };
+/// Wrapper: strDropSuffix(ClawStr, ClawStr, *ClawOps) -> ClawStr
+pub fn roc_builtins_str_drop_suffix(out: *ClawStr, a_bytes: ?[*]u8, a_len: usize, a_cap: usize, b_bytes: ?[*]u8, b_len: usize, b_cap: usize, roc_ops: *ClawOps) callconv(.c) void {
+    const a = ClawStr{ .bytes = a_bytes, .length = a_len, .capacity_or_alloc_ptr = a_cap };
+    const b = ClawStr{ .bytes = b_bytes, .length = b_len, .capacity_or_alloc_ptr = b_cap };
     out.* = strDropSuffix(a, b, roc_ops);
 }
 
-/// Wrapper: strWithAsciiLowercased(RocStr, UpdateMode, *RocOps) -> RocStr.
+/// Wrapper: strWithAsciiLowercased(ClawStr, UpdateMode, *ClawOps) -> ClawStr.
 /// The update mode is forwarded to the builtin's uniqueness check; `.InPlace`
 /// skips it.
-pub fn roc_builtins_str_with_ascii_lowercased(out: *RocStr, str_bytes: ?[*]u8, str_len: usize, str_cap: usize, update_mode: utils.UpdateMode, roc_ops: *RocOps) callconv(.c) void {
-    const s = RocStr{ .bytes = str_bytes, .length = str_len, .capacity_or_alloc_ptr = str_cap };
+pub fn roc_builtins_str_with_ascii_lowercased(out: *ClawStr, str_bytes: ?[*]u8, str_len: usize, str_cap: usize, update_mode: utils.UpdateMode, roc_ops: *ClawOps) callconv(.c) void {
+    const s = ClawStr{ .bytes = str_bytes, .length = str_len, .capacity_or_alloc_ptr = str_cap };
     out.* = strWithAsciiLowercased(s, update_mode, roc_ops);
 }
 
-/// Wrapper: strWithAsciiUppercased(RocStr, UpdateMode, *RocOps) -> RocStr.
+/// Wrapper: strWithAsciiUppercased(ClawStr, UpdateMode, *ClawOps) -> ClawStr.
 /// The update mode is forwarded to the builtin's uniqueness check; `.InPlace`
 /// skips it.
-pub fn roc_builtins_str_with_ascii_uppercased(out: *RocStr, str_bytes: ?[*]u8, str_len: usize, str_cap: usize, update_mode: utils.UpdateMode, roc_ops: *RocOps) callconv(.c) void {
-    const s = RocStr{ .bytes = str_bytes, .length = str_len, .capacity_or_alloc_ptr = str_cap };
+pub fn roc_builtins_str_with_ascii_uppercased(out: *ClawStr, str_bytes: ?[*]u8, str_len: usize, str_cap: usize, update_mode: utils.UpdateMode, roc_ops: *ClawOps) callconv(.c) void {
+    const s = ClawStr{ .bytes = str_bytes, .length = str_len, .capacity_or_alloc_ptr = str_cap };
     out.* = strWithAsciiUppercased(s, update_mode, roc_ops);
 }
 
-/// Wrapper: fromUtf8Lossy(RocList, *RocOps) -> RocStr
-pub fn roc_builtins_str_from_utf8_lossy(out: *RocStr, list_bytes: ?[*]u8, list_len: usize, list_cap: usize, roc_ops: *RocOps) callconv(.c) void {
-    const l = RocList{ .bytes = list_bytes, .length = list_len, .capacity_or_alloc_ptr = list_cap };
+/// Wrapper: fromUtf8Lossy(ClawList, *ClawOps) -> ClawStr
+pub fn roc_builtins_str_from_utf8_lossy(out: *ClawStr, list_bytes: ?[*]u8, list_len: usize, list_cap: usize, roc_ops: *ClawOps) callconv(.c) void {
+    const l = ClawList{ .bytes = list_bytes, .length = list_len, .capacity_or_alloc_ptr = list_cap };
     out.* = fromUtf8Lossy(l, roc_ops);
 }
 
-/// Wrapper: fromUtf8C(RocList, UpdateMode, *RocOps) -> FromUtf8Try
-pub fn roc_builtins_str_from_utf8(out: [*]u8, list_bytes: ?[*]u8, list_len: usize, list_cap: usize, roc_ops: *RocOps) callconv(.c) void {
-    const l = RocList{ .bytes = list_bytes, .length = list_len, .capacity_or_alloc_ptr = list_cap };
+/// Wrapper: fromUtf8C(ClawList, UpdateMode, *ClawOps) -> FromUtf8Try
+pub fn roc_builtins_str_from_utf8(out: [*]u8, list_bytes: ?[*]u8, list_len: usize, list_cap: usize, roc_ops: *ClawOps) callconv(.c) void {
+    const l = ClawList{ .bytes = list_bytes, .length = list_len, .capacity_or_alloc_ptr = list_cap };
     const result: FromUtf8Try = str.fromUtf8C(l, .Immutable, roc_ops);
     @as(*FromUtf8Try, @ptrCast(@alignCast(out))).* = result;
 }
@@ -401,20 +401,20 @@ pub const StrFromUtf8Layout = extern struct {
     inner_bad_utf8_tag: u32,
 };
 
-/// Converts a UTF-8 byte list to a RocStr, writing the full result union (string or error details) to an output buffer.
+/// Converts a UTF-8 byte list to a ClawStr, writing the full result union (string or error details) to an output buffer.
 pub fn roc_builtins_str_from_utf8_result(
     out: [*]u8,
     list_bytes: ?[*]u8,
     list_len: usize,
     list_cap: usize,
     layout: *const StrFromUtf8Layout,
-    roc_ops: *RocOps,
+    roc_ops: *ClawOps,
 ) callconv(.c) void {
-    const l = RocList{ .bytes = list_bytes, .length = list_len, .capacity_or_alloc_ptr = list_cap };
+    const l = ClawList{ .bytes = list_bytes, .length = list_len, .capacity_or_alloc_ptr = list_cap };
     const result = str.fromUtf8C(l, .Immutable, roc_ops);
 
     if (result.is_ok) {
-        utils.writeAs(RocStr, out, result.string, @src());
+        utils.writeAs(ClawStr, out, result.string, @src());
         writeDiscriminant(out, layout.outer_disc_offset, layout.outer_disc_size, layout.ok_tag);
         return;
     }
@@ -425,17 +425,17 @@ pub fn roc_builtins_str_from_utf8_result(
     writeDiscriminant(out, layout.outer_disc_offset, layout.outer_disc_size, layout.err_tag);
 }
 
-/// Converts a UTF-8 byte list to a RocStr, returning the result components via separate out-pointers.
+/// Converts a UTF-8 byte list to a ClawStr, returning the result components via separate out-pointers.
 pub fn roc_builtins_str_from_utf8_parts(
-    out_string: *RocStr,
+    out_string: *ClawStr,
     out_index: *u64,
     out_problem: *u8,
     list_bytes: ?[*]u8,
     list_len: usize,
     list_cap: usize,
-    roc_ops: *RocOps,
+    roc_ops: *ClawOps,
 ) callconv(.c) u8 {
-    const l = RocList{ .bytes = list_bytes, .length = list_len, .capacity_or_alloc_ptr = list_cap };
+    const l = ClawList{ .bytes = list_bytes, .length = list_len, .capacity_or_alloc_ptr = list_cap };
     const result = str.fromUtf8C(l, .Immutable, roc_ops);
     out_string.* = result.string;
     out_index.* = result.byte_index;
@@ -443,16 +443,16 @@ pub fn roc_builtins_str_from_utf8_parts(
     return @intFromBool(result.is_ok);
 }
 
-/// Wrapper: call roc_dbg with a formatted RocStr
-pub fn roc_builtins_roc_dbg(str_bytes: ?[*]u8, str_len: usize, str_cap: usize, roc_ops: *RocOps) callconv(.c) void {
-    const s = RocStr{ .bytes = str_bytes, .length = str_len, .capacity_or_alloc_ptr = str_cap };
+/// Wrapper: call roc_dbg with a formatted ClawStr
+pub fn roc_builtins_roc_dbg(str_bytes: ?[*]u8, str_len: usize, str_cap: usize, roc_ops: *ClawOps) callconv(.c) void {
+    const s = ClawStr{ .bytes = str_bytes, .length = str_len, .capacity_or_alloc_ptr = str_cap };
     const slice = s.asSlice();
     roc_ops.dbg(slice);
 }
 
 /// Wrapper: escape special characters and wrap in double quotes for Str.inspect
-pub fn roc_builtins_str_escape_and_quote(out: *RocStr, str_bytes: ?[*]u8, str_len: usize, str_cap: usize, roc_ops: *RocOps) callconv(.c) void {
-    const s = RocStr{ .bytes = str_bytes, .length = str_len, .capacity_or_alloc_ptr = str_cap };
+pub fn roc_builtins_str_escape_and_quote(out: *ClawStr, str_bytes: ?[*]u8, str_len: usize, str_cap: usize, roc_ops: *ClawOps) callconv(.c) void {
+    const s = ClawStr{ .bytes = str_bytes, .length = str_len, .capacity_or_alloc_ptr = str_cap };
     const slice = s.asSlice();
 
     var extra: usize = 0;
@@ -461,7 +461,7 @@ pub fn roc_builtins_str_escape_and_quote(out: *RocStr, str_bytes: ?[*]u8, str_le
     }
 
     const result_len = slice.len + extra + 2;
-    const small_string_size = @sizeOf(RocStr);
+    const small_string_size = @sizeOf(ClawStr);
 
     if (result_len < small_string_size) {
         var buf: [small_string_size]u8 = .{0} ** small_string_size;
@@ -491,12 +491,12 @@ pub fn roc_builtins_str_escape_and_quote(out: *RocStr, str_bytes: ?[*]u8, str_le
             pos += 1;
         }
         heap_ptr[pos] = '"';
-        out.* = .{ .bytes = heap_ptr, .capacity_or_alloc_ptr = RocStr.encodeCapacity(result_len), .length = result_len };
+        out.* = .{ .bytes = heap_ptr, .capacity_or_alloc_ptr = ClawStr.encodeCapacity(result_len), .length = result_len };
     }
 }
 
-/// Wrapper: project a runtime RocStr to the host dbg ABI using the actual RocStr storage.
-pub fn roc_builtins_dbg_str(str_ptr: *const RocStr, roc_ops: *RocOps) callconv(.c) void {
+/// Wrapper: project a runtime ClawStr to the host dbg ABI using the actual ClawStr storage.
+pub fn roc_builtins_dbg_str(str_ptr: *const ClawStr, roc_ops: *ClawOps) callconv(.c) void {
     roc_ops.dbg(str_ptr.asSlice());
 }
 
@@ -525,18 +525,18 @@ pub fn takeExpectErrRegion() ?ExpectErrRegion {
 /// runtime-built message (which includes the rendered Err value) and the
 /// source region of the `?` expression. Terminates evaluation via the host's
 /// crash callback; the message carries the expect-specific wording.
-pub fn roc_builtins_expect_err_str(str_ptr: *const RocStr, region_start: u32, region_end: u32, roc_ops: *RocOps) callconv(.c) void {
+pub fn roc_builtins_expect_err_str(str_ptr: *const ClawStr, region_start: u32, region_end: u32, roc_ops: *ClawOps) callconv(.c) void {
     last_expect_err_region = .{ .start = region_start, .end = region_end };
     roc_ops.crash(str_ptr.asSlice());
 }
 
 /// Report a failed `expect` using static message bytes owned by generated code.
-pub fn roc_builtins_roc_expect_failed(msg_bytes: [*]const u8, msg_len: usize, roc_ops: *RocOps) callconv(.c) void {
+pub fn roc_builtins_roc_expect_failed(msg_bytes: [*]const u8, msg_len: usize, roc_ops: *ClawOps) callconv(.c) void {
     roc_ops.expectFailed(msg_bytes[0..msg_len]);
 }
 
 /// Report a Roc crash using static message bytes owned by generated code.
-pub fn roc_builtins_roc_crashed(msg_bytes: [*]const u8, msg_len: usize, roc_ops: *RocOps) callconv(.c) void {
+pub fn roc_builtins_roc_crashed(msg_bytes: [*]const u8, msg_len: usize, roc_ops: *ClawOps) callconv(.c) void {
     roc_ops.crash(msg_bytes[0..msg_len]);
 }
 
@@ -547,25 +547,25 @@ pub fn roc_builtins_roc_crashed(msg_bytes: [*]const u8, msg_len: usize, roc_ops:
 fn strListElementDecref(context: ?*anyopaque, element: ?[*]u8) callconv(.c) void {
     if (element == null) return;
     const ctx = context orelse unreachable;
-    const str_ptr: *RocStr = utils.alignedPtrCast(*RocStr, element.?, @src());
-    const roc_ops: *RocOps = utils.alignedPtrCast(*RocOps, @as([*]u8, @ptrCast(ctx)), @src());
+    const str_ptr: *ClawStr = utils.alignedPtrCast(*ClawStr, element.?, @src());
+    const roc_ops: *ClawOps = utils.alignedPtrCast(*ClawOps, @as([*]u8, @ptrCast(ctx)), @src());
     str_ptr.decref(roc_ops);
 }
 
 const FlatListElementDecrefContext = struct {
     inner_alignment: u32,
     inner_element_width: usize,
-    roc_ops: *RocOps,
+    roc_ops: *ClawOps,
 };
 
 const CallbackElementDecrefContext = struct {
     callback: RcDropFn,
-    roc_ops: *RocOps,
+    roc_ops: *ClawOps,
 };
 
 const CallbackElementIncrefContext = struct {
     callback: RcIncFn,
-    roc_ops: *RocOps,
+    roc_ops: *ClawOps,
 };
 
 fn flatListElementDecref(context: ?*anyopaque, element: ?[*]u8) callconv(.c) void {
@@ -576,7 +576,7 @@ fn flatListElementDecref(context: ?*anyopaque, element: ?[*]u8) callconv(.c) voi
         @as([*]u8, @ptrCast(ctx_ptr)),
         @src(),
     );
-    const inner_list: *RocList = utils.alignedPtrCast(*RocList, element.?, @src());
+    const inner_list: *ClawList = utils.alignedPtrCast(*ClawList, element.?, @src());
     inner_list.decref(
         ctx.inner_alignment,
         ctx.inner_element_width,
@@ -610,31 +610,31 @@ fn callbackListElementIncref(context: ?*anyopaque, element: ?[*]u8) callconv(.c)
 }
 
 /// Wrapper: listWithCapacity
-pub fn roc_builtins_list_with_capacity(out: *RocList, capacity: u64, alignment: u32, element_width: usize, elements_refcounted: bool, roc_ops: *RocOps) callconv(.c) void {
+pub fn roc_builtins_list_with_capacity(out: *ClawList, capacity: u64, alignment: u32, element_width: usize, elements_refcounted: bool, roc_ops: *ClawOps) callconv(.c) void {
     out.* = listWithCapacity(capacity, alignment, element_width, elements_refcounted, null, @ptrCast(&rcNone), roc_ops);
 }
 
 /// Wrapper: listAppendUnsafe
-pub fn roc_builtins_list_append_unsafe(out: *RocList, list_bytes: ?[*]u8, list_len: usize, list_cap: usize, element: ?[*]const u8, element_width: usize, _: *RocOps) callconv(.c) void {
-    const l = RocList{ .bytes = list_bytes, .length = list_len, .capacity_or_alloc_ptr = list_cap };
+pub fn roc_builtins_list_append_unsafe(out: *ClawList, list_bytes: ?[*]u8, list_len: usize, list_cap: usize, element: ?[*]const u8, element_width: usize, _: *ClawOps) callconv(.c) void {
+    const l = ClawList{ .bytes = list_bytes, .length = list_len, .capacity_or_alloc_ptr = list_cap };
     out.* = listAppendUnsafe(l, @constCast(element), element_width, @ptrCast(&copy_fallback));
 }
 
 /// Wrapper: listMapCanReuse
-pub fn roc_builtins_list_map_can_reuse(list_bytes: ?[*]u8, list_len: usize, list_cap: usize, roc_ops: *RocOps) callconv(.c) u8 {
-    const l = RocList{ .bytes = list_bytes, .length = list_len, .capacity_or_alloc_ptr = list_cap };
+pub fn roc_builtins_list_map_can_reuse(list_bytes: ?[*]u8, list_len: usize, list_cap: usize, roc_ops: *ClawOps) callconv(.c) u8 {
+    const l = ClawList{ .bytes = list_bytes, .length = list_len, .capacity_or_alloc_ptr = list_cap };
     return @intFromBool(list.listMapCanReuse(l, roc_ops));
 }
 
-/// Wrapper: listConcat(RocList, RocList, alignment, element_width, ..., *RocOps) -> RocList.
+/// Wrapper: listConcat(ClawList, ClawList, alignment, element_width, ..., *ClawOps) -> ClawList.
 /// `update_modes` carries one bit per list argument (bit 0 = a, bit 1 = b); a
 /// set bit selects `.InPlace` for that argument's uniqueness check, skipping
 /// it. The two modes travel as one 8-byte parameter because the dev call
 /// builder writes every stack argument as an 8-byte slot, which only matches
 /// the C ABI when no two sub-8-byte parameters are adjacent on the stack.
-pub fn roc_builtins_list_concat(out: *RocList, a_bytes: ?[*]u8, a_len: usize, a_cap: usize, b_bytes: ?[*]u8, b_len: usize, b_cap: usize, alignment: u32, element_width: usize, elements_refcounted: bool, element_incref: ?RcIncFn, element_decref: ?RcDropFn, update_modes: u64, roc_ops: *RocOps) callconv(.c) void {
-    const a = RocList{ .bytes = a_bytes, .length = a_len, .capacity_or_alloc_ptr = a_cap };
-    const b = RocList{ .bytes = b_bytes, .length = b_len, .capacity_or_alloc_ptr = b_cap };
+pub fn roc_builtins_list_concat(out: *ClawList, a_bytes: ?[*]u8, a_len: usize, a_cap: usize, b_bytes: ?[*]u8, b_len: usize, b_cap: usize, alignment: u32, element_width: usize, elements_refcounted: bool, element_incref: ?RcIncFn, element_decref: ?RcDropFn, update_modes: u64, roc_ops: *ClawOps) callconv(.c) void {
+    const a = ClawList{ .bytes = a_bytes, .length = a_len, .capacity_or_alloc_ptr = a_cap };
+    const b = ClawList{ .bytes = b_bytes, .length = b_len, .capacity_or_alloc_ptr = b_cap };
     const update_mode_a: utils.UpdateMode = if (update_modes & 1 != 0) .InPlace else .Immutable;
     const update_mode_b: utils.UpdateMode = if (update_modes & 2 != 0) .InPlace else .Immutable;
     if (elements_refcounted) {
@@ -665,11 +665,11 @@ pub fn roc_builtins_list_concat(out: *RocList, a_bytes: ?[*]u8, a_len: usize, a_
     }
 }
 
-/// Wrapper: listPrepend(RocList, alignment, element, element_width, ..., *RocOps) -> RocList.
+/// Wrapper: listPrepend(ClawList, alignment, element, element_width, ..., *ClawOps) -> ClawList.
 /// The update mode is forwarded to the builtin's uniqueness check; `.InPlace`
 /// skips it.
-pub fn roc_builtins_list_prepend(out: *RocList, list_bytes: ?[*]u8, list_len: usize, list_cap: usize, alignment: u32, element: ?[*]u8, element_width: usize, elements_refcounted: bool, element_incref: ?RcIncFn, element_decref: ?RcDropFn, update_mode: utils.UpdateMode, roc_ops: *RocOps) callconv(.c) void {
-    const l = RocList{ .bytes = list_bytes, .length = list_len, .capacity_or_alloc_ptr = list_cap };
+pub fn roc_builtins_list_prepend(out: *ClawList, list_bytes: ?[*]u8, list_len: usize, list_cap: usize, alignment: u32, element: ?[*]u8, element_width: usize, elements_refcounted: bool, element_incref: ?RcIncFn, element_decref: ?RcDropFn, update_mode: utils.UpdateMode, roc_ops: *ClawOps) callconv(.c) void {
+    const l = ClawList{ .bytes = list_bytes, .length = list_len, .capacity_or_alloc_ptr = list_cap };
     if (elements_refcounted) {
         var inc_ctx = CallbackElementIncrefContext{
             .callback = element_incref orelse unreachable,
@@ -688,8 +688,8 @@ pub fn roc_builtins_list_prepend(out: *RocList, list_bytes: ?[*]u8, list_len: us
 /// Wrapper: listSublist for sublist/drop_first/drop_last/take_first/take_last.
 /// The update mode is forwarded to the builtin's uniqueness checks; `.InPlace`
 /// skips them.
-pub fn roc_builtins_list_sublist(out: *RocList, list_bytes: ?[*]u8, list_len: usize, list_cap: usize, alignment: u32, element_width: usize, start: u64, len: u64, elements_refcounted: bool, element_decref: ?RcDropFn, update_mode: utils.UpdateMode, roc_ops: *RocOps) callconv(.c) void {
-    const l = RocList{ .bytes = list_bytes, .length = list_len, .capacity_or_alloc_ptr = list_cap };
+pub fn roc_builtins_list_sublist(out: *ClawList, list_bytes: ?[*]u8, list_len: usize, list_cap: usize, alignment: u32, element_width: usize, start: u64, len: u64, elements_refcounted: bool, element_decref: ?RcDropFn, update_mode: utils.UpdateMode, roc_ops: *ClawOps) callconv(.c) void {
+    const l = ClawList{ .bytes = list_bytes, .length = list_len, .capacity_or_alloc_ptr = list_cap };
     if (elements_refcounted) {
         var dec_ctx = CallbackElementDecrefContext{
             .callback = element_decref orelse unreachable,
@@ -703,8 +703,8 @@ pub fn roc_builtins_list_sublist(out: *RocList, list_bytes: ?[*]u8, list_len: us
 
 /// Wrapper: listDropAt(list, index) -> List. The update mode is forwarded to
 /// the builtin's uniqueness check; `.InPlace` skips it.
-pub fn roc_builtins_list_drop_at(out: *RocList, list_bytes: ?[*]u8, list_len: usize, list_cap: usize, alignment: u32, element_width: usize, index: u64, elements_refcounted: bool, element_incref: ?RcIncFn, element_decref: ?RcDropFn, update_mode: utils.UpdateMode, roc_ops: *RocOps) callconv(.c) void {
-    const l = RocList{ .bytes = list_bytes, .length = list_len, .capacity_or_alloc_ptr = list_cap };
+pub fn roc_builtins_list_drop_at(out: *ClawList, list_bytes: ?[*]u8, list_len: usize, list_cap: usize, alignment: u32, element_width: usize, index: u64, elements_refcounted: bool, element_incref: ?RcIncFn, element_decref: ?RcDropFn, update_mode: utils.UpdateMode, roc_ops: *ClawOps) callconv(.c) void {
+    const l = ClawList{ .bytes = list_bytes, .length = list_len, .capacity_or_alloc_ptr = list_cap };
     if (elements_refcounted) {
         var inc_ctx = CallbackElementIncrefContext{
             .callback = element_incref orelse unreachable,
@@ -723,8 +723,8 @@ pub fn roc_builtins_list_drop_at(out: *RocList, list_bytes: ?[*]u8, list_len: us
 /// Wrapper: listReplace for list_set. An `.InPlace` update mode means the
 /// compiler proved the list unique, so the uniqueness-checked copy-on-write
 /// entry is bypassed in favor of listReplaceInPlace.
-pub fn roc_builtins_list_replace(out: *RocList, list_bytes: ?[*]u8, list_len: usize, list_cap: usize, alignment: u32, index: u64, element: ?[*]u8, element_width: usize, out_element: ?[*]u8, elements_refcounted: bool, element_incref: ?RcIncFn, element_decref: ?RcDropFn, update_mode: utils.UpdateMode, roc_ops: *RocOps) callconv(.c) void {
-    const l = RocList{ .bytes = list_bytes, .length = list_len, .capacity_or_alloc_ptr = list_cap };
+pub fn roc_builtins_list_replace(out: *ClawList, list_bytes: ?[*]u8, list_len: usize, list_cap: usize, alignment: u32, index: u64, element: ?[*]u8, element_width: usize, out_element: ?[*]u8, elements_refcounted: bool, element_incref: ?RcIncFn, element_decref: ?RcDropFn, update_mode: utils.UpdateMode, roc_ops: *ClawOps) callconv(.c) void {
+    const l = ClawList{ .bytes = list_bytes, .length = list_len, .capacity_or_alloc_ptr = list_cap };
     if (update_mode == .InPlace) {
         out.* = list.listReplaceInPlace(l, index, element, element_width, out_element, &copy_fallback);
         return;
@@ -746,8 +746,8 @@ pub fn roc_builtins_list_replace(out: *RocList, list_bytes: ?[*]u8, list_len: us
 
 /// Wrapper: listSwap for list_swap. The update mode is forwarded to the
 /// builtin's uniqueness check; `.InPlace` skips it.
-pub fn roc_builtins_list_swap(out: *RocList, list_bytes: ?[*]u8, list_len: usize, list_cap: usize, alignment: u32, element_width: usize, index_1: u64, index_2: u64, elements_refcounted: bool, element_incref: ?RcIncFn, element_decref: ?RcDropFn, update_mode: utils.UpdateMode, roc_ops: *RocOps) callconv(.c) void {
-    const l = RocList{ .bytes = list_bytes, .length = list_len, .capacity_or_alloc_ptr = list_cap };
+pub fn roc_builtins_list_swap(out: *ClawList, list_bytes: ?[*]u8, list_len: usize, list_cap: usize, alignment: u32, element_width: usize, index_1: u64, index_2: u64, elements_refcounted: bool, element_incref: ?RcIncFn, element_decref: ?RcDropFn, update_mode: utils.UpdateMode, roc_ops: *ClawOps) callconv(.c) void {
+    const l = ClawList{ .bytes = list_bytes, .length = list_len, .capacity_or_alloc_ptr = list_cap };
     if (elements_refcounted) {
         var inc_ctx = CallbackElementIncrefContext{
             .callback = element_incref orelse unreachable,
@@ -765,8 +765,8 @@ pub fn roc_builtins_list_swap(out: *RocList, list_bytes: ?[*]u8, list_len: usize
 
 /// Wrapper: listReserve. The update mode is forwarded to the builtin's
 /// uniqueness check; `.InPlace` skips it.
-pub fn roc_builtins_list_reserve(out: *RocList, list_bytes: ?[*]u8, list_len: usize, list_cap: usize, alignment: u32, spare: u64, element_width: usize, elements_refcounted: bool, element_incref: ?RcIncFn, element_decref: ?RcDropFn, update_mode: utils.UpdateMode, roc_ops: *RocOps) callconv(.c) void {
-    const l = RocList{ .bytes = list_bytes, .length = list_len, .capacity_or_alloc_ptr = list_cap };
+pub fn roc_builtins_list_reserve(out: *ClawList, list_bytes: ?[*]u8, list_len: usize, list_cap: usize, alignment: u32, spare: u64, element_width: usize, elements_refcounted: bool, element_incref: ?RcIncFn, element_decref: ?RcDropFn, update_mode: utils.UpdateMode, roc_ops: *ClawOps) callconv(.c) void {
+    const l = ClawList{ .bytes = list_bytes, .length = list_len, .capacity_or_alloc_ptr = list_cap };
     if (elements_refcounted) {
         var inc_ctx = CallbackElementIncrefContext{
             .callback = element_incref orelse unreachable,
@@ -784,8 +784,8 @@ pub fn roc_builtins_list_reserve(out: *RocList, list_bytes: ?[*]u8, list_len: us
 
 /// Wrapper: listReleaseExcessCapacity. The update mode is forwarded to the
 /// builtin's uniqueness check; `.InPlace` skips it.
-pub fn roc_builtins_list_release_excess_capacity(out: *RocList, list_bytes: ?[*]u8, list_len: usize, list_cap: usize, alignment: u32, element_width: usize, elements_refcounted: bool, element_incref: ?RcIncFn, element_decref: ?RcDropFn, update_mode: utils.UpdateMode, roc_ops: *RocOps) callconv(.c) void {
-    const l = RocList{ .bytes = list_bytes, .length = list_len, .capacity_or_alloc_ptr = list_cap };
+pub fn roc_builtins_list_release_excess_capacity(out: *ClawList, list_bytes: ?[*]u8, list_len: usize, list_cap: usize, alignment: u32, element_width: usize, elements_refcounted: bool, element_incref: ?RcIncFn, element_decref: ?RcDropFn, update_mode: utils.UpdateMode, roc_ops: *ClawOps) callconv(.c) void {
+    const l = ClawList{ .bytes = list_bytes, .length = list_len, .capacity_or_alloc_ptr = list_cap };
     if (elements_refcounted) {
         var inc_ctx = CallbackElementIncrefContext{
             .callback = element_incref orelse unreachable,
@@ -806,12 +806,12 @@ test "roc_builtins_list_replace InPlace mutates the unique allocation without a 
     defer env.deinit();
 
     const data = [_]u8{ 10, 20, 30, 40 };
-    const l = RocList.fromSlice(u8, data[0..], false, env.getOps());
+    const l = ClawList.fromSlice(u8, data[0..], false, env.getOps());
     const original_bytes = l.bytes;
 
     const new_element: u8 = 99;
     var out_element: u8 = 0;
-    var out: RocList = undefined;
+    var out: ClawList = undefined;
     roc_builtins_list_replace(&out, l.bytes, l.length, l.capacity_or_alloc_ptr, @alignOf(u8), 2, @ptrCast(@constCast(&new_element)), @sizeOf(u8), @ptrCast(&out_element), false, null, null, .InPlace, env.getOps());
     defer out.decref(@alignOf(u8), @sizeOf(u8), false, null, list.rcNone, env.getOps());
 
@@ -829,10 +829,10 @@ test "roc_builtins_list_swap InPlace mutates the unique allocation without a uni
     defer env.deinit();
 
     const data = [_]u16{ 1, 2, 3 };
-    const l = RocList.fromSlice(u16, data[0..], false, env.getOps());
+    const l = ClawList.fromSlice(u16, data[0..], false, env.getOps());
     const original_bytes = l.bytes;
 
-    var out: RocList = undefined;
+    var out: ClawList = undefined;
     roc_builtins_list_swap(&out, l.bytes, l.length, l.capacity_or_alloc_ptr, @alignOf(u16), @sizeOf(u16), 0, 2, false, null, null, .InPlace, env.getOps());
     defer out.decref(@alignOf(u16), @sizeOf(u16), false, null, list.rcNone, env.getOps());
 
@@ -850,9 +850,9 @@ pub fn roc_builtins_list_incref(
     list_cap: usize,
     amount: isize,
     elements_refcounted: bool,
-    roc_ops: *RocOps,
+    roc_ops: *ClawOps,
 ) callconv(.c) void {
-    const l = RocList{ .bytes = list_bytes, .length = list_len, .capacity_or_alloc_ptr = list_cap };
+    const l = ClawList{ .bytes = list_bytes, .length = list_len, .capacity_or_alloc_ptr = list_cap };
     list.listIncref(l, amount, elements_refcounted, roc_ops);
 }
 
@@ -864,19 +864,19 @@ pub fn roc_builtins_list_incref_single_thread(
     list_cap: usize,
     amount: isize,
     elements_refcounted: bool,
-    roc_ops: *RocOps,
+    roc_ops: *ClawOps,
 ) callconv(.c) void {
-    const l = RocList{ .bytes = list_bytes, .length = list_len, .capacity_or_alloc_ptr = list_cap };
+    const l = ClawList{ .bytes = list_bytes, .length = list_len, .capacity_or_alloc_ptr = list_cap };
     l.increfWithAtomicity(amount, elements_refcounted, .single_thread, roc_ops);
 }
 
 /// Wrapper: decref a List(Str), including decref of each string element when unique
-pub fn roc_builtins_list_decref_str(list_bytes: ?[*]u8, list_len: usize, list_cap: usize, roc_ops: *RocOps) callconv(.c) void {
-    const l = RocList{ .bytes = list_bytes, .length = list_len, .capacity_or_alloc_ptr = list_cap };
+pub fn roc_builtins_list_decref_str(list_bytes: ?[*]u8, list_len: usize, list_cap: usize, roc_ops: *ClawOps) callconv(.c) void {
+    const l = ClawList{ .bytes = list_bytes, .length = list_len, .capacity_or_alloc_ptr = list_cap };
     listDecref(
         l,
-        @alignOf(RocStr),
-        @sizeOf(RocStr),
+        @alignOf(ClawStr),
+        @sizeOf(ClawStr),
         true,
         @ptrCast(roc_ops),
         &strListElementDecref,
@@ -891,9 +891,9 @@ pub fn roc_builtins_list_decref_flat_list(
     list_cap: usize,
     inner_alignment: u32,
     inner_element_width: usize,
-    roc_ops: *RocOps,
+    roc_ops: *ClawOps,
 ) callconv(.c) void {
-    const l = RocList{ .bytes = list_bytes, .length = list_len, .capacity_or_alloc_ptr = list_cap };
+    const l = ClawList{ .bytes = list_bytes, .length = list_len, .capacity_or_alloc_ptr = list_cap };
     var ctx = FlatListElementDecrefContext{
         .inner_alignment = inner_alignment,
         .inner_element_width = inner_element_width,
@@ -901,8 +901,8 @@ pub fn roc_builtins_list_decref_flat_list(
     };
     listDecref(
         l,
-        @alignOf(RocList),
-        @sizeOf(RocList),
+        @alignOf(ClawList),
+        @sizeOf(ClawList),
         true,
         @ptrCast(&ctx),
         &flatListElementDecref,
@@ -918,9 +918,9 @@ pub fn roc_builtins_list_decref_with(
     alignment: u32,
     element_width: usize,
     element_decref: ?RcDropFn,
-    roc_ops: *RocOps,
+    roc_ops: *ClawOps,
 ) callconv(.c) void {
-    const l = RocList{ .bytes = list_bytes, .length = list_len, .capacity_or_alloc_ptr = list_cap };
+    const l = ClawList{ .bytes = list_bytes, .length = list_len, .capacity_or_alloc_ptr = list_cap };
     if (element_decref) |callback| {
         var ctx = CallbackElementDecrefContext{
             .callback = callback,
@@ -954,9 +954,9 @@ pub fn roc_builtins_list_decref_with_single_thread(
     alignment: u32,
     element_width: usize,
     element_decref: ?RcDropFn,
-    roc_ops: *RocOps,
+    roc_ops: *ClawOps,
 ) callconv(.c) void {
-    const l = RocList{ .bytes = list_bytes, .length = list_len, .capacity_or_alloc_ptr = list_cap };
+    const l = ClawList{ .bytes = list_bytes, .length = list_len, .capacity_or_alloc_ptr = list_cap };
     if (element_decref) |callback| {
         if (l.isUnique(roc_ops)) {
             if (l.getAllocationDataPtr(roc_ops)) |source| {
@@ -974,9 +974,9 @@ pub fn roc_builtins_list_decref_with_single_thread(
 }
 
 /// Test stand-in for a compiled single-thread string-element decref helper.
-fn strElementDecrefSingleThread(element: ?[*]u8, roc_ops: *RocOps) callconv(.c) void {
+fn strElementDecrefSingleThread(element: ?[*]u8, roc_ops: *ClawOps) callconv(.c) void {
     const elem = element orelse return;
-    const str_ptr: *RocStr = utils.alignedPtrCast(*RocStr, elem, @src());
+    const str_ptr: *ClawStr = utils.alignedPtrCast(*ClawStr, elem, @src());
     str_ptr.decrefWithAtomicity(.single_thread, roc_ops);
 }
 
@@ -985,19 +985,19 @@ test "roc_builtins_list_decref_with_single_thread frees a unique list of strings
     defer env.deinit();
     const ops = env.getOps();
 
-    const strs = [_]RocStr{
-        RocStr.fromSlice("first heap-allocated element, long enough", ops),
-        RocStr.fromSlice("second heap-allocated element, long enough", ops),
+    const strs = [_]ClawStr{
+        ClawStr.fromSlice("first heap-allocated element, long enough", ops),
+        ClawStr.fromSlice("second heap-allocated element, long enough", ops),
     };
-    const l = RocList.fromSlice(RocStr, strs[0..], true, ops);
+    const l = ClawList.fromSlice(ClawStr, strs[0..], true, ops);
     try std.testing.expectEqual(@as(usize, 3), env.getAllocationCount());
 
     roc_builtins_list_decref_with_single_thread(
         l.bytes,
         l.length,
         l.capacity_or_alloc_ptr,
-        @alignOf(RocStr),
-        @sizeOf(RocStr),
+        @alignOf(ClawStr),
+        @sizeOf(ClawStr),
         &strElementDecrefSingleThread,
         ops,
     );
@@ -1010,19 +1010,19 @@ test "roc_builtins_list_decref_with_single_thread keeps an element alive while a
     defer env.deinit();
     const ops = env.getOps();
 
-    const shared = RocStr.fromSlice("shared heap-allocated element, long enough", ops);
+    const shared = ClawStr.fromSlice("shared heap-allocated element, long enough", ops);
     // A second handle held outside the list.
     shared.incref(1, ops);
-    const strs = [_]RocStr{shared};
-    const l = RocList.fromSlice(RocStr, strs[0..], true, ops);
+    const strs = [_]ClawStr{shared};
+    const l = ClawList.fromSlice(ClawStr, strs[0..], true, ops);
     try std.testing.expectEqual(@as(usize, 2), env.getAllocationCount());
 
     roc_builtins_list_decref_with_single_thread(
         l.bytes,
         l.length,
         l.capacity_or_alloc_ptr,
-        @alignOf(RocStr),
-        @sizeOf(RocStr),
+        @alignOf(ClawStr),
+        @sizeOf(ClawStr),
         &strElementDecrefSingleThread,
         ops,
     );
@@ -1044,9 +1044,9 @@ pub fn roc_builtins_list_free_flat_list(
     list_cap: usize,
     inner_alignment: u32,
     inner_element_width: usize,
-    roc_ops: *RocOps,
+    roc_ops: *ClawOps,
 ) callconv(.c) void {
-    const l = RocList{ .bytes = list_bytes, .length = list_len, .capacity_or_alloc_ptr = list_cap };
+    const l = ClawList{ .bytes = list_bytes, .length = list_len, .capacity_or_alloc_ptr = list_cap };
     var ctx = FlatListElementDecrefContext{
         .inner_alignment = inner_alignment,
         .inner_element_width = inner_element_width,
@@ -1057,11 +1057,11 @@ pub fn roc_builtins_list_free_flat_list(
         const count = l.getAllocationElementCount(true, roc_ops);
         var i: usize = 0;
         while (i < count) : (i += 1) {
-            flatListElementDecref(@ptrCast(&ctx), source + i * @sizeOf(RocList));
+            flatListElementDecref(@ptrCast(&ctx), source + i * @sizeOf(ClawList));
         }
     }
 
-    freeDataPtrC(l.getAllocationDataPtr(roc_ops), @alignOf(RocList), true, roc_ops);
+    freeDataPtrC(l.getAllocationDataPtr(roc_ops), @alignOf(ClawList), true, roc_ops);
 }
 
 /// Free a Roc list and optionally run an element decref callback first.
@@ -1072,9 +1072,9 @@ pub fn roc_builtins_list_free_with(
     alignment: u32,
     element_width: usize,
     element_decref: ?RcDropFn,
-    roc_ops: *RocOps,
+    roc_ops: *ClawOps,
 ) callconv(.c) void {
-    const l = RocList{ .bytes = list_bytes, .length = list_len, .capacity_or_alloc_ptr = list_cap };
+    const l = ClawList{ .bytes = list_bytes, .length = list_len, .capacity_or_alloc_ptr = list_cap };
 
     if (element_decref) |callback| {
         var ctx = CallbackElementDecrefContext{
@@ -1101,7 +1101,7 @@ pub fn roc_builtins_box_decref_with(
     payload_ptr: ?[*]u8,
     payload_alignment: u32,
     payload_decref: ?RcDropFn,
-    roc_ops: *RocOps,
+    roc_ops: *ClawOps,
 ) callconv(.c) void {
     const payload_has_refcounted_children = payload_decref != null;
 
@@ -1123,7 +1123,7 @@ pub fn roc_builtins_box_decref_with_single_thread(
     payload_ptr: ?[*]u8,
     payload_alignment: u32,
     payload_decref: ?RcDropFn,
-    roc_ops: *RocOps,
+    roc_ops: *ClawOps,
 ) callconv(.c) void {
     const payload_has_refcounted_children = payload_decref != null;
 
@@ -1141,7 +1141,7 @@ pub fn roc_builtins_box_free_with(
     payload_ptr: ?[*]u8,
     payload_alignment: u32,
     payload_decref: ?RcDropFn,
-    roc_ops: *RocOps,
+    roc_ops: *ClawOps,
 ) callconv(.c) void {
     const payload_has_refcounted_children = payload_decref != null;
 
@@ -1153,13 +1153,13 @@ pub fn roc_builtins_box_free_with(
 }
 
 /// Incref a boxed erased callable payload pointer.
-pub fn roc_builtins_erased_callable_incref(payload_ptr: ?[*]u8, amount: isize, roc_ops: *RocOps) callconv(.c) void {
+pub fn roc_builtins_erased_callable_incref(payload_ptr: ?[*]u8, amount: isize, roc_ops: *ClawOps) callconv(.c) void {
     erased_callable.incref(payload_ptr, amount, roc_ops);
 }
 
 /// Decref a boxed erased callable payload pointer, running the payload's
 /// `on_drop` callback if the outer refcount reaches zero.
-pub fn roc_builtins_erased_callable_decref(payload_ptr: ?[*]u8, roc_ops: *RocOps) callconv(.c) void {
+pub fn roc_builtins_erased_callable_decref(payload_ptr: ?[*]u8, roc_ops: *ClawOps) callconv(.c) void {
     erased_callable.decref(payload_ptr, roc_ops);
 }
 
@@ -1168,7 +1168,7 @@ pub fn roc_builtins_erased_callable_decref(payload_ptr: ?[*]u8, roc_ops: *RocOps
 /// callback is selected at closure creation, which is not an RC statement and
 /// makes no thread-confinement claim, so capture-level count updates behind it
 /// stay atomic (atomic is always sound).
-pub fn roc_builtins_erased_callable_decref_single_thread(payload_ptr: ?[*]u8, roc_ops: *RocOps) callconv(.c) void {
+pub fn roc_builtins_erased_callable_decref_single_thread(payload_ptr: ?[*]u8, roc_ops: *ClawOps) callconv(.c) void {
     if (payload_ptr) |ptr| {
         if (utils.isUnique(ptr, roc_ops)) {
             const payload = erased_callable.payloadPtr(ptr);
@@ -1187,12 +1187,12 @@ pub fn roc_builtins_erased_callable_decref_single_thread(payload_ptr: ?[*]u8, ro
 
 /// Free a boxed erased callable payload pointer, running the payload's
 /// `on_drop` callback unconditionally first.
-pub fn roc_builtins_erased_callable_free(payload_ptr: ?[*]u8, roc_ops: *RocOps) callconv(.c) void {
+pub fn roc_builtins_erased_callable_free(payload_ptr: ?[*]u8, roc_ops: *ClawOps) callconv(.c) void {
     erased_callable.free(payload_ptr, roc_ops);
 }
 
 /// Enter the loaded dev-shim code image that contains the generated callsite.
-pub fn roc_builtins_hot_reload_enter(_: *RocOps) callconv(.c) ?*anyopaque {
+pub fn roc_builtins_hot_reload_enter(_: *ClawOps) callconv(.c) ?*anyopaque {
     if (comptime @hasDecl(@import("root"), "roc_hot_reload_enter")) {
         return @import("root").roc_hot_reload_enter(@returnAddress());
     }
@@ -1209,7 +1209,7 @@ pub fn roc_builtins_hot_reload_leave(code_ref: ?*anyopaque) callconv(.c) void {
 /// Retain the loaded dev-shim code image that created an erased-callable
 /// payload. The retained reference is released by
 /// roc_builtins_hot_reload_erased_callable_drop.
-pub fn roc_builtins_hot_reload_retain_current(_: *RocOps) callconv(.c) ?*anyopaque {
+pub fn roc_builtins_hot_reload_retain_current(_: *ClawOps) callconv(.c) ?*anyopaque {
     if (comptime @hasDecl(@import("root"), "roc_hot_reload_retain_current")) {
         return @import("root").roc_hot_reload_retain_current(@returnAddress());
     }
@@ -1218,7 +1218,7 @@ pub fn roc_builtins_hot_reload_retain_current(_: *RocOps) callconv(.c) ?*anyopaq
 
 /// Final-drop callback for shim-execution erased callables that carry a
 /// hot-reload capture prefix.
-pub fn roc_builtins_hot_reload_erased_callable_drop(capture_ptr: ?[*]u8, roc_ops: *RocOps) callconv(.c) void {
+pub fn roc_builtins_hot_reload_erased_callable_drop(capture_ptr: ?[*]u8, roc_ops: *ClawOps) callconv(.c) void {
     const header = erased_callable.hotReloadCaptureHeader(capture_ptr) orelse return;
     if (header.original_on_drop) |original_on_drop| {
         original_on_drop(erased_callable.hotReloadAdjustedCapturePtr(capture_ptr), roc_ops);
@@ -1231,32 +1231,32 @@ pub fn roc_builtins_hot_reload_erased_callable_drop(capture_ptr: ?[*]u8, roc_ops
 // ═══════════════════════════════════════════════════════════════════════════
 
 /// Re-export allocateWithRefcountC
-pub fn roc_builtins_allocate_with_refcount(data_bytes: usize, element_alignment: u32, elements_refcounted: bool, roc_ops: *RocOps) callconv(.c) [*]u8 {
+pub fn roc_builtins_allocate_with_refcount(data_bytes: usize, element_alignment: u32, elements_refcounted: bool, roc_ops: *ClawOps) callconv(.c) [*]u8 {
     return allocateWithRefcountC(data_bytes, element_alignment, elements_refcounted, roc_ops);
 }
 
 /// Re-export increfDataPtrC
-pub fn roc_builtins_incref_data_ptr(ptr: ?[*]u8, amount: isize, roc_ops: *RocOps) callconv(.c) void {
+pub fn roc_builtins_incref_data_ptr(ptr: ?[*]u8, amount: isize, roc_ops: *ClawOps) callconv(.c) void {
     increfDataPtrC(ptr, amount, roc_ops);
 }
 
 /// Re-export increfDataPtrSingleThreadC
-pub fn roc_builtins_incref_data_ptr_single_thread(ptr: ?[*]u8, amount: isize, roc_ops: *RocOps) callconv(.c) void {
+pub fn roc_builtins_incref_data_ptr_single_thread(ptr: ?[*]u8, amount: isize, roc_ops: *ClawOps) callconv(.c) void {
     increfDataPtrSingleThreadC(ptr, amount, roc_ops);
 }
 
 /// Re-export decrefDataPtrC
-pub fn roc_builtins_decref_data_ptr(ptr: ?[*]u8, alignment: u32, elements_refcounted: bool, roc_ops: *RocOps) callconv(.c) void {
+pub fn roc_builtins_decref_data_ptr(ptr: ?[*]u8, alignment: u32, elements_refcounted: bool, roc_ops: *ClawOps) callconv(.c) void {
     decrefDataPtrC(ptr, alignment, elements_refcounted, roc_ops);
 }
 
 /// Re-export decrefDataPtrSingleThreadC
-pub fn roc_builtins_decref_data_ptr_single_thread(ptr: ?[*]u8, alignment: u32, elements_refcounted: bool, roc_ops: *RocOps) callconv(.c) void {
+pub fn roc_builtins_decref_data_ptr_single_thread(ptr: ?[*]u8, alignment: u32, elements_refcounted: bool, roc_ops: *ClawOps) callconv(.c) void {
     decrefDataPtrSingleThreadC(ptr, alignment, elements_refcounted, roc_ops);
 }
 
 /// Re-export freeDataPtrC
-pub fn roc_builtins_free_data_ptr(ptr: ?[*]u8, alignment: u32, elements_refcounted: bool, roc_ops: *RocOps) callconv(.c) void {
+pub fn roc_builtins_free_data_ptr(ptr: ?[*]u8, alignment: u32, elements_refcounted: bool, roc_ops: *ClawOps) callconv(.c) void {
     freeDataPtrC(ptr, alignment, elements_refcounted, roc_ops);
 }
 
@@ -1264,8 +1264,8 @@ pub fn roc_builtins_free_data_ptr(ptr: ?[*]u8, alignment: u32, elements_refcount
 // Numeric Wrappers
 // ═══════════════════════════════════════════════════════════════════════════
 
-fn writeRocStrFromSlice(out: *RocStr, slice: []const u8, roc_ops: *RocOps) void {
-    const small_string_size = @sizeOf(RocStr);
+fn writeRocStrFromSlice(out: *ClawStr, slice: []const u8, roc_ops: *ClawOps) void {
+    const small_string_size = @sizeOf(ClawStr);
 
     if (slice.len < small_string_size) {
         var buf: [small_string_size]u8 = .{0} ** small_string_size;
@@ -1277,22 +1277,22 @@ fn writeRocStrFromSlice(out: *RocStr, slice: []const u8, roc_ops: *RocOps) void 
         @memcpy(heap_ptr[0..slice.len], slice);
         out.* = .{
             .bytes = heap_ptr,
-            .capacity_or_alloc_ptr = RocStr.encodeCapacity(slice.len),
+            .capacity_or_alloc_ptr = ClawStr.encodeCapacity(slice.len),
             .length = slice.len,
         };
     }
 }
 
-/// Build a RocStr from static literal bytes owned by generated code.
-pub fn roc_builtins_str_from_literal(out: *RocStr, bytes: [*]const u8, len: usize, roc_ops: *RocOps) callconv(.c) void {
+/// Build a ClawStr from static literal bytes owned by generated code.
+pub fn roc_builtins_str_from_literal(out: *ClawStr, bytes: [*]const u8, len: usize, roc_ops: *ClawOps) callconv(.c) void {
     writeRocStrFromSlice(out, bytes[0..len], roc_ops);
 }
 
 /// Wrapper: decToStrC (decomposed i128)
-pub fn roc_builtins_dec_to_str(out: *RocStr, value_low: u64, value_high: u64, roc_ops: *RocOps) callconv(.c) void {
+pub fn roc_builtins_dec_to_str(out: *ClawStr, value_low: u64, value_high: u64, roc_ops: *ClawOps) callconv(.c) void {
     const value: i128 = @bitCast(i128h.from_u64_pair(value_low, value_high));
-    const d = dec.RocDec{ .num = value };
-    var buf: [dec.RocDec.max_str_length]u8 = undefined;
+    const d = dec.ClawDec{ .num = value };
+    var buf: [dec.ClawDec.max_str_length]u8 = undefined;
     const slice = d.format_to_buf(&buf);
     writeRocStrFromSlice(out, slice, roc_ops);
 }
@@ -1302,12 +1302,12 @@ pub fn roc_builtins_dec_to_str(out: *RocStr, value_low: u64, value_high: u64, ro
 /// Dec (i128) → i64 by truncating division
 pub fn roc_builtins_dec_to_i64_trunc(low: u64, high: u64) callconv(.c) i64 {
     const val: i128 = @bitCast(i128h.from_u64_pair(low, high));
-    return @intCast(i128h.divTrunc_i128(val, dec.RocDec.one_point_zero_i128));
+    return @intCast(i128h.divTrunc_i128(val, dec.ClawDec.one_point_zero_i128));
 }
 
 /// i64 → Dec (i128) via output pointers
 pub fn roc_builtins_i64_to_dec(out_low: *u64, out_high: *u64, val: i64) callconv(.c) void {
-    const result: i128 = if (dec.RocDec.fromWholeInt(@as(i128, val))) |d|
+    const result: i128 = if (dec.ClawDec.fromWholeInt(@as(i128, val))) |d|
         d.num
     else if (val < 0)
         std.math.minInt(i128)
@@ -1327,7 +1327,7 @@ pub fn roc_builtins_u64_to_dec(out_low: *u64, out_high: *u64, val: u64) callconv
 /// Dec (i128) → f64
 pub fn roc_builtins_dec_to_f64(low: u64, high: u64) callconv(.c) f64 {
     const val: i128 = @bitCast(i128h.from_u64_pair(low, high));
-    return dec.toF64(dec.RocDec{ .num = val });
+    return dec.toF64(dec.ClawDec{ .num = val });
 }
 
 /// i128 → f64
@@ -1445,7 +1445,7 @@ pub fn roc_builtins_f64_to_int_try_unsafe(out: [*]u8, val: f64, target_bits: u32
 /// Dec → f32 try unsafe
 pub fn roc_builtins_dec_to_f32_try_unsafe(out: [*]u8, dec_low: u64, dec_high: u64, success_offset: u32, value_offset: u32) callconv(.c) void {
     const dec_val: i128 = @bitCast(i128h.from_u64_pair(dec_low, dec_high));
-    const f64_val: f64 = dec.toF64(dec.RocDec{ .num = dec_val });
+    const f64_val: f64 = dec.toF64(dec.ClawDec{ .num = dec_val });
     const f32_val: f32 = @floatCast(f64_val);
     const success: bool = !std.math.isInf(f32_val) and (!std.math.isNan(f64_val) or std.math.isNan(f32_val));
     const f32_bytes: [4]u8 = @bitCast(f32_val);
@@ -1465,7 +1465,7 @@ pub fn roc_builtins_f64_to_f32_try_unsafe(out: [*]u8, val: f64, success_offset: 
 /// i128 → Dec try unsafe
 pub fn roc_builtins_i128_to_dec_try_unsafe(out: [*]u8, val_low: u64, val_high: u64, success_offset: u32, value_offset: u32) callconv(.c) void {
     const val: i128 = @bitCast(i128h.from_u64_pair(val_low, val_high));
-    const result = dec.RocDec.fromWholeInt(val);
+    const result = dec.ClawDec.fromWholeInt(val);
     const success = result != null;
     const dec_val: i128 = if (result) |d| d.num else 0;
     const dec_bytes: [16]u8 = @bitCast(@as(u128, @bitCast(dec_val)));
@@ -1477,7 +1477,7 @@ pub fn roc_builtins_i128_to_dec_try_unsafe(out: [*]u8, val_low: u64, val_high: u
 pub fn roc_builtins_u128_to_dec_try_unsafe(out: [*]u8, val_low: u64, val_high: u64, success_offset: u32, value_offset: u32) callconv(.c) void {
     const val: u128 = i128h.from_u64_pair(val_low, val_high);
     const fits_i128 = val <= @as(u128, @bitCast(@as(i128, std.math.maxInt(i128))));
-    const result: ?dec.RocDec = if (fits_i128) dec.RocDec.fromWholeInt(@as(i128, @bitCast(val))) else null;
+    const result: ?dec.ClawDec = if (fits_i128) dec.ClawDec.fromWholeInt(@as(i128, @bitCast(val))) else null;
     const success = result != null;
     const dec_val: i128 = if (result) |d| d.num else 0;
     const dec_bytes: [16]u8 = @bitCast(@as(u128, @bitCast(dec_val)));
@@ -1488,10 +1488,10 @@ pub fn roc_builtins_u128_to_dec_try_unsafe(out: [*]u8, val_low: u64, val_high: u
 // ── Dec arithmetic wrappers (decomposed i128) ──
 
 /// Dec multiply (decomposed)
-pub fn roc_builtins_dec_mul(out_low: *u64, out_high: *u64, a_low: u64, a_high: u64, b_low: u64, b_high: u64, roc_ops: *RocOps) callconv(.c) void {
+pub fn roc_builtins_dec_mul(out_low: *u64, out_high: *u64, a_low: u64, a_high: u64, b_low: u64, b_high: u64, roc_ops: *ClawOps) callconv(.c) void {
     const a: i128 = @bitCast(i128h.from_u64_pair(a_low, a_high));
     const b: i128 = @bitCast(i128h.from_u64_pair(b_low, b_high));
-    const result = dec.mulOrPanicC(dec.RocDec{ .num = a }, dec.RocDec{ .num = b }, roc_ops);
+    const result = dec.mulOrPanicC(dec.ClawDec{ .num = a }, dec.ClawDec{ .num = b }, roc_ops);
     out_low.* = @truncate(@as(u128, @bitCast(result)));
     out_high.* = i128h.hi64(@as(u128, @bitCast(result)));
 }
@@ -1500,34 +1500,34 @@ pub fn roc_builtins_dec_mul(out_low: *u64, out_high: *u64, a_low: u64, a_high: u
 pub fn roc_builtins_dec_mul_saturated(out_low: *u64, out_high: *u64, a_low: u64, a_high: u64, b_low: u64, b_high: u64) callconv(.c) void {
     const a: i128 = @bitCast(i128h.from_u64_pair(a_low, a_high));
     const b: i128 = @bitCast(i128h.from_u64_pair(b_low, b_high));
-    const result = dec.mulSaturatedC(dec.RocDec{ .num = a }, dec.RocDec{ .num = b });
+    const result = dec.mulSaturatedC(dec.ClawDec{ .num = a }, dec.ClawDec{ .num = b });
     out_low.* = @truncate(@as(u128, @bitCast(result.num)));
     out_high.* = i128h.hi64(@as(u128, @bitCast(result.num)));
 }
 
 /// Dec divide (decomposed)
-pub fn roc_builtins_dec_div(out_low: *u64, out_high: *u64, a_low: u64, a_high: u64, b_low: u64, b_high: u64, roc_ops: *RocOps) callconv(.c) void {
+pub fn roc_builtins_dec_div(out_low: *u64, out_high: *u64, a_low: u64, a_high: u64, b_low: u64, b_high: u64, roc_ops: *ClawOps) callconv(.c) void {
     const a: i128 = @bitCast(i128h.from_u64_pair(a_low, a_high));
     const b: i128 = @bitCast(i128h.from_u64_pair(b_low, b_high));
-    const result = dec.divC(dec.RocDec{ .num = a }, dec.RocDec{ .num = b }, roc_ops);
+    const result = dec.divC(dec.ClawDec{ .num = a }, dec.ClawDec{ .num = b }, roc_ops);
     out_low.* = @truncate(@as(u128, @bitCast(result)));
     out_high.* = i128h.hi64(@as(u128, @bitCast(result)));
 }
 
 /// Dec divide truncating (decomposed)
-pub fn roc_builtins_dec_div_trunc(out_low: *u64, out_high: *u64, a_low: u64, a_high: u64, b_low: u64, b_high: u64, roc_ops: *RocOps) callconv(.c) void {
+pub fn roc_builtins_dec_div_trunc(out_low: *u64, out_high: *u64, a_low: u64, a_high: u64, b_low: u64, b_high: u64, roc_ops: *ClawOps) callconv(.c) void {
     const a: i128 = @bitCast(i128h.from_u64_pair(a_low, a_high));
     const b: i128 = @bitCast(i128h.from_u64_pair(b_low, b_high));
-    const result = dec.divTruncC(dec.RocDec{ .num = a }, dec.RocDec{ .num = b }, roc_ops);
+    const result = dec.divTruncC(dec.ClawDec{ .num = a }, dec.ClawDec{ .num = b }, roc_ops);
     out_low.* = @truncate(@as(u128, @bitCast(result)));
     out_high.* = i128h.hi64(@as(u128, @bitCast(result)));
 }
 
 /// Dec power (decomposed)
-pub fn roc_builtins_dec_pow(out_low: *u64, out_high: *u64, a_low: u64, a_high: u64, b_low: u64, b_high: u64, roc_ops: *RocOps) callconv(.c) void {
+pub fn roc_builtins_dec_pow(out_low: *u64, out_high: *u64, a_low: u64, a_high: u64, b_low: u64, b_high: u64, roc_ops: *ClawOps) callconv(.c) void {
     const a: i128 = @bitCast(i128h.from_u64_pair(a_low, a_high));
     const b: i128 = @bitCast(i128h.from_u64_pair(b_low, b_high));
-    const result = dec.powC(dec.RocDec{ .num = a }, dec.RocDec{ .num = b }, roc_ops);
+    const result = dec.powC(dec.ClawDec{ .num = a }, dec.ClawDec{ .num = b }, roc_ops);
     out_low.* = @truncate(@as(u128, @bitCast(result)));
     out_high.* = i128h.hi64(@as(u128, @bitCast(result)));
 }
@@ -1538,51 +1538,51 @@ fn writeDecUnaryResult(out_low: *u64, out_high: *u64, result: i128) void {
 }
 
 /// Dec square root (decomposed)
-pub fn roc_builtins_dec_sqrt(out_low: *u64, out_high: *u64, a_low: u64, a_high: u64, roc_ops: *RocOps) callconv(.c) void {
+pub fn roc_builtins_dec_sqrt(out_low: *u64, out_high: *u64, a_low: u64, a_high: u64, roc_ops: *ClawOps) callconv(.c) void {
     const a: i128 = @bitCast(i128h.from_u64_pair(a_low, a_high));
-    writeDecUnaryResult(out_low, out_high, dec.sqrtC(dec.RocDec{ .num = a }, roc_ops));
+    writeDecUnaryResult(out_low, out_high, dec.sqrtC(dec.ClawDec{ .num = a }, roc_ops));
 }
 
 /// Dec sine (decomposed)
-pub fn roc_builtins_dec_sin(out_low: *u64, out_high: *u64, a_low: u64, a_high: u64, roc_ops: *RocOps) callconv(.c) void {
+pub fn roc_builtins_dec_sin(out_low: *u64, out_high: *u64, a_low: u64, a_high: u64, roc_ops: *ClawOps) callconv(.c) void {
     const a: i128 = @bitCast(i128h.from_u64_pair(a_low, a_high));
-    writeDecUnaryResult(out_low, out_high, dec.sinC(dec.RocDec{ .num = a }, roc_ops));
+    writeDecUnaryResult(out_low, out_high, dec.sinC(dec.ClawDec{ .num = a }, roc_ops));
 }
 
 /// Dec cosine (decomposed)
-pub fn roc_builtins_dec_cos(out_low: *u64, out_high: *u64, a_low: u64, a_high: u64, roc_ops: *RocOps) callconv(.c) void {
+pub fn roc_builtins_dec_cos(out_low: *u64, out_high: *u64, a_low: u64, a_high: u64, roc_ops: *ClawOps) callconv(.c) void {
     const a: i128 = @bitCast(i128h.from_u64_pair(a_low, a_high));
-    writeDecUnaryResult(out_low, out_high, dec.cosC(dec.RocDec{ .num = a }, roc_ops));
+    writeDecUnaryResult(out_low, out_high, dec.cosC(dec.ClawDec{ .num = a }, roc_ops));
 }
 
 /// Dec tangent (decomposed)
-pub fn roc_builtins_dec_tan(out_low: *u64, out_high: *u64, a_low: u64, a_high: u64, roc_ops: *RocOps) callconv(.c) void {
+pub fn roc_builtins_dec_tan(out_low: *u64, out_high: *u64, a_low: u64, a_high: u64, roc_ops: *ClawOps) callconv(.c) void {
     const a: i128 = @bitCast(i128h.from_u64_pair(a_low, a_high));
-    writeDecUnaryResult(out_low, out_high, dec.tanC(dec.RocDec{ .num = a }, roc_ops));
+    writeDecUnaryResult(out_low, out_high, dec.tanC(dec.ClawDec{ .num = a }, roc_ops));
 }
 
 /// Dec arcsine (decomposed)
-pub fn roc_builtins_dec_asin(out_low: *u64, out_high: *u64, a_low: u64, a_high: u64, roc_ops: *RocOps) callconv(.c) void {
+pub fn roc_builtins_dec_asin(out_low: *u64, out_high: *u64, a_low: u64, a_high: u64, roc_ops: *ClawOps) callconv(.c) void {
     const a: i128 = @bitCast(i128h.from_u64_pair(a_low, a_high));
-    writeDecUnaryResult(out_low, out_high, dec.asinC(dec.RocDec{ .num = a }, roc_ops));
+    writeDecUnaryResult(out_low, out_high, dec.asinC(dec.ClawDec{ .num = a }, roc_ops));
 }
 
 /// Dec arccosine (decomposed)
-pub fn roc_builtins_dec_acos(out_low: *u64, out_high: *u64, a_low: u64, a_high: u64, roc_ops: *RocOps) callconv(.c) void {
+pub fn roc_builtins_dec_acos(out_low: *u64, out_high: *u64, a_low: u64, a_high: u64, roc_ops: *ClawOps) callconv(.c) void {
     const a: i128 = @bitCast(i128h.from_u64_pair(a_low, a_high));
-    writeDecUnaryResult(out_low, out_high, dec.acosC(dec.RocDec{ .num = a }, roc_ops));
+    writeDecUnaryResult(out_low, out_high, dec.acosC(dec.ClawDec{ .num = a }, roc_ops));
 }
 
 /// Dec arctangent (decomposed)
-pub fn roc_builtins_dec_atan(out_low: *u64, out_high: *u64, a_low: u64, a_high: u64, roc_ops: *RocOps) callconv(.c) void {
+pub fn roc_builtins_dec_atan(out_low: *u64, out_high: *u64, a_low: u64, a_high: u64, roc_ops: *ClawOps) callconv(.c) void {
     const a: i128 = @bitCast(i128h.from_u64_pair(a_low, a_high));
-    writeDecUnaryResult(out_low, out_high, dec.atanC(dec.RocDec{ .num = a }, roc_ops));
+    writeDecUnaryResult(out_low, out_high, dec.atanC(dec.ClawDec{ .num = a }, roc_ops));
 }
 
 // ── i128 div/rem wrappers (decomposed) ──
 
 /// u128 div trunc (decomposed)
-pub fn roc_builtins_num_div_trunc_u128(out_low: *u64, out_high: *u64, a_low: u64, a_high: u64, b_low: u64, b_high: u64, roc_ops: *RocOps) callconv(.c) void {
+pub fn roc_builtins_num_div_trunc_u128(out_low: *u64, out_high: *u64, a_low: u64, a_high: u64, b_low: u64, b_high: u64, roc_ops: *ClawOps) callconv(.c) void {
     const a: u128 = i128h.from_u64_pair(a_low, a_high);
     const b: u128 = i128h.from_u64_pair(b_low, b_high);
     const result = num.divTruncU128(a, b, roc_ops);
@@ -1591,7 +1591,7 @@ pub fn roc_builtins_num_div_trunc_u128(out_low: *u64, out_high: *u64, a_low: u64
 }
 
 /// i128 div trunc (decomposed)
-pub fn roc_builtins_num_div_trunc_i128(out_low: *u64, out_high: *u64, a_low: u64, a_high: u64, b_low: u64, b_high: u64, roc_ops: *RocOps) callconv(.c) void {
+pub fn roc_builtins_num_div_trunc_i128(out_low: *u64, out_high: *u64, a_low: u64, a_high: u64, b_low: u64, b_high: u64, roc_ops: *ClawOps) callconv(.c) void {
     const a: i128 = @bitCast(i128h.from_u64_pair(a_low, a_high));
     const b: i128 = @bitCast(i128h.from_u64_pair(b_low, b_high));
     const result = num.divTruncI128(a, b, roc_ops);
@@ -1600,7 +1600,7 @@ pub fn roc_builtins_num_div_trunc_i128(out_low: *u64, out_high: *u64, a_low: u64
 }
 
 /// u128 rem trunc (decomposed)
-pub fn roc_builtins_num_rem_trunc_u128(out_low: *u64, out_high: *u64, a_low: u64, a_high: u64, b_low: u64, b_high: u64, roc_ops: *RocOps) callconv(.c) void {
+pub fn roc_builtins_num_rem_trunc_u128(out_low: *u64, out_high: *u64, a_low: u64, a_high: u64, b_low: u64, b_high: u64, roc_ops: *ClawOps) callconv(.c) void {
     const a: u128 = i128h.from_u64_pair(a_low, a_high);
     const b: u128 = i128h.from_u64_pair(b_low, b_high);
     const result = num.remTruncU128(a, b, roc_ops);
@@ -1609,7 +1609,7 @@ pub fn roc_builtins_num_rem_trunc_u128(out_low: *u64, out_high: *u64, a_low: u64
 }
 
 /// i128 rem trunc (decomposed)
-pub fn roc_builtins_num_rem_trunc_i128(out_low: *u64, out_high: *u64, a_low: u64, a_high: u64, b_low: u64, b_high: u64, roc_ops: *RocOps) callconv(.c) void {
+pub fn roc_builtins_num_rem_trunc_i128(out_low: *u64, out_high: *u64, a_low: u64, a_high: u64, b_low: u64, b_high: u64, roc_ops: *ClawOps) callconv(.c) void {
     const a: i128 = @bitCast(i128h.from_u64_pair(a_low, a_high));
     const b: i128 = @bitCast(i128h.from_u64_pair(b_low, b_high));
     const result = num.remTruncI128(a, b, roc_ops);
@@ -1694,7 +1694,7 @@ fn unsignedIntToStr(comptime T: type, buf: []u8, val: T) []u8 {
 }
 
 /// Unified integer-to-string wrapper: dispatches on int_width/is_signed
-pub fn roc_builtins_int_to_str(out: *RocStr, val_low: u64, val_high: u64, int_width: u8, is_signed: bool, roc_ops: *RocOps) callconv(.c) void {
+pub fn roc_builtins_int_to_str(out: *ClawStr, val_low: u64, val_high: u64, int_width: u8, is_signed: bool, roc_ops: *ClawOps) callconv(.c) void {
     var buf: [40]u8 = undefined;
     const result = switch (int_width) {
         1 => if (is_signed)
@@ -1729,7 +1729,7 @@ pub fn roc_builtins_int_to_str(out: *RocStr, val_low: u64, val_high: u64, int_wi
 /// Uses Ryu's binaryToDecimal directly and formats manually to avoid
 /// pulling in Zig's generic float formatter, which references isPowerOf10
 /// (u128 div/mod → __udivti3/__umodti3 compiler_rt symbols).
-pub fn roc_builtins_float_to_str(out: *RocStr, val_bits: u64, is_f32: bool, roc_ops: *RocOps) callconv(.c) void {
+pub fn roc_builtins_float_to_str(out: *ClawStr, val_bits: u64, is_f32: bool, roc_ops: *ClawOps) callconv(.c) void {
     out.* = str.floatToStrFromBits(val_bits, is_f32, roc_ops);
 }
 
@@ -1856,7 +1856,7 @@ test "direct float wrapper f32" {
     var env = utils.TestEnv.init(std.testing.allocator);
     defer env.deinit();
 
-    var out: RocStr = undefined;
+    var out: ClawStr = undefined;
     const bits: u32 = @bitCast(@as(f32, 3.14));
     roc_builtins_float_to_str(&out, bits, true, env.getOps());
     defer out.decref(env.getOps());
@@ -1866,7 +1866,7 @@ test "direct float wrapper f32" {
 
 // ── Numeric-from-string wrappers ──
 
-fn writeIntParseResult(comptime T: type, out: [*]u8, disc_offset: u32, roc_str: RocStr) void {
+fn writeIntParseResult(comptime T: type, out: [*]u8, disc_offset: u32, roc_str: ClawStr) void {
     const r = num.parseIntFromStr(T, roc_str);
     const value_bytes = std.mem.asBytes(&r.value);
     @memcpy(out[0..value_bytes.len], value_bytes);
@@ -1876,7 +1876,7 @@ fn writeIntParseResult(comptime T: type, out: [*]u8, disc_offset: u32, roc_str: 
     out[disc_offset] = 1 - r.errorcode;
 }
 
-fn writeFloatParseResult(comptime T: type, out: [*]u8, disc_offset: u32, roc_str: RocStr) void {
+fn writeFloatParseResult(comptime T: type, out: [*]u8, disc_offset: u32, roc_str: ClawStr) void {
     const r = num.parseFloatFromStr(T, roc_str);
     const value_bytes = std.mem.asBytes(&r.value);
     @memcpy(out[0..value_bytes.len], value_bytes);
@@ -1896,7 +1896,7 @@ pub fn roc_builtins_int_from_str(
     is_signed: bool,
     disc_offset: u32,
 ) callconv(.c) void {
-    const roc_str = RocStr{ .bytes = str_bytes, .length = str_len, .capacity_or_alloc_ptr = str_cap };
+    const roc_str = ClawStr{ .bytes = str_bytes, .length = str_len, .capacity_or_alloc_ptr = str_cap };
     if (is_signed) {
         switch (int_width) {
             1 => writeIntParseResult(i8, out, disc_offset, roc_str),
@@ -1927,7 +1927,7 @@ pub fn roc_builtins_dec_from_str(
     str_cap: usize,
     disc_offset: u32,
 ) callconv(.c) void {
-    const roc_str = RocStr{ .bytes = str_bytes, .length = str_len, .capacity_or_alloc_ptr = str_cap };
+    const roc_str = ClawStr{ .bytes = str_bytes, .length = str_len, .capacity_or_alloc_ptr = str_cap };
     const r = dec.fromStr(roc_str);
     const value_bytes = std.mem.asBytes(&r.value);
     @memcpy(out[0..value_bytes.len], value_bytes);
@@ -1944,7 +1944,7 @@ pub fn roc_builtins_float_from_str(
     float_width: u8,
     disc_offset: u32,
 ) callconv(.c) void {
-    const roc_str = RocStr{ .bytes = str_bytes, .length = str_len, .capacity_or_alloc_ptr = str_cap };
+    const roc_str = ClawStr{ .bytes = str_bytes, .length = str_len, .capacity_or_alloc_ptr = str_cap };
     switch (float_width) {
         4 => writeFloatParseResult(f32, out, disc_offset, roc_str),
         8 => writeFloatParseResult(f64, out, disc_offset, roc_str),
@@ -1972,10 +1972,10 @@ pub fn roc_builtins_list_str_eq(a_bytes: ?[*]u8, a_len: usize, _: usize, b_bytes
     if (a_bytes == b_bytes) return true;
     const a = a_bytes orelse return b_bytes == null;
     const b = b_bytes orelse return false;
-    const str_size = @sizeOf(RocStr);
+    const str_size = @sizeOf(ClawStr);
     for (0..a_len) |i| {
-        const a_str: *const RocStr = @ptrCast(@alignCast(a + i * str_size));
-        const b_str: *const RocStr = @ptrCast(@alignCast(b + i * str_size));
+        const a_str: *const ClawStr = @ptrCast(@alignCast(a + i * str_size));
+        const b_str: *const ClawStr = @ptrCast(@alignCast(b + i * str_size));
         if (!strEqual(a_str.*, b_str.*)) return false;
     }
     return true;
@@ -1988,10 +1988,10 @@ pub fn roc_builtins_list_list_eq(a_bytes: ?[*]u8, a_len: usize, _: usize, b_byte
     if (a_bytes == b_bytes) return true;
     const a = a_bytes orelse return b_bytes == null;
     const b = b_bytes orelse return false;
-    const list_size = @sizeOf(RocList);
+    const list_size = @sizeOf(ClawList);
     for (0..a_len) |i| {
-        const a_list: *const RocList = @ptrCast(@alignCast(a + i * list_size));
-        const b_list: *const RocList = @ptrCast(@alignCast(b + i * list_size));
+        const a_list: *const ClawList = @ptrCast(@alignCast(a + i * list_size));
+        const b_list: *const ClawList = @ptrCast(@alignCast(b + i * list_size));
         if (a_list.length != b_list.length) return false;
         if (a_list.length == 0) continue;
         if (a_list.bytes == b_list.bytes) continue;
@@ -2004,8 +2004,8 @@ pub fn roc_builtins_list_list_eq(a_bytes: ?[*]u8, a_len: usize, _: usize, b_byte
 
 /// Wrapper: listReverse. The update mode is forwarded to the builtin's
 /// uniqueness check; `.InPlace` skips it and reverses the elements in place.
-pub fn roc_builtins_list_reverse(out: *RocList, list_bytes: ?[*]u8, list_len: usize, list_cap: usize, alignment: u32, element_width: usize, elements_refcounted: bool, element_incref: ?RcIncFn, element_decref: ?RcDropFn, update_mode: utils.UpdateMode, roc_ops: *RocOps) callconv(.c) void {
-    const l = RocList{ .bytes = list_bytes, .length = list_len, .capacity_or_alloc_ptr = list_cap };
+pub fn roc_builtins_list_reverse(out: *ClawList, list_bytes: ?[*]u8, list_len: usize, list_cap: usize, alignment: u32, element_width: usize, elements_refcounted: bool, element_incref: ?RcIncFn, element_decref: ?RcDropFn, update_mode: utils.UpdateMode, roc_ops: *ClawOps) callconv(.c) void {
+    const l = ClawList{ .bytes = list_bytes, .length = list_len, .capacity_or_alloc_ptr = list_cap };
     if (elements_refcounted) {
         var inc_ctx = CallbackElementIncrefContext{
             .callback = element_incref orelse unreachable,

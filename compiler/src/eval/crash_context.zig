@@ -1,4 +1,4 @@
-//! Host-managed storage for crash messages emitted through `RocOps` callbacks.
+//! Host-managed storage for crash messages emitted through `ClawOps` callbacks.
 
 const std = @import("std");
 const Allocator = std.mem.Allocator;
@@ -11,7 +11,7 @@ pub const CrashState = union(enum) {
 
 /// Host-owned bookkeeping for interpreter crashes.
 ///
-/// A `CrashContext` captures the UTF-8 message passed to `RocOps.crash` so tests,
+/// A `CrashContext` captures the UTF-8 message passed to `ClawOps.crash` so tests,
 /// REPL integrations, or other hosts can inspect the result after evaluation
 /// finishes. Each helper resets the previous state before recording new data so
 /// the context can be reused across evaluations.

@@ -47,10 +47,10 @@ pub const Placement = union(enum) {
 
 /// The full lowering of a hosted call's signature.
 pub const LoweredCall = struct {
-    /// Whether `*RocOps` is prepended as the leading integer-register argument.
+    /// Whether `*ClawOps` is prepended as the leading integer-register argument.
     leading_ops: bool,
     ret: Placement,
-    /// One placement per source argument, in order (not counting the leading `*RocOps`).
+    /// One placement per source argument, in order (not counting the leading `*ClawOps`).
     args: []const Placement,
 };
 
@@ -60,7 +60,7 @@ pub const LoweredCall = struct {
 pub const Target = enum { aarch64, x86_64_sysv, x86_64_windows, wasm32, wasm64 };
 
 /// Lower a hosted call's signature for `target`. `arg_idxs`/`ret_idx` are layout indices;
-/// `needs_ops` (from `needsRocOps`) decides the leading `*RocOps`. Allocations for the
+/// `needs_ops` (from `needsRocOps`) decides the leading `*ClawOps`. Allocations for the
 /// returned slices come from `arena`.
 pub fn lower(
     arena: std.mem.Allocator,
@@ -254,7 +254,7 @@ test "lower aarch64: HFA and large aggregates" {
         .{ .class = .float, .offset = 8, .size = 8 },
     }, c1.ret);
 
-    // RocStr arg -> indirect (24 bytes); needs ops since Str is heap.
+    // ClawStr arg -> indirect (24 bytes); needs ops since Str is heap.
     const c2 = try lower(arena, &store, .aarch64, &.{.str}, .i32, true);
     try testing.expect(c2.leading_ops);
     try testing.expectEqual(Placement.indirect, c2.args[0]);

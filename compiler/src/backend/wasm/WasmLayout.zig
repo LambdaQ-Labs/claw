@@ -91,7 +91,7 @@ pub fn wasmReprWithStore(layout_idx: layout.Idx, ls: *const layout.Store) Error!
                     },
                     .zst => .{ .primitive = .i32 }, // zero-sized, dummy i32
                     .box, .box_of_zst, .erased_callable, .ptr => .{ .primitive = .i32 }, // pointer
-                    .list, .list_of_zst => .{ .stack_memory = 12 }, // RocList
+                    .list, .list_of_zst => .{ .stack_memory = 12 }, // ClawList
                     .closure => unreachable, // handled above
                 };
                 if (outer_closure) |outer| {

@@ -32,7 +32,7 @@ const timeout_result_grace_ms: u64 = 5_000;
 const default_timeout_ms: u64 = 120_000;
 const glue_timeout_ms: u64 = 240_000;
 
-const CliRunnerError = util.RocRunError ||
+const CliRunnerError = util.ClawRunError ||
     util.ChildTimeoutError ||
     util.TestDirError ||
     std.mem.Allocator.Error ||
@@ -712,7 +712,7 @@ const glue_cases = [_]CliCase{
     .{ .id = 0, .suite = .glue, .name = "glue regression: ZigGlue succeeds on fx platform", .body = .{ .custom = .glue_zig } },
     .{ .id = 0, .suite = .glue, .name = "glue command generated Zig compiles with zig build-obj", .body = .{ .custom = .glue_zig_compiles } },
     .{ .id = 0, .suite = .glue, .name = "glue regression: ZigGlue native and wasm layouts compile", .body = .{ .custom = .glue_zig_native_wasm_layouts } },
-    .{ .id = 0, .suite = .glue, .name = "glue regression: ZigGlue uses RocBox for opaque boxed app types", .body = .{ .custom = .glue_zig_opaque_box } },
+    .{ .id = 0, .suite = .glue, .name = "glue regression: ZigGlue uses ClawBox for opaque boxed app types", .body = .{ .custom = .glue_zig_opaque_box } },
     .{ .id = 0, .suite = .glue, .name = "glue regression: ZigGlue decrefs non-refcounted boxed payloads with payload alignment", .body = .{ .custom = .glue_zig_box_payload_alignment } },
     .{ .id = 0, .suite = .glue, .name = "glue regression: RustGlue succeeds on fx platform", .body = .{ .custom = .glue_rust } },
     .{ .id = 0, .suite = .glue, .name = "glue regression: ZigGlue handles duplicate tag-union names", .body = .{ .custom = .glue_zig_duplicate_tag_unions } },
@@ -1014,7 +1014,7 @@ const subcommand_cases = [_]CliCase{
     .{ .id = 0, .suite = .subcommands, .name = "roc check platform-required missing method reports diagnostic (issue 9541)", .body = .{ .command = .{ .args = &.{ "check", "--no-cache" }, .roc_file = "test/cli/issue_9541_platform_required_missing_method.roc", .exit = .failure, .contains = &.{ .{ .stream = .stderr, .text = "MISSING METHOD" }, .{ .stream = .stderr, .text = "not_a_method" } }, .not_contains = &.{ .{ .stream = .stderr, .text = "checked method registry is missing resolved dispatch target" }, .{ .stream = .stderr, .text = "panic" } } } } },
     .{ .id = 0, .suite = .subcommands, .name = "roc check platform-required record field reports nested method diagnostic", .body = .{ .command = .{ .args = &.{ "check", "--no-cache" }, .roc_file = "test/cli/issue_9762_platform_required_record_field.roc", .exit = .failure, .contains = &.{ .{ .stream = .stderr, .text = "MISSING METHOD" }, .{ .stream = .stderr, .text = "not_a_method" } }, .not_contains = &.{ .{ .stream = .stderr, .text = "checked method registry is missing resolved dispatch target" }, .{ .stream = .stderr, .text = "panic" } } } } },
     .{ .id = 0, .suite = .subcommands, .name = "roc check platform-required destructured arg reports iterator diagnostic (issue 9542)", .body = .{ .command = .{ .args = &.{ "check", "--no-cache" }, .roc_file = "test/cli/issue_9542_platform_required_for_args.roc", .exit = .failure, .contains = &.{ .{ .stream = .stderr, .text = "MISSING METHOD" }, .{ .stream = .stderr, .text = "iter" } }, .not_contains = &.{ .{ .stream = .stderr, .text = "checked iterator dispatch method registry is missing resolved target" }, .{ .stream = .stderr, .text = "panic" } } } } },
-    .{ .id = 0, .suite = .subcommands, .name = "roc check platform-required match args reports type mismatch (issue 9559)", .body = .{ .command = .{ .args = &.{ "check", "--no-cache" }, .roc_file = "test/cli/issue_9559_platform_required_match_args.roc", .exit = .failure, .contains = &.{ .{ .stream = .stderr, .text = "TYPE MISMATCH" }, .{ .stream = .stderr, .text = "Str" } }, .not_contains = &.{ .{ .stream = .stderr, .text = "scalar immediate cannot stand in for RocStr layout" }, .{ .stream = .stderr, .text = "panic" } } } } },
+    .{ .id = 0, .suite = .subcommands, .name = "roc check platform-required match args reports type mismatch (issue 9559)", .body = .{ .command = .{ .args = &.{ "check", "--no-cache" }, .roc_file = "test/cli/issue_9559_platform_required_match_args.roc", .exit = .failure, .contains = &.{ .{ .stream = .stderr, .text = "TYPE MISMATCH" }, .{ .stream = .stderr, .text = "Str" } }, .not_contains = &.{ .{ .stream = .stderr, .text = "scalar immediate cannot stand in for ClawStr layout" }, .{ .stream = .stderr, .text = "panic" } } } } },
     .{ .id = 0, .suite = .subcommands, .name = "roc U8 addition overflow crashes (issue 9360, interpreter)", .backend = .interpreter, .body = .{ .command = .{ .args = &.{ "--opt=interpreter", "--no-cache" }, .roc_file = "test/cli/issue9360_integer_add_overflow_u8.roc", .exit = .failure, .contains = &.{.{ .stream = .stderr, .text = "Integer addition overflowed!" }} } } },
     .{ .id = 0, .suite = .subcommands, .name = "roc U8 addition overflow crashes (issue 9360, dev)", .backend = .dev, .body = .{ .command = .{ .args = &.{ "--opt=dev", "--no-cache" }, .roc_file = "test/cli/issue9360_integer_add_overflow_u8.roc", .exit = .failure, .contains = &.{.{ .stream = .stderr, .text = "Integer addition overflowed!" }} } } },
     .{ .id = 0, .suite = .subcommands, .name = "roc U8 subtraction underflow crashes (issue 9361, interpreter)", .backend = .interpreter, .body = .{ .command = .{ .args = &.{ "--opt=interpreter", "--no-cache" }, .roc_file = "test/cli/issue9361_integer_sub_underflow_u8.roc", .exit = .failure, .contains = &.{.{ .stream = .stderr, .text = "Integer subtraction overflowed!" }} } } },
@@ -2382,9 +2382,9 @@ const hot_reload_host_c_source =
     \\#error "ROC_TARGET_NAME must be defined"
     \\#endif
     \\
-    \\typedef void (*RocCallable)(void *, void *, const void *, unsigned char *);
-    \\struct RocErasedCallablePayload {
-    \\    RocCallable callable;
+    \\typedef void (*ClawCallable)(void *, void *, const void *, unsigned char *);
+    \\struct ClawErasedCallablePayload {
+    \\    ClawCallable callable;
     \\    void (*on_drop)(unsigned char *, void *);
     \\};
     \\struct I64Args {
@@ -2438,7 +2438,7 @@ const hot_reload_host_c_source =
     \\        fprintf(stderr, "stored boxed callable was null\n");
     \\        abort();
     \\    }
-    \\    struct RocErasedCallablePayload *payload = (struct RocErasedCallablePayload *)boxed;
+    \\    struct ClawErasedCallablePayload *payload = (struct ClawErasedCallablePayload *)boxed;
     \\    struct I64Args args = { .arg0 = value };
     \\    int64_t result = 0;
     \\    payload->callable(roc_shim_get_ops(), &result, &args, boxed + 16);
@@ -4964,17 +4964,17 @@ fn compileGeneratedZigGlue(
         \\const abi = @import("{s}");
         \\
         \\comptime {{
-        \\    _ = abi.RocStr;
-        \\    _ = abi.RocList;
-        \\    _ = abi.RocBox;
-        \\    _ = abi.RocHost;
+        \\    _ = abi.ClawStr;
+        \\    _ = abi.ClawList;
+        \\    _ = abi.ClawBox;
+        \\    _ = abi.ClawHost;
         \\}}
         \\
         \\export fn _roc_glue_matrix_check() void {{
-        \\    var host: abi.RocHost = undefined;
-        \\    var str: abi.RocStr = undefined;
-        \\    var list: abi.RocList(abi.RocStr) = undefined;
-        \\    var box: abi.RocBox = null;
+        \\    var host: abi.ClawHost = undefined;
+        \\    var str: abi.ClawStr = undefined;
+        \\    var list: abi.ClawList(abi.ClawStr) = undefined;
+        \\    var box: abi.ClawBox = null;
         \\    _ = &host;
         \\    _ = &str;
         \\    _ = &list;
@@ -5053,8 +5053,8 @@ fn compileGeneratedCGlue(
         \\#include "roc_platform_abi.h"
         \\
         \\void _roc_glue_matrix_check(void) {
-        \\    RocStr str = {0};
-        \\    RocList list = {0};
+        \\    ClawStr str = {0};
+        \\    ClawList list = {0};
         \\    HostedFunctions *funcs = 0;
         \\    (void)str;
         \\    (void)list;
@@ -5172,8 +5172,8 @@ fn customGlueCHeaderCompiles(io: std.Io, allocator: Allocator, env: *const CaseE
         \\#include "roc_platform_abi.h"
         \\
         \\void test_types(void) {
-        \\    RocStr str = {0};
-        \\    RocList list = {0};
+        \\    ClawStr str = {0};
+        \\    ClawList list = {0};
         \\    HostedFunctions *funcs = 0;
         \\    (void)str;
         \\    (void)list;
@@ -5230,9 +5230,9 @@ fn customGlueZigCompiles(io: std.Io, allocator: Allocator, env: *const CaseEnv, 
         \\    }}
         \\}}
         \\export fn _roc_glue_abi_check() void {{
-        \\    var host: abi.RocHost = undefined;
-        \\    var box: abi.RocBox = null;
-        \\    var str: abi.RocStr = undefined;
+        \\    var host: abi.ClawHost = undefined;
+        \\    var box: abi.ClawBox = null;
+        \\    var str: abi.ClawStr = undefined;
         \\    var builder_args: abi.BuilderPrint_valueArgs = undefined;
         \\    const tree: abi.HostTree = undefined;
         \\    // Reference the nominal record `Padded` and its args struct so their
@@ -5339,12 +5339,12 @@ fn customGlueZigDuplicateTagUnions(io: std.Io, allocator: Allocator, env: *const
 fn customGlueRustBoxPayloadAlignment(io: std.Io, allocator: Allocator, env: *const CaseEnv, timer: *harness.Timer, timeout_ms: u64) ?TestResult {
     // Regression test for non-refcounted boxed payload teardown alignment.
     //
-    // RustGlue.roc previously emitted `decref_box(expr as RocBox, roc_host)` for
+    // RustGlue.roc previously emitted `decref_box(expr as ClawBox, roc_host)` for
     // boxed payloads that are known and contain no refcounted values (e.g.
     // `Box(I64)`). `decref_box` hardcodes pointer alignment
     // (`align_of::<usize>()`), so on small-pointer targets like wasm32 an
     // 8-aligned payload is freed from `base + 4` instead of `base`. The fix
-    // emits `decref_box_with(expr as RocBox, align_of::<payload>(), None, roc_host)`
+    // emits `decref_box_with(expr as ClawBox, align_of::<payload>(), None, roc_host)`
     // so the payload's real alignment is used to recover the allocation base.
     //
     // test/static-data-host exposes `BranchPair(Box(I64), Box(I64))`, which
@@ -5362,15 +5362,15 @@ fn customGlueRustBoxPayloadAlignment(io: std.Io, allocator: Allocator, env: *con
         return customFailure(allocator, timer, "failed to read generated Rust file: {}", .{err});
 
     for ([_][]const u8{
-        "decref_box_with(payload._0 as RocBox, core::mem::align_of::<i64>(), false, None, roc_host);",
-        "decref_box_with(payload._1 as RocBox, core::mem::align_of::<i64>(), false, None, roc_host);",
+        "decref_box_with(payload._0 as ClawBox, core::mem::align_of::<i64>(), false, None, roc_host);",
+        "decref_box_with(payload._1 as ClawBox, core::mem::align_of::<i64>(), false, None, roc_host);",
     }) |needle| {
         if (std.mem.find(u8, generated, needle) == null) {
             return customFailure(allocator, timer, "generated Rust file missing payload-aligned box decref {s}", .{needle});
         }
     }
     // No boxed payload in this platform is opaque, so the pointer-aligned
-    // `decref_box(payload... as RocBox, roc_host)` form must never appear; its
+    // `decref_box(payload... as ClawBox, roc_host)` form must never appear; its
     // presence means a known non-refcounted boxed payload is being freed with
     // pointer alignment instead of the payload's own alignment.
     if (std.mem.find(u8, generated, "decref_box(payload") != null) {
@@ -5509,19 +5509,19 @@ fn customGlueRust(io: std.Io, allocator: Allocator, env: *const CaseEnv, timer: 
     const generated = std.Io.Dir.cwd().readFileAlloc(io, generated_path, allocator, .limited(1024 * 1024)) catch |err|
         return customFailure(allocator, timer, "failed to read generated Rust file: {}", .{err});
     for ([_][]const u8{
-        "pub struct RocStr",
-        "pub struct RocHost",
-        "pub type RocBox = *mut c_void;",
+        "pub struct ClawStr",
+        "pub struct ClawHost",
+        "pub type ClawBox = *mut c_void;",
         "pub fn incref_box",
         "pub fn decref_box",
         "pub fn decref_box_with",
         "pub fn allocate_box",
         "pub fn decref_erased_callable",
-        "pub fn decref_host_tree(value: HostTree, roc_host: &RocHost)",
+        "pub fn decref_host_tree(value: HostTree, roc_host: &ClawHost)",
         "extern \"C\" fn decref_box_payload_type",
         "pub fn roc_alloc(length: usize, alignment: usize) -> *mut c_void;",
         "pub struct BuilderPrintValueArgs",
-        "pub fn roc_stdout_line(arg0: RocStr);",
+        "pub fn roc_stdout_line(arg0: ClawStr);",
         "pub fn roc_main();",
     }) |needle| {
         if (std.mem.find(u8, generated, needle) == null) {
@@ -5531,10 +5531,10 @@ fn customGlueRust(io: std.Io, allocator: Allocator, env: *const CaseEnv, timer: 
     for ([_][]const u8{
         "ret_ptr",
         "arg_ptr",
-        "RocOps",
+        "ClawOps",
         "HostedFunctions",
         "PlatformHostedFns",
-        "pub struct RocAlloc",
+        "pub struct ClawAlloc",
     }) |needle| {
         if (std.mem.find(u8, generated, needle) != null) {
             return customFailure(allocator, timer, "generated Rust file still contains obsolete ABI text {s}", .{needle});
@@ -5566,19 +5566,19 @@ fn customGlueZig(io: std.Io, allocator: Allocator, env: *const CaseEnv, timer: *
     const generated = std.Io.Dir.cwd().readFileAlloc(io, generated_path, allocator, .limited(1024 * 1024)) catch |err|
         return customFailure(allocator, timer, "failed to read generated Zig file: {}", .{err});
     for ([_][]const u8{
-        "pub const RocStr",
-        "pub const RocHost",
-        "pub const RocBox = ?*anyopaque;",
+        "pub const ClawStr",
+        "pub const ClawHost",
+        "pub const ClawBox = ?*anyopaque;",
         "pub fn increfBox",
         "pub fn decrefBox",
         "pub fn decrefBoxWith",
         "pub fn allocateBox",
         "pub fn decrefErasedCallable",
-        "pub fn decrefHostTree(value: HostTree, roc_host: *RocHost) void",
+        "pub fn decrefHostTree(value: HostTree, roc_host: *ClawHost) void",
         "fn decrefBoxPayloadType",
         "pub extern fn roc_alloc(length: usize, alignment: usize) callconv(.c) ?*anyopaque;",
         "pub const BuilderPrint_valueArgs = extern struct",
-        "pub extern fn roc_stdout_line(arg0: RocStr) callconv(.c) void;",
+        "pub extern fn roc_stdout_line(arg0: ClawStr) callconv(.c) void;",
         "pub extern fn roc_main() callconv(.c) void;",
     }) |needle| {
         if (std.mem.find(u8, generated, needle) == null) {
@@ -5588,7 +5588,7 @@ fn customGlueZig(io: std.Io, allocator: Allocator, env: *const CaseEnv, timer: *
     for ([_][]const u8{
         "ret_ptr",
         "arg_ptr",
-        "RocOps",
+        "ClawOps",
         "HostedFunctions",
         "PlatformHostedFns",
     }) |needle| {
@@ -5614,10 +5614,10 @@ fn customGlueZigOpaqueBox(io: std.Io, allocator: Allocator, env: *const CaseEnv,
         return customFailure(allocator, timer, "failed to read generated Zig file: {}", .{err});
 
     for ([_][]const u8{
-        "pub const RocBox = ?*anyopaque;",
-        "pub extern fn roc_init() callconv(.c) RocBox;",
-        "pub extern fn roc_update(arg0: RocBox, arg1: i64) callconv(.c) RocBox;",
-        "pub extern fn roc_render(arg0: RocBox)",
+        "pub const ClawBox = ?*anyopaque;",
+        "pub extern fn roc_init() callconv(.c) ClawBox;",
+        "pub extern fn roc_update(arg0: ClawBox, arg1: i64) callconv(.c) ClawBox;",
+        "pub extern fn roc_render(arg0: ClawBox)",
     }) |needle| {
         if (std.mem.find(u8, generated, needle) == null) {
             return customFailure(allocator, timer, "generated Zig file missing opaque-box ABI text {s}", .{needle});
@@ -5708,7 +5708,7 @@ fn customGlueZigBoxHelperTest(
         \\    backing: [256]u8 align(16) = undefined,
         \\};
         \\
-        \\fn rocAlloc(host: *abi.RocHost, length: usize, alignment: usize) callconv(.c) ?*anyopaque {
+        \\fn rocAlloc(host: *abi.ClawHost, length: usize, alignment: usize) callconv(.c) ?*anyopaque {
         \\    const env_ref: *Env = @ptrCast(@alignCast(host.env));
         \\    env_ref.alloc_count += 1;
         \\    env_ref.alloc_length = length;
@@ -5717,22 +5717,22 @@ fn customGlueZigBoxHelperTest(
         \\    return @ptrCast(&env_ref.backing);
         \\}
         \\
-        \\fn rocDealloc(host: *abi.RocHost, ptr: *anyopaque, alignment: usize) callconv(.c) void {
+        \\fn rocDealloc(host: *abi.ClawHost, ptr: *anyopaque, alignment: usize) callconv(.c) void {
         \\    const env_ref: *Env = @ptrCast(@alignCast(host.env));
         \\    env_ref.dealloc_count += 1;
         \\    env_ref.dealloc_ptr = @intFromPtr(ptr);
         \\    env_ref.dealloc_alignment = alignment;
         \\}
         \\
-        \\fn rocRealloc(_: *abi.RocHost, _: *anyopaque, _: usize, _: usize) callconv(.c) ?*anyopaque {
+        \\fn rocRealloc(_: *abi.ClawHost, _: *anyopaque, _: usize, _: usize) callconv(.c) ?*anyopaque {
         \\    unreachable;
         \\}
         \\
-        \\fn rocDbg(_: *abi.RocHost, _: [*]const u8, _: usize) callconv(.c) void {}
-        \\fn rocExpectFailed(_: *abi.RocHost, _: [*]const u8, _: usize) callconv(.c) void {}
-        \\fn rocCrashed(_: *abi.RocHost, _: [*]const u8, _: usize) callconv(.c) void {}
+        \\fn rocDbg(_: *abi.ClawHost, _: [*]const u8, _: usize) callconv(.c) void {}
+        \\fn rocExpectFailed(_: *abi.ClawHost, _: [*]const u8, _: usize) callconv(.c) void {}
+        \\fn rocCrashed(_: *abi.ClawHost, _: [*]const u8, _: usize) callconv(.c) void {}
         \\
-        \\fn makeHost(env_ref: *Env) abi.RocHost {
+        \\fn makeHost(env_ref: *Env) abi.ClawHost {
         \\    return .{
         \\        .env = @ptrCast(env_ref),
         \\        .roc_alloc = &rocAlloc,
@@ -5754,15 +5754,15 @@ fn customGlueZigBoxHelperTest(
         \\    return @ptrFromInt(@intFromPtr(data_ptr) - @sizeOf(isize));
         \\}
         \\
-        \\fn payloadDrop(data_ptr: ?*anyopaque, host: *abi.RocHost) callconv(.c) void {
+        \\fn payloadDrop(data_ptr: ?*anyopaque, host: *abi.ClawHost) callconv(.c) void {
         \\    const env_ref: *Env = @ptrCast(@alignCast(host.env));
         \\    env_ref.callback_count += 1;
         \\    env_ref.callback_rc = refcountPtr(data_ptr orelse unreachable).*;
         \\}
         \\
-        \\fn erasedCallableFn(_: *abi.RocHost, _: ?[*]u8, _: ?[*]const u8, _: ?[*]u8) callconv(.c) void {}
+        \\fn erasedCallableFn(_: *abi.ClawHost, _: ?[*]u8, _: ?[*]const u8, _: ?[*]u8) callconv(.c) void {}
         \\
-        \\fn erasedDrop(_: ?[*]u8, host: *abi.RocHost) callconv(.c) void {
+        \\fn erasedDrop(_: ?[*]u8, host: *abi.ClawHost) callconv(.c) void {
         \\    const env_ref: *Env = @ptrCast(@alignCast(host.env));
         \\    env_ref.callback_count += 1;
         \\}
@@ -5853,9 +5853,9 @@ fn customGlueZigBoxHelperTest(
         \\}
         \\
         \\test "DefaultAllocators realloc preserves data and frees old allocation" {
-        \\    var env_value = abi.RocEnv{
+        \\    var env_value = abi.ClawEnv{
         \\        .allocator = std.testing.allocator,
-        \\        .roc_io = abi.RocIo.freestanding(),
+        \\        .roc_io = abi.ClawIo.freestanding(),
         \\    };
         \\    var roc_host = abi.makeRocHost(&env_value);
         \\
@@ -5915,7 +5915,7 @@ fn customGlueZigBangRecordFieldNames(io: std.Io, allocator: Allocator, env: *con
     }
     for ([_][]const u8{
         "pub extern fn roc_init_for_host(arg0:",
-        "pub extern fn roc_render_for_host(arg0: RocBox",
+        "pub extern fn roc_render_for_host(arg0: ClawBox",
     }) |needle| {
         if (std.mem.find(u8, generated, needle) == null) {
             return customFailure(allocator, timer, "generated Zig file missing natural entrypoint declaration {s}", .{needle});

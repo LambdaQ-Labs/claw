@@ -1863,7 +1863,7 @@ pub const Store = struct {
         const target_usize = self.targetUsize();
         return .{
             .size = @intCast(self.sizeAt(layout, target_usize)),
-            .alignment = layout_mod.RocAlignment.fromByteUnits(@intCast(layout.alignment(target_usize).toByteUnits())),
+            .alignment = layout_mod.ClawAlignment.fromByteUnits(@intCast(layout.alignment(target_usize).toByteUnits())),
         };
     }
 

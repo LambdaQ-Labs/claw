@@ -25,7 +25,7 @@ const StringLiteral = base.StringLiteral;
 const Ident = base.Ident;
 const DataSpan = base.DataSpan;
 const SExprTree = base.SExprTree;
-const RocDec = builtins.dec.RocDec;
+const ClawDec = builtins.dec.ClawDec;
 
 /// A pattern, including possible problems (e.g. shadowing) so that
 /// codegen can generate a runtime error if this pattern is reached.
@@ -168,7 +168,7 @@ pub const Pattern = union(enum) {
     /// }
     /// ```
     dec_literal: struct {
-        value: RocDec,
+        value: ClawDec,
         has_suffix: bool,
     },
     /// Pattern that matches a specific f32 literal value exactly.

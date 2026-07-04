@@ -11,8 +11,8 @@ const builtins = @import("builtins");
 const is_wasm = builtin.target.cpu.arch == .wasm32;
 
 pub const host_abi = builtins.host_abi;
-pub const RocStr = builtins.str.RocStr;
-pub const RocList = builtins.list.RocList;
+pub const ClawStr = builtins.str.ClawStr;
+pub const ClawList = builtins.list.ClawList;
 
 /// Embedded source for the echo platform's main.roc (platform header + main_for_host!).
 pub const platform_main_source = @embedFile("platform/main.roc");
@@ -132,7 +132,7 @@ pub const build_wasm_archive_platform_main_source =
     \\
 ;
 
-/// Echo platform environment, passed as RocOps.env.
+/// Echo platform environment, passed as ClawOps.env.
 /// On WASM the std_io field is unused (undefined); on native it holds the
 /// std.Io obtained from the process init or the global single-threaded I/O.
 pub const EchoEnv = struct {
@@ -142,18 +142,18 @@ pub const EchoEnv = struct {
     inline_expect_failed: bool = false,
 };
 
-/// The RocOps the echo platform's hosted functions use for refcounting and
+/// The ClawOps the echo platform's hosted functions use for refcounting and
 /// reaching the EchoEnv. Hosted functions have natural C ABIs with no ops
-/// parameter, so the runner stores its RocOps here before running any Roc code.
-pub var g_roc_ops: ?*host_abi.RocOps = null;
+/// parameter, so the runner stores its ClawOps here before running any Roc code.
+pub var g_roc_ops: ?*host_abi.ClawOps = null;
 
-/// Echo host function: reads a RocStr arg and prints it + newline to stdout.
+/// Echo host function: reads a ClawStr arg and prints it + newline to stdout.
 /// Ownership of `roc_str` transfers to this host function — the RC insertion
 /// pass emits zero RC ops for hosted-call args (see test in `src/lir/arc.zig`
 /// "RC hosted call transfers unused refcounted arg to host", and the test
-/// platform host in `test/fx/platform/host.zig` which decrefs every RocStr
-/// arg). Without this decref every `echo!` call leaks one heap RocStr.
-pub fn echoHostedFn(str: RocStr) callconv(.c) void {
+/// platform host in `test/fx/platform/host.zig` which decrefs every ClawStr
+/// arg). Without this decref every `echo!` call leaks one heap ClawStr.
+pub fn echoHostedFn(str: ClawStr) callconv(.c) void {
     const ops = g_roc_ops.?;
     var owned = str;
     defer owned.decref(ops);
@@ -183,10 +183,10 @@ pub fn echoHostedFn(str: RocStr) callconv(.c) void {
 /// synthesize a dynamic-signature C call (see `host_trampoline.available`), so
 /// it invokes hosted functions through a uniform `(args_buf, ret_buf)` ABI. The
 /// interpreter packs `line!`'s single `Str` argument at offset 0 of `args` and
-/// expects no return value, so this reads the RocStr back out and forwards to
+/// expects no return value, so this reads the ClawStr back out and forwards to
 /// `echoHostedFn`, which owns and decrefs it exactly as on native.
 pub fn echoHostedFnWasm(args: [*]u8, _: [*]u8) callconv(.c) void {
-    const str: *const RocStr = @ptrCast(@alignCast(args));
+    const str: *const ClawStr = @ptrCast(@alignCast(args));
     echoHostedFn(str.*);
 }
 
@@ -201,7 +201,7 @@ pub fn echoLineHostedFn() host_abi.HostedFn {
         host_abi.hostedFn(&echoHostedFn);
 }
 
-fn appendTemporaryNewline(str: *RocStr) ?[]u8 {
+fn appendTemporaryNewline(str: *ClawStr) ?[]u8 {
     const len = str.len();
     if (len >= str.getCapacity()) return null;
     if (!(str.isSmallStr() or (!str.isSeamlessSlice() and str.isUnique()))) return null;
@@ -227,13 +227,13 @@ fn handleStdoutError(err: std.Io.File.Writer.Error) noreturn {
     }
 }
 
-/// Create a minimal RocOps struct for default_app execution.
-pub fn makeDefaultRocOps(env: *EchoEnv, hosted_fns: []host_abi.HostedFn) host_abi.RocOps {
+/// Create a minimal ClawOps struct for default_app execution.
+pub fn makeDefaultRocOps(env: *EchoEnv, hosted_fns: []host_abi.HostedFn) host_abi.ClawOps {
     const fns = struct {
         const size_prefix = @sizeOf(usize);
 
         /// Allocate with a size prefix so realloc/dealloc can recover the old length.
-        fn rocAlloc(_: *host_abi.RocOps, length: usize, alignment: usize) callconv(.c) ?*anyopaque {
+        fn rocAlloc(_: *host_abi.ClawOps, length: usize, alignment: usize) callconv(.c) ?*anyopaque {
             const alloc = if (comptime is_wasm) std.heap.wasm_allocator else std.heap.smp_allocator;
             const total = length + size_prefix;
             const align_enum = std.mem.Alignment.fromByteUnits(@max(alignment, @alignOf(usize)));
@@ -249,7 +249,7 @@ pub fn makeDefaultRocOps(env: *EchoEnv, hosted_fns: []host_abi.HostedFn) host_ab
             return @ptrCast(raw + size_prefix);
         }
 
-        fn rocDealloc(_: *host_abi.RocOps, ptr: *anyopaque, alignment: usize) callconv(.c) void {
+        fn rocDealloc(_: *host_abi.ClawOps, ptr: *anyopaque, alignment: usize) callconv(.c) void {
             const alloc = if (comptime is_wasm) std.heap.wasm_allocator else std.heap.smp_allocator;
             // Recover the length rocAlloc stored in the prefix, then free the whole block.
             const user_ptr: [*]u8 = @ptrCast(ptr);
@@ -259,7 +259,7 @@ pub fn makeDefaultRocOps(env: *EchoEnv, hosted_fns: []host_abi.HostedFn) host_ab
             alloc.rawFree(raw[0 .. length + size_prefix], align_enum, @returnAddress());
         }
 
-        fn rocRealloc(_: *host_abi.RocOps, ptr: *anyopaque, new_length: usize, alignment: usize) callconv(.c) ?*anyopaque {
+        fn rocRealloc(_: *host_abi.ClawOps, ptr: *anyopaque, new_length: usize, alignment: usize) callconv(.c) ?*anyopaque {
             const alloc = if (comptime is_wasm) std.heap.wasm_allocator else std.heap.smp_allocator;
             const align_enum = std.mem.Alignment.fromByteUnits(@max(alignment, @alignOf(usize)));
 
@@ -294,7 +294,7 @@ pub fn makeDefaultRocOps(env: *EchoEnv, hosted_fns: []host_abi.HostedFn) host_ab
             return @ptrCast(new_ptr);
         }
 
-        fn rocDbg(ops: *host_abi.RocOps, bytes: [*]const u8, len: usize) callconv(.c) void {
+        fn rocDbg(ops: *host_abi.ClawOps, bytes: [*]const u8, len: usize) callconv(.c) void {
             if (comptime is_wasm) {
                 // No-op on wasm — no stderr available
             } else {
@@ -306,7 +306,7 @@ pub fn makeDefaultRocOps(env: *EchoEnv, hosted_fns: []host_abi.HostedFn) host_ab
                 stderr_file.writeStreamingAll(echo_env.std_io, "\n") catch {};
             }
         }
-        fn rocExpectFailed(ops: *host_abi.RocOps, bytes: [*]const u8, len: usize) callconv(.c) void {
+        fn rocExpectFailed(ops: *host_abi.ClawOps, bytes: [*]const u8, len: usize) callconv(.c) void {
             const echo_env_for_flag: *EchoEnv = @ptrCast(@alignCast(ops.env));
             echo_env_for_flag.inline_expect_failed = true;
             if (comptime is_wasm) {
@@ -320,7 +320,7 @@ pub fn makeDefaultRocOps(env: *EchoEnv, hosted_fns: []host_abi.HostedFn) host_ab
                 stderr_file.writeStreamingAll(echo_env.std_io, "\n") catch {};
             }
         }
-        fn rocCrashed(ops: *host_abi.RocOps, bytes: [*]const u8, len: usize) callconv(.c) void {
+        fn rocCrashed(ops: *host_abi.ClawOps, bytes: [*]const u8, len: usize) callconv(.c) void {
             if (comptime is_wasm) {
                 @trap();
             } else {
@@ -347,24 +347,24 @@ pub fn makeDefaultRocOps(env: *EchoEnv, hosted_fns: []host_abi.HostedFn) host_ab
     };
 }
 
-/// Build a RocList of RocStr from CLI argument slices.
+/// Build a ClawList of ClawStr from CLI argument slices.
 /// Each argument is sanitized to valid UTF-8.
-pub fn buildCliArgs(app_args: []const []const u8, roc_ops: *host_abi.RocOps) std.mem.Allocator.Error!RocList {
-    if (comptime is_wasm) return RocList.empty();
-    if (app_args.len == 0) return RocList.empty();
+pub fn buildCliArgs(app_args: []const []const u8, roc_ops: *host_abi.ClawOps) std.mem.Allocator.Error!ClawList {
+    if (comptime is_wasm) return ClawList.empty();
+    if (app_args.len == 0) return ClawList.empty();
 
     const allocator = std.heap.smp_allocator;
-    const roc_strs = try allocator.alloc(RocStr, app_args.len);
+    const roc_strs = try allocator.alloc(ClawStr, app_args.len);
     defer allocator.free(roc_strs);
 
     for (app_args, 0..) |arg, i| {
         const sanitized = try sanitizeUtf8(arg, allocator);
-        roc_strs[i] = RocStr.fromSlice(sanitized, roc_ops);
+        roc_strs[i] = ClawStr.fromSlice(sanitized, roc_ops);
         // fromSlice copied the bytes into Roc memory, so the host scratch is done.
         if (sanitized.ptr != arg.ptr) allocator.free(sanitized);
     }
 
-    return RocList.fromSlice(RocStr, roc_strs, true, roc_ops);
+    return ClawList.fromSlice(ClawStr, roc_strs, true, roc_ops);
 }
 
 /// Sanitize a byte slice to valid UTF-8, replacing invalid bytes with U+FFFD.
@@ -417,7 +417,7 @@ const testing = std.testing;
 const test_allocator = std.testing.allocator;
 
 test "appendTemporaryNewline: small string uses spare inline byte" {
-    var str = RocStr.fromSliceSmall("hello");
+    var str = ClawStr.fromSliceSmall("hello");
 
     const message = appendTemporaryNewline(&str) orelse return error.TestUnexpectedResult;
     try testing.expectEqualStrings("hello\n", message);
@@ -432,7 +432,7 @@ test "appendTemporaryNewline: unique heap string with spare capacity is writable
     defer test_env.deinit();
     const ops = test_env.getOps();
 
-    var str = RocStr.fromSlice("a string long enough to require heap allocation", ops);
+    var str = ClawStr.fromSlice("a string long enough to require heap allocation", ops);
     str = builtins.str.reserve(str, 1, .Immutable, ops);
     defer str.decref(ops);
 
@@ -449,7 +449,7 @@ test "appendTemporaryNewline: shared heap string is not writable" {
     defer test_env.deinit();
     const ops = test_env.getOps();
 
-    var str = RocStr.fromSlice("a string long enough to require heap allocation", ops);
+    var str = ClawStr.fromSlice("a string long enough to require heap allocation", ops);
     str = builtins.str.reserve(str, 1, .Immutable, ops);
     defer str.decref(ops);
     str.incref(1, ops);

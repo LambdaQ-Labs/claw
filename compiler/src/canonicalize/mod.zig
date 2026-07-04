@@ -22,7 +22,7 @@ pub const BuiltinLowLevel = @import("BuiltinLowLevel.zig");
 /// Static embedded Builtin module views and validation
 pub const BuiltinStatic = @import("BuiltinStatic.zig");
 /// Roc code emitter - converts CIR to valid Roc source code
-pub const RocEmitter = @import("RocEmitter.zig");
+pub const ClawEmitter = @import("ClawEmitter.zig");
 /// Node storage for CIR nodes (used internally by ModuleEnv)
 pub const NodeStore = @import("NodeStore.zig");
 
@@ -119,6 +119,6 @@ test "compile tests" {
     std.testing.refAllDecls(@import("test/while_loop_test.zig"));
 
     // Backend tests (Roc emitter)
-    std.testing.refAllDecls(@import("RocEmitter.zig"));
+    std.testing.refAllDecls(@import("ClawEmitter.zig"));
     std.testing.refAllDecls(@import("test/roc_emitter_test.zig"));
 }

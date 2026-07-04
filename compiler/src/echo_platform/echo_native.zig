@@ -150,7 +150,7 @@ pub fn main(init: std.process.Init) EchoNativeError!void {
         .source = source,
         .extras = extras.items,
         .diagnostics = stderrDiagnostics(),
-        .roc_target = if (is_wasm_target) .wasm32 else roc_target.RocTarget.detectNative(),
+        .roc_target = if (is_wasm_target) .wasm32 else roc_target.ClawTarget.detectNative(),
         .target_usize = if (is_wasm_target) .u32 else .native,
     }) catch |err| {
         stderr_file.writeStreamingAll(io, "echo_native: pipeline returned error\n") catch {};

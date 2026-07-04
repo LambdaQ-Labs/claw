@@ -31,7 +31,7 @@ pub const macos_deployment = struct {
 
 /// Roc's simplified target representation.
 /// Maps to specific OS/arch/ABI combinations for cross-compilation.
-pub const RocTarget = enum {
+pub const ClawTarget = enum {
     // x64 (x86_64) targets
     x64mac,
     x64win,
@@ -58,8 +58,8 @@ pub const RocTarget = enum {
     wasm32,
 
     /// Parse target from string (e.g., "arm64mac", "x64musl")
-    pub fn fromString(str: []const u8) ?RocTarget {
-        const enum_info = @typeInfo(RocTarget);
+    pub fn fromString(str: []const u8) ?ClawTarget {
+        const enum_info = @typeInfo(ClawTarget);
         inline for (enum_info.@"enum".fields) |field| {
             if (std.mem.eql(u8, str, field.name)) {
                 return @enumFromInt(field.value);
@@ -68,9 +68,9 @@ pub const RocTarget = enum {
         return null;
     }
 
-    /// Convert a std.Target to a RocTarget.
+    /// Convert a std.Target to a ClawTarget.
     /// This is the runtime equivalent of detectNative() which uses builtin.target.
-    pub fn fromStdTarget(target: std.Target) RocTarget {
+    pub fn fromStdTarget(target: std.Target) ClawTarget {
         const os = target.os.tag;
         const arch = target.cpu.arch;
         const abi = target.abi;
@@ -127,17 +127,17 @@ pub const RocTarget = enum {
     }
 
     /// Detect the current system's Roc target (compile-time)
-    pub fn detectNative() RocTarget {
+    pub fn detectNative() ClawTarget {
         return fromStdTarget(builtin.target);
     }
 
     /// Get the string name of this target (e.g., "arm64mac", "x64musl")
-    pub fn toName(self: RocTarget) []const u8 {
+    pub fn toName(self: ClawTarget) []const u8 {
         return @tagName(self);
     }
 
-    /// Get the OS tag for this RocTarget
-    pub fn toOsTag(self: RocTarget) std.Target.Os.Tag {
+    /// Get the OS tag for this ClawTarget
+    pub fn toOsTag(self: ClawTarget) std.Target.Os.Tag {
         return switch (self) {
             .x64mac, .arm64mac => .macos,
             .x64win, .arm64win => .windows,
@@ -149,8 +149,8 @@ pub const RocTarget = enum {
         };
     }
 
-    /// Get the CPU architecture for this RocTarget
-    pub fn toCpuArch(self: RocTarget) std.Target.Cpu.Arch {
+    /// Get the CPU architecture for this ClawTarget
+    pub fn toCpuArch(self: ClawTarget) std.Target.Cpu.Arch {
         return switch (self) {
             // x64 targets
             .x64mac, .x64win, .x64freebsd, .x64openbsd, .x64netbsd, .x64musl, .x64glibc, .x64linux, .x64elf => .x86_64,
@@ -167,7 +167,7 @@ pub const RocTarget = enum {
     }
 
     /// Convert Roc target to LLVM target triple
-    pub fn toTriple(self: RocTarget) []const u8 {
+    pub fn toTriple(self: ClawTarget) []const u8 {
         return switch (self) {
             // x64 targets
             .x64mac => "x86_64-apple-darwin",
@@ -197,7 +197,7 @@ pub const RocTarget = enum {
     }
 
     /// Check if target uses dynamic linking (glibc targets)
-    pub fn isDynamic(self: RocTarget) bool {
+    pub fn isDynamic(self: ClawTarget) bool {
         return switch (self) {
             .x64glibc, .arm64glibc, .x64linux, .arm64linux, .arm32linux => true,
             else => false,
@@ -205,7 +205,7 @@ pub const RocTarget = enum {
     }
 
     /// Check if target uses static linking (musl targets)
-    pub fn isStatic(self: RocTarget) bool {
+    pub fn isStatic(self: ClawTarget) bool {
         return switch (self) {
             .x64musl, .arm64musl, .arm32musl => true,
             else => false,
@@ -213,7 +213,7 @@ pub const RocTarget = enum {
     }
 
     /// Check if target is macOS
-    pub fn isMacOS(self: RocTarget) bool {
+    pub fn isMacOS(self: ClawTarget) bool {
         return switch (self) {
             .x64mac, .arm64mac => true,
             else => false,
@@ -221,7 +221,7 @@ pub const RocTarget = enum {
     }
 
     /// Check if target is Windows
-    pub fn isWindows(self: RocTarget) bool {
+    pub fn isWindows(self: ClawTarget) bool {
         return switch (self) {
             .x64win, .arm64win => true,
             else => false,
@@ -229,7 +229,7 @@ pub const RocTarget = enum {
     }
 
     /// Check if target is Linux-based
-    pub fn isLinux(self: RocTarget) bool {
+    pub fn isLinux(self: ClawTarget) bool {
         return switch (self) {
             .x64musl, .x64glibc, .x64linux, .arm64musl, .arm64glibc, .arm64linux, .arm32musl, .arm32linux => true,
             else => false,
@@ -237,7 +237,7 @@ pub const RocTarget = enum {
     }
 
     /// Get the pointer bit width for this target
-    pub fn ptrBitWidth(self: RocTarget) u16 {
+    pub fn ptrBitWidth(self: ClawTarget) u16 {
         return switch (self.toCpuArch()) {
             .x86_64, .aarch64, .aarch64_be => 64,
             .arm, .wasm32 => 32,
@@ -246,7 +246,7 @@ pub const RocTarget = enum {
     }
 
     /// Check if this target has the same OS and CPU architecture as the current host.
-    pub fn matchesHostOsAndArch(self: RocTarget) bool {
+    pub fn matchesHostOsAndArch(self: ClawTarget) bool {
         return self.toOsTag() == builtin.target.os.tag and
             self.toCpuArch() == builtin.target.cpu.arch;
     }
@@ -254,7 +254,7 @@ pub const RocTarget = enum {
     /// Check if this target can be built on the current host.
     /// wasm32 is always compatible because wasm code generation is host-independent.
     /// Native targets are compatible if both OS and architecture match the host.
-    pub fn isCompatibleWithHost(self: RocTarget) bool {
+    pub fn isCompatibleWithHost(self: ClawTarget) bool {
         // wasm32 can be built from any host
         if (self == .wasm32) return true;
 
@@ -265,14 +265,14 @@ pub const RocTarget = enum {
     /// Check if this target produces a process executable that can run on this host.
     /// This is intentionally stricter than build compatibility: wasm32 can be
     /// built on any host, but the default `roc` command does not execute wasm artifacts directly.
-    pub fn isExecutableOnHost(self: RocTarget) bool {
+    pub fn isExecutableOnHost(self: ClawTarget) bool {
         if (self == .wasm32) return false;
 
         return self.matchesHostOsAndArch();
     }
 
     /// Get the dynamic linker path for this target
-    pub fn getDynamicLinkerPath(self: RocTarget) error{ StaticLinkingTarget, WindowsTarget, NoKnownLinkerPath, WebAssemblyTarget }![]const u8 {
+    pub fn getDynamicLinkerPath(self: ClawTarget) error{ StaticLinkingTarget, WindowsTarget, NoKnownLinkerPath, WebAssemblyTarget }![]const u8 {
         return switch (self) {
             // x64 glibc targets
             .x64glibc, .x64linux => "/lib64/ld-linux-x86-64.so.2",
@@ -307,16 +307,16 @@ pub const RocTarget = enum {
 };
 
 test "native target matches host OS and architecture" {
-    try std.testing.expect(RocTarget.detectNative().matchesHostOsAndArch());
+    try std.testing.expect(ClawTarget.detectNative().matchesHostOsAndArch());
 }
 
 test "wasm32 is not host executable" {
-    try std.testing.expect(!RocTarget.wasm32.isExecutableOnHost());
+    try std.testing.expect(!ClawTarget.wasm32.isExecutableOnHost());
 }
 
 test "wasm32 host matching is distinct from build compatibility" {
-    if (RocTarget.detectNative() != .wasm32) {
-        try std.testing.expect(!RocTarget.wasm32.matchesHostOsAndArch());
+    if (ClawTarget.detectNative() != .wasm32) {
+        try std.testing.expect(!ClawTarget.wasm32.matchesHostOsAndArch());
     }
-    try std.testing.expect(RocTarget.wasm32.isCompatibleWithHost());
+    try std.testing.expect(ClawTarget.wasm32.isCompatibleWithHost());
 }

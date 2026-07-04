@@ -7,7 +7,7 @@ const std = @import("std");
 const Allocator = std.mem.Allocator;
 
 const object = @import("object/mod.zig");
-const RocTarget = @import("roc_target").RocTarget;
+const ClawTarget = @import("roc_target").ClawTarget;
 const Relocation = @import("Relocation.zig").Relocation;
 
 /// Generate an object file from code and relocations.
@@ -16,7 +16,7 @@ const Relocation = @import("Relocation.zig").Relocation;
 /// machine code and produces a relocatable object file.
 pub fn generateObjectFile(
     allocator: Allocator,
-    target: RocTarget,
+    target: ClawTarget,
     code: []const u8,
     rodata: []const u8,
     symbols: []const Symbol,
@@ -40,7 +40,7 @@ pub const DebugSections = struct {
 /// COFF dev objects do not carry debug info yet).
 pub fn generateObjectFileWithDebug(
     allocator: Allocator,
-    target: RocTarget,
+    target: ClawTarget,
     code: []const u8,
     rodata: []const u8,
     symbols: []const Symbol,
@@ -523,7 +523,7 @@ test "static strings are emitted into readonly object sections for native target
     const required = "readonly string literal longer than thirty bytes";
     const forbidden = "INTERMEDIATE_ONLY_SHOULD_NOT_BE_EMITTED";
 
-    const targets = [_]RocTarget{
+    const targets = [_]ClawTarget{
         .x64mac,
         .arm64mac,
         .x64musl,
@@ -543,7 +543,7 @@ test "static strings are emitted into readonly object sections for native target
     }
 }
 
-fn expectReadonlyObjectDataForTarget(target: RocTarget, required: []const u8, forbidden: []const u8) (Allocator.Error || error{ UnsupportedTarget, InvalidObjectFile, SectionNotFound, TestUnexpectedResult })!void {
+fn expectReadonlyObjectDataForTarget(target: ClawTarget, required: []const u8, forbidden: []const u8) (Allocator.Error || error{ UnsupportedTarget, InvalidObjectFile, SectionNotFound, TestUnexpectedResult })!void {
     const allocator = std.testing.allocator;
     const code = switch (target.toCpuArch()) {
         .aarch64 => &[_]u8{ 0xC0, 0x03, 0x5F, 0xD6 }, // ret
@@ -582,7 +582,7 @@ fn expectReadonlyObjectDataForTarget(target: RocTarget, required: []const u8, fo
     try std.testing.expect(std.mem.find(u8, output.items, forbidden) == null);
 }
 
-fn readonlySection(target: RocTarget, object_bytes: []const u8) error{ UnsupportedTarget, InvalidObjectFile, SectionNotFound }![]const u8 {
+fn readonlySection(target: ClawTarget, object_bytes: []const u8) error{ UnsupportedTarget, InvalidObjectFile, SectionNotFound }![]const u8 {
     return switch (target.toOsTag()) {
         .macos => try machoSection(object_bytes, "__const"),
         .windows => try coffSectionData(object_bytes, ".rdata"),

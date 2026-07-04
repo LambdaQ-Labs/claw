@@ -2,7 +2,7 @@
 //!
 //! This backend intentionally uses a small internal ABI:
 //!
-//!     void roc_proc_N(*RocOps, ret_ptr, args_ptr)
+//!     void roc_proc_N(*ClawOps, ret_ptr, args_ptr)
 //!
 //! Direct Roc calls pack argument bytes into `args_ptr` using Roc's canonical
 //! alignment order, and callees write results into caller-owned storage. This
@@ -141,8 +141,8 @@ pub const MonoLlvmCodeGen = struct {
     data_layout: []const u8,
     builtin_symbol_mode: BuiltinSymbolMode = .bitcode,
     proc_symbol_mode: ProcSymbolMode = .local_index,
-    /// How generated code reaches the host: through the RocOps vtable (the
-    /// eval JIT, which passes a live RocOps at runtime) or through
+    /// How generated code reaches the host: through the ClawOps vtable (the
+    /// eval JIT, which passes a live ClawOps at runtime) or through
     /// linker-resolved extern symbols (all linked output).
     host_call_mode: builtins.host_abi.HostCallMode = .vtable,
     store: *const lir.LirStore,
@@ -232,7 +232,7 @@ pub const MonoLlvmCodeGen = struct {
         lir_symbol,
     };
 
-    const RocOpsCallback = enum {
+    const ClawOpsCallback = enum {
         dbg,
         expect_failed,
         crashed,
@@ -327,7 +327,7 @@ pub const MonoLlvmCodeGen = struct {
     /// Initializes the backend for a relocatable object linked with target builtins.
     pub fn initForLinkedObject(allocator: Allocator, store: *const lir.LirStore, target: std.Target) MonoLlvmCodeGen {
         // Linked objects use the symbol ABI: hosted functions are direct
-        // extern calls and no RocOps reaches compiled code from the host.
+        // extern calls and no ClawOps reaches compiled code from the host.
         var self = initWithTarget(allocator, store, target);
         self.builtin_symbol_mode = .native_object;
         self.proc_symbol_mode = .lir_symbol;
@@ -447,7 +447,7 @@ pub const MonoLlvmCodeGen = struct {
 
         // Hosted dispatch table: extern declarations for each hosted symbol,
         // collected into roc_shim_hosted_fns/roc_shim_hosted_count for the
-        // interpreter's RocOps.
+        // interpreter's ClawOps.
         var fn_consts = std.ArrayList(LlvmBuilder.Constant).empty;
         defer fn_consts.deinit(self.allocator);
         const dummy_fn_ty = builder.fnType(.void, &.{}, .normal) catch return error.OutOfMemory;
@@ -1209,7 +1209,7 @@ pub const MonoLlvmCodeGen = struct {
         const builder = self.builder orelse return error.CompilationFailed;
         const ptr_ty = builder.ptrType(.default) catch return error.OutOfMemory;
         // Erased-callable procs keep the host-facing callable convention
-        // (ops, ret, args, capture). Other procs carry no RocOps under the
+        // (ops, ret, args, capture). Other procs carry no ClawOps under the
         // symbol ABI; only in-process evaluation threads a real one.
         const params: []const LlvmBuilder.Type = if (proc.abi == .erased_callable)
             &.{ ptr_ty, ptr_ty, ptr_ty, ptr_ty }
@@ -1359,7 +1359,7 @@ pub const MonoLlvmCodeGen = struct {
         wip.cursor = .{ .block = entry };
 
         if (proc.abi != .erased_callable and self.host_call_mode == .extern_symbols) {
-            // No RocOps parameter under the symbol ABI. Builtins helper
+            // No ClawOps parameter under the symbol ABI. Builtins helper
             // signatures still carry an ops slot, which their extern flavor
             // ignores; feed those calls a null constant.
             const ptr_ty = builder.ptrType(.default) catch return error.OutOfMemory;
@@ -1406,7 +1406,7 @@ pub const MonoLlvmCodeGen = struct {
     /// Symbol-ABI entrypoint wrapper: exported under the platform's provides
     /// symbol with the entrypoint's natural C ABI. The wrapper marshals its
     /// C-ABI parameters into the internal argument buffer, calls the entry
-    /// proc with a null RocOps (compiled code reaches the host through extern
+    /// proc with a null ClawOps (compiled code reaches the host through extern
     /// symbols, never through a context parameter), and returns per the ABI.
     fn generateCAbiEntrypointWrapper(
         self: *MonoLlvmCodeGen,
@@ -1498,7 +1498,7 @@ pub const MonoLlvmCodeGen = struct {
         wip.cursor = .{ .block = entry };
 
         const ops_value = if (shim != null) blk: {
-            // The interpreter needs a real RocOps; the prelinked shim builds
+            // The interpreter needs a real ClawOps; the prelinked shim builds
             // one over the host's extern symbols.
             const get_ops_ty = builder.fnType(ptr_ty, &.{}, .normal) catch return error.OutOfMemory;
             const get_ops = try self.declareExternSymbol("roc_shim_get_ops", get_ops_ty);
@@ -4565,7 +4565,7 @@ pub const MonoLlvmCodeGen = struct {
         }
     }
 
-    fn emitStaticRocOpsMessageCall(self: *MonoLlvmCodeGen, callback: RocOpsCallback, msg: []const u8) Error!void {
+    fn emitStaticRocOpsMessageCall(self: *MonoLlvmCodeGen, callback: ClawOpsCallback, msg: []const u8) Error!void {
         const builder = self.builder orelse return error.CompilationFailed;
         const ptr_ty = try self.ptrType();
 
@@ -4600,7 +4600,7 @@ pub const MonoLlvmCodeGen = struct {
             return;
         }
 
-        // RocOps callback ABI: roc_dbg(ops: *RocOps, bytes: [*]const u8, len: usize).
+        // ClawOps callback ABI: roc_dbg(ops: *ClawOps, bytes: [*]const u8, len: usize).
         const callback_ptr_ptr = try self.offsetPtr(self.rocOps(), self.rocOpsCallbackOffset(callback));
         const callback_ptr = try self.loadPointer(callback_ptr_ptr);
         const fn_ty = builder.fnType(.void, &.{ ptr_ty, ptr_ty, self.ptrSizedIntType() }, .normal) catch return error.OutOfMemory;
@@ -7138,7 +7138,7 @@ pub const MonoLlvmCodeGen = struct {
         return 2 * self.targetWordSize();
     }
 
-    fn rocOpsCallbackOffset(self: *const MonoLlvmCodeGen, callback: RocOpsCallback) u32 {
+    fn rocOpsCallbackOffset(self: *const MonoLlvmCodeGen, callback: ClawOpsCallback) u32 {
         if (self.target.cpu.arch == .wasm32) {
             return switch (callback) {
                 .dbg => 16,
@@ -7147,15 +7147,15 @@ pub const MonoLlvmCodeGen = struct {
             };
         }
         return switch (callback) {
-            .dbg => @intCast(@offsetOf(builtins.host_abi.RocOps, "roc_dbg")),
-            .expect_failed => @intCast(@offsetOf(builtins.host_abi.RocOps, "roc_expect_failed")),
-            .crashed => @intCast(@offsetOf(builtins.host_abi.RocOps, "roc_crashed")),
+            .dbg => @intCast(@offsetOf(builtins.host_abi.ClawOps, "roc_dbg")),
+            .expect_failed => @intCast(@offsetOf(builtins.host_abi.ClawOps, "roc_expect_failed")),
+            .crashed => @intCast(@offsetOf(builtins.host_abi.ClawOps, "roc_crashed")),
         };
     }
 
     fn rocOpsHostedFnsPtrOffset(self: *const MonoLlvmCodeGen) u32 {
         if (self.target.cpu.arch == .wasm32) return 32;
-        return @as(u32, @intCast(@offsetOf(builtins.host_abi.RocOps, "hosted_fns"))) +
+        return @as(u32, @intCast(@offsetOf(builtins.host_abi.ClawOps, "hosted_fns"))) +
             @as(u32, @intCast(@offsetOf(builtins.host_abi.HostedFunctions, "fns")));
     }
 
@@ -7199,7 +7199,7 @@ pub const MonoLlvmCodeGen = struct {
         return self.sizeAlignOf(layout_idx).size;
     }
 
-    fn llvmAlignment(_: *MonoLlvmCodeGen, roc_alignment: layout.RocAlignment) LlvmBuilder.Alignment {
+    fn llvmAlignment(_: *MonoLlvmCodeGen, roc_alignment: layout.ClawAlignment) LlvmBuilder.Alignment {
         return LlvmBuilder.Alignment.fromByteUnits(@max(roc_alignment.toByteUnits(), 1));
     }
 
@@ -7982,7 +7982,7 @@ pub const MonoLlvmCodeGen = struct {
     }
 
     /// Emit a hosted-function call using the platform C ABI: small arguments and the return
-    /// travel in registers per `abi.lower`, with `*RocOps` threaded only when the signature
+    /// travel in registers per `abi.lower`, with `*ClawOps` threaded only when the signature
     /// touches Roc-managed memory. `arg_ptrs` point at each argument's value bytes; the result
     /// is written into `ret_ptr` (used directly as the sret pointer for memory-class returns).
     fn emitHostedCallCAbi(
@@ -8006,7 +8006,7 @@ pub const MonoLlvmCodeGen = struct {
         const arena = arena_state.allocator();
 
         // Under the symbol ABI the host reaches its own runtime operations
-        // directly, so hosted functions never take a leading *RocOps.
+        // directly, so hosted functions never take a leading *ClawOps.
         const needs_ops = self.host_call_mode == .vtable and
             layout.abi.needsRocOps(self.layouts(), arg_layouts, ret_layout);
         const lowered = layout.abi.lower(arena, self.layouts(), self.abiTarget(), arg_layouts, ret_layout, needs_ops) catch return error.OutOfMemory;

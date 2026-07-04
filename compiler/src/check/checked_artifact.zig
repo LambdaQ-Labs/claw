@@ -6788,7 +6788,7 @@ pub const CheckedPatternData = union(enum) {
         conversion: ?CheckedExprId = null,
     },
     dec_literal: struct {
-        value: builtins.dec.RocDec,
+        value: builtins.dec.ClawDec,
         has_suffix: bool,
         conversion: ?CheckedExprId = null,
     },
@@ -6825,7 +6825,7 @@ pub const CheckedExprData = union(enum) {
         has_suffix: bool,
     },
     dec: struct {
-        value: builtins.dec.RocDec,
+        value: builtins.dec.ClawDec,
         has_suffix: bool,
     },
     dec_small: struct {
@@ -7021,7 +7021,7 @@ pub const StoredCheckedExprData = union(enum) {
         has_suffix: bool,
     },
     dec: struct {
-        value: builtins.dec.RocDec,
+        value: builtins.dec.ClawDec,
         has_suffix: bool,
     },
     dec_small: struct {
@@ -7196,7 +7196,7 @@ pub const StoredCheckedPatternData = union(enum) {
         conversion: ?CheckedExprId = null,
     },
     dec_literal: struct {
-        value: builtins.dec.RocDec,
+        value: builtins.dec.ClawDec,
         has_suffix: bool,
         conversion: ?CheckedExprId = null,
     },
@@ -9955,7 +9955,7 @@ const CheckedBodyPayloadCopier = struct {
             .dec => if (exactDecLiteral(module_env, literal)) |value|
                 .{ .dec = .{ .value = value, .has_suffix = has_suffix } }
             else if (!has_suffix)
-                .{ .dec = .{ .value = if (literal.isNegative()) builtins.dec.RocDec.min else builtins.dec.RocDec.max, .has_suffix = has_suffix } }
+                .{ .dec = .{ .value = if (literal.isNegative()) builtins.dec.ClawDec.min else builtins.dec.ClawDec.max, .has_suffix = has_suffix } }
             else
                 null,
             else => null,
@@ -9999,15 +9999,15 @@ const CheckedBodyPayloadCopier = struct {
         return base256BytesToU128(module_env.numeralDigitsBefore(literal));
     }
 
-    fn exactDecLiteral(module_env: *const ModuleEnv, literal: ModuleEnv.NumeralLiteral) ?builtins.dec.RocDec {
-        const decimal_places = builtins.dec.RocDec.decimal_places;
+    fn exactDecLiteral(module_env: *const ModuleEnv, literal: ModuleEnv.NumeralLiteral) ?builtins.dec.ClawDec {
+        const decimal_places = builtins.dec.ClawDec.decimal_places;
         const after_count = literal.after_decimal_digit_count;
         if (after_count > decimal_places) return null;
 
         const before = base256BytesToU128(module_env.numeralDigitsBefore(literal)) orelse return null;
         const after = base256BytesToU128(module_env.numeralDigitsAfter(literal)) orelse return null;
 
-        const before_scaled = checkedMulU128(before, @intCast(builtins.dec.RocDec.one_point_zero_i128)) orelse return null;
+        const before_scaled = checkedMulU128(before, @intCast(builtins.dec.ClawDec.one_point_zero_i128)) orelse return null;
         const after_scale = pow10U128(decimal_places - after_count);
         const after_scaled = checkedMulU128(after, after_scale) orelse return null;
         const magnitude = checkedAddU128(before_scaled, after_scaled) orelse return null;
@@ -10747,7 +10747,7 @@ const CheckedBodyPayloadCopier = struct {
 const FracLit = union(enum) {
     f32: f32,
     f64: f64,
-    dec: builtins.dec.RocDec,
+    dec: builtins.dec.ClawDec,
     small: CIR.SmallDecValue,
     scaled_dec: CIR.IntValue,
 };
@@ -10807,7 +10807,7 @@ fn integralFracLitToIntValue(literal: FracLit) ?CIR.IntValue {
 }
 
 fn scaledDecBitsToInt(bits: i128) ?i128 {
-    const scale = builtins.dec.RocDec.one_point_zero_i128;
+    const scale = builtins.dec.ClawDec.one_point_zero_i128;
     if (@rem(bits, scale) != 0) return null;
     return @divTrunc(bits, scale);
 }
@@ -10971,12 +10971,12 @@ fn fracLitToF64(literal: FracLit) f64 {
     };
 }
 
-fn fracLitToDec(literal: FracLit) builtins.dec.RocDec {
+fn fracLitToDec(literal: FracLit) builtins.dec.ClawDec {
     return switch (literal) {
-        .f32 => |value| builtins.dec.RocDec.fromF64(@as(f64, @floatCast(value))) orelse {
+        .f32 => |value| builtins.dec.ClawDec.fromF64(@as(f64, @floatCast(value))) orelse {
             checkedArtifactInvariant("F32 literal solved as Dec exceeded Dec range", .{});
         },
-        .f64 => |value| builtins.dec.RocDec.fromF64(value) orelse {
+        .f64 => |value| builtins.dec.ClawDec.fromF64(value) orelse {
             checkedArtifactInvariant("F64 literal solved as Dec exceeded Dec range", .{});
         },
         .dec => |value| value,
@@ -10985,7 +10985,7 @@ fn fracLitToDec(literal: FracLit) builtins.dec.RocDec {
     };
 }
 
-fn scaledDecToDec(value: CIR.IntValue) builtins.dec.RocDec {
+fn scaledDecToDec(value: CIR.IntValue) builtins.dec.ClawDec {
     return .{ .num = value.toI128() };
 }
 

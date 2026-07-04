@@ -1108,7 +1108,7 @@ pub const LowLevel = enum(u16) {
     }
 
     /// Whether this primitive can consume borrowed string views directly,
-    /// without first materializing them into RocStr values.
+    /// without first materializing them into ClawStr values.
     pub fn acceptsStrViewArgs(self: LowLevel) bool {
         return switch (self) {
             .str_count_utf8_bytes,

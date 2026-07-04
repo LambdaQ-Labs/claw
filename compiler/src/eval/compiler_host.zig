@@ -1,9 +1,9 @@
-//! RocOps environment used by compiler-owned evaluation.
+//! ClawOps environment used by compiler-owned evaluation.
 
 const std = @import("std");
 const builtins = @import("builtins");
 
-const RocOps = builtins.host_abi.RocOps;
+const ClawOps = builtins.host_abi.ClawOps;
 
 const CompilerHost = @This();
 
@@ -14,7 +14,7 @@ const Allocation = struct {
 
 allocator: std.mem.Allocator,
 allocations: std.AutoHashMap(usize, Allocation),
-roc_ops: ?RocOps = null,
+roc_ops: ?ClawOps = null,
 crash_message: ?[]u8 = null,
 expect_message: ?[]u8 = null,
 
@@ -33,8 +33,8 @@ pub fn deinit(self: *CompilerHost) void {
     self.* = CompilerHost.init(self.allocator);
 }
 
-/// Return the RocOps table used by compiler-owned evaluation.
-pub fn ops(self: *CompilerHost) *RocOps {
+/// Return the ClawOps table used by compiler-owned evaluation.
+pub fn ops(self: *CompilerHost) *ClawOps {
     if (self.roc_ops == null) {
         self.roc_ops = .{
             .env = @ptrCast(self),
@@ -50,7 +50,7 @@ pub fn ops(self: *CompilerHost) *RocOps {
     return &self.roc_ops.?;
 }
 
-fn rocAlloc(roc_ops: *RocOps, length: usize, alignment: usize) callconv(.c) ?*anyopaque {
+fn rocAlloc(roc_ops: *ClawOps, length: usize, alignment: usize) callconv(.c) ?*anyopaque {
     const self: *CompilerHost = @ptrCast(@alignCast(roc_ops.env));
     const allocation: Allocation = .{ .size = length, .alignment = alignment };
     const ptr = allocateBytes(self.allocator, length, alignment) orelse {
@@ -65,14 +65,14 @@ fn rocAlloc(roc_ops: *RocOps, length: usize, alignment: usize) callconv(.c) ?*an
     return @ptrCast(ptr);
 }
 
-fn rocDealloc(roc_ops: *RocOps, ptr: *anyopaque, _: usize) callconv(.c) void {
+fn rocDealloc(roc_ops: *ClawOps, ptr: *anyopaque, _: usize) callconv(.c) void {
     const self: *CompilerHost = @ptrCast(@alignCast(roc_ops.env));
     const removed = self.allocations.fetchRemove(@intFromPtr(ptr)) orelse
-        @panic("compiler RocOps deallocated unknown pointer");
+        @panic("compiler ClawOps deallocated unknown pointer");
     freeBytes(self.allocator, ptr, removed.value);
 }
 
-fn rocRealloc(roc_ops: *RocOps, ptr: *anyopaque, new_length: usize, alignment: usize) callconv(.c) ?*anyopaque {
+fn rocRealloc(roc_ops: *ClawOps, ptr: *anyopaque, new_length: usize, alignment: usize) callconv(.c) ?*anyopaque {
     const self: *CompilerHost = @ptrCast(@alignCast(roc_ops.env));
     const old_ptr = ptr;
     const allocation: Allocation = .{ .size = new_length, .alignment = alignment };
@@ -83,7 +83,7 @@ fn rocRealloc(roc_ops: *RocOps, ptr: *anyopaque, new_length: usize, alignment: u
         return null;
     };
     const removed = self.allocations.fetchRemove(@intFromPtr(old_ptr)) orelse
-        @panic("compiler RocOps reallocated unknown pointer");
+        @panic("compiler ClawOps reallocated unknown pointer");
     const old_bytes: [*]u8 = @ptrCast(@alignCast(old_ptr));
     @memcpy(new_ptr[0..@min(removed.value.size, new_length)], old_bytes[0..@min(removed.value.size, new_length)]);
     freeBytes(self.allocator, old_ptr, removed.value);
@@ -95,15 +95,15 @@ fn rocRealloc(roc_ops: *RocOps, ptr: *anyopaque, new_length: usize, alignment: u
     return @ptrCast(new_ptr);
 }
 
-fn rocDbg(_: *RocOps, _: [*]const u8, _: usize) callconv(.c) void {}
+fn rocDbg(_: *ClawOps, _: [*]const u8, _: usize) callconv(.c) void {}
 
-fn rocExpectFailed(roc_ops: *RocOps, bytes: [*]const u8, len: usize) callconv(.c) void {
+fn rocExpectFailed(roc_ops: *ClawOps, bytes: [*]const u8, len: usize) callconv(.c) void {
     const self: *CompilerHost = @ptrCast(@alignCast(roc_ops.env));
     if (self.expect_message) |msg| self.allocator.free(msg);
     self.expect_message = self.allocator.dupe(u8, bytes[0..len]) catch null;
 }
 
-fn rocCrashed(roc_ops: *RocOps, bytes: [*]const u8, len: usize) callconv(.c) void {
+fn rocCrashed(roc_ops: *ClawOps, bytes: [*]const u8, len: usize) callconv(.c) void {
     const self: *CompilerHost = @ptrCast(@alignCast(roc_ops.env));
     if (self.crash_message) |msg| self.allocator.free(msg);
     self.crash_message = self.allocator.dupe(u8, bytes[0..len]) catch null;
@@ -118,7 +118,7 @@ fn allocateBytes(allocator: std.mem.Allocator, len: usize, alignment: usize) ?[*
         4 => (allocator.alignedAlloc(u8, .@"4", len) catch return null).ptr,
         8 => (allocator.alignedAlloc(u8, .@"8", len) catch return null).ptr,
         16 => (allocator.alignedAlloc(u8, .@"16", len) catch return null).ptr,
-        else => @panic("unsupported compiler RocOps allocation alignment"),
+        else => @panic("unsupported compiler ClawOps allocation alignment"),
     };
 }
 
@@ -130,7 +130,7 @@ fn freeBytes(allocator: std.mem.Allocator, ptr: *anyopaque, allocation: Allocati
         4 => allocator.free((@as([*]align(4) u8, @alignCast(bytes)))[0..allocation.size]),
         8 => allocator.free((@as([*]align(8) u8, @alignCast(bytes)))[0..allocation.size]),
         16 => allocator.free((@as([*]align(16) u8, @alignCast(bytes)))[0..allocation.size]),
-        else => @panic("unsupported compiler RocOps free alignment"),
+        else => @panic("unsupported compiler ClawOps free alignment"),
     }
 }
 

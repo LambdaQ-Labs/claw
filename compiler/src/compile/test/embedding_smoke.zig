@@ -23,10 +23,10 @@ const roc_target = @import("roc_target");
 const Coordinator = @import("../coordinator.zig").Coordinator;
 const CoreCtx = @import("ctx").CoreCtx;
 
-// Allocator callbacks for the test's RocOps. The simple_success.roc app's
+// Allocator callbacks for the test's ClawOps. The simple_success.roc app's
 // `main!` is empty, so these are unlikely to fire — but they must be valid
 // function pointers.
-fn testRocAlloc(_: *host_abi.RocOps, length: usize, alignment: usize) callconv(.c) ?*anyopaque {
+fn testRocAlloc(_: *host_abi.ClawOps, length: usize, alignment: usize) callconv(.c) ?*anyopaque {
     const align_enum = std.mem.Alignment.fromByteUnits(@max(alignment, @alignOf(usize)));
     const raw = base.defaultGpa().rawAlloc(length, align_enum, @returnAddress()) orelse {
         std.debug.panic("embedding smoke test roc_alloc OOM", .{});
@@ -34,17 +34,17 @@ fn testRocAlloc(_: *host_abi.RocOps, length: usize, alignment: usize) callconv(.
     return @ptrCast(raw);
 }
 
-fn testRocDealloc(_: *host_abi.RocOps, _: *anyopaque, _: usize) callconv(.c) void {
+fn testRocDealloc(_: *host_abi.ClawOps, _: *anyopaque, _: usize) callconv(.c) void {
     // No-op for the smoke test — pages are reclaimed at exit.
 }
 
-fn testRocRealloc(_: *host_abi.RocOps, _: *anyopaque, _: usize, _: usize) callconv(.c) ?*anyopaque {
+fn testRocRealloc(_: *host_abi.ClawOps, _: *anyopaque, _: usize, _: usize) callconv(.c) ?*anyopaque {
     std.debug.panic("embedding smoke test roc_realloc unexpected", .{});
 }
 
-fn testRocDbg(_: *host_abi.RocOps, _: [*]const u8, _: usize) callconv(.c) void {}
-fn testRocExpectFailed(_: *host_abi.RocOps, _: [*]const u8, _: usize) callconv(.c) void {}
-fn testRocCrashed(_: *host_abi.RocOps, _: [*]const u8, _: usize) callconv(.c) void {
+fn testRocDbg(_: *host_abi.ClawOps, _: [*]const u8, _: usize) callconv(.c) void {}
+fn testRocExpectFailed(_: *host_abi.ClawOps, _: [*]const u8, _: usize) callconv(.c) void {}
+fn testRocCrashed(_: *host_abi.ClawOps, _: [*]const u8, _: usize) callconv(.c) void {
     std.debug.panic("embedding smoke test received roc_crashed", .{});
 }
 
@@ -66,7 +66,7 @@ test "embedding API: full canonical sequence on simple_success app" {
         gpa,
         .single_threaded,
         1,
-        roc_target.RocTarget.detectNative(),
+        roc_target.ClawTarget.detectNative(),
         &builtin_modules,
         build_options.compiler_version,
         null,
@@ -148,11 +148,11 @@ test "embedding API: full canonical sequence on simple_success app" {
         lowered.target_usize,
     );
 
-    // 9. Wire RocOps with empty hosted_fns (simple_success has no hosted-fn
+    // 9. Wire ClawOps with empty hosted_fns (simple_success has no hosted-fn
     //    calls). For platforms with hosted functions, the dispatch index
     //    rule applies — see README "Host functions".
     var hosted_fns = host_abi.emptyHostedFunctions();
-    var roc_ops = host_abi.RocOps{
+    var roc_ops = host_abi.ClawOps{
         .env = @ptrFromInt(0xdeadbeef), // unused by simple_success
         .roc_alloc = &testRocAlloc,
         .roc_dealloc = &testRocDealloc,

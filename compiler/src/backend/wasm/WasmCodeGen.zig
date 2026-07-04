@@ -83,14 +83,14 @@ const max_i32_store_const_prefix_bytes =
     (1 + max_wasm_leb32_bytes + max_wasm_leb32_bytes); // i32.store align offset
 
 const max_roc_ops_prefix_bytes =
-    (1 + max_wasm_leb32_bytes) + // i32.const RocOps address
+    (1 + max_wasm_leb32_bytes) + // i32.const ClawOps address
     (1 + max_wasm_leb32_bytes) + // local.set roc_ops_local
     max_i32_store_local_prefix_bytes + // env pointer
     8 * max_i32_store_const_prefix_bytes; // alloc/dealloc/realloc/dbg/expect/crashed/hosted count/hosted ptr
 
 /// Stack prefixes are assembled after body generation because the frame size is
 /// only known then. The synthetic standalone main prefix additionally initializes
-/// RocOps, so the bound includes both the stack-frame prologue and RocOps stores.
+/// ClawOps, so the bound includes both the stack-frame prologue and ClawOps stores.
 const max_stack_prefix_bytes = max_stack_frame_prefix_bytes + max_roc_ops_prefix_bytes;
 
 const StackPrefixRelocs = struct {
@@ -152,13 +152,13 @@ const BuiltinListAbi = struct {
     elements_refcounted: bool,
 };
 
-const RocListFields = struct {
+const ClawListFields = struct {
     bytes: u32,
     len: u32,
     cap: u32,
 };
 
-const RocStrFields = struct {
+const ClawStrFields = struct {
     bytes: u32,
     len: u32,
     cap: u32,
@@ -172,7 +172,7 @@ const StrMatchSourceShape = struct {
     allocation: u32,
 };
 
-const RocListElementCallbacks = struct {
+const ClawListElementCallbacks = struct {
     elements_refcounted: u32,
     incref_table_idx: u32,
     decref_table_idx: u32,
@@ -240,7 +240,7 @@ registered_procs: std.AutoHashMap(u32, u32),
 /// indices mid-codegen.
 hosted_symbol_targets: std.AutoHashMap(u32, HostedSymbolTarget),
 /// Whether generated code uses the symbol ABI: allocation and diagnostics go
-/// directly to the host's linker symbols instead of through the RocOps
+/// directly to the host's linker symbols instead of through the ClawOps
 /// vtable. Build output uses the symbol ABI; the playground/eval module
 /// flavor keeps the vtable so its JS host contract is unchanged.
 symbol_abi: bool = false,
@@ -277,7 +277,7 @@ roc_realloc_type_idx: u32 = 0,
 /// Type index for roc_dbg/roc_expect_failed/roc_crashed: (roc_ops, bytes, len) -> void.
 roc_diag_type_idx: u32 = 0,
 indirect_call_types_registered: bool = false,
-/// Table indices for RocOps functions (used with erased calls via wasm `call_indirect`).
+/// Table indices for ClawOps functions (used with erased calls via wasm `call_indirect`).
 roc_alloc_table_idx: u32 = 0,
 roc_dealloc_table_idx: u32 = 0,
 roc_realloc_table_idx: u32 = 0,
@@ -285,7 +285,7 @@ roc_dbg_table_idx: u32 = 0,
 roc_expect_failed_table_idx: u32 = 0,
 roc_crashed_table_idx: u32 = 0,
 proc_arg_counts_offset: u32 = 0,
-/// Local index holding the roc_ops_ptr (pointer to RocOps struct in linear memory).
+/// Local index holding the roc_ops_ptr (pointer to ClawOps struct in linear memory).
 /// In main(), this is a local storing the constant 0 (struct at memory offset 0).
 /// In compiled functions, this is parameter 0.
 roc_ops_local: u32 = 0,
@@ -640,8 +640,8 @@ fn updateModeImmForArg(unique_args: u64, arg_index: u6) i32 {
     return @intFromEnum(if ((unique_args >> arg_index) & 1 != 0) builtins.utils.UpdateMode.InPlace else builtins.utils.UpdateMode.Immutable);
 }
 
-fn loadRocListFields(self: *Self, list_ptr: u32) Allocator.Error!RocListFields {
-    const fields = RocListFields{
+fn loadRocListFields(self: *Self, list_ptr: u32) Allocator.Error!ClawListFields {
+    const fields = ClawListFields{
         .bytes = self.storage.allocAnonymousLocal(.i32) catch return error.OutOfMemory,
         .len = self.storage.allocAnonymousLocal(.i32) catch return error.OutOfMemory,
         .cap = self.storage.allocAnonymousLocal(.i32) catch return error.OutOfMemory,
@@ -662,14 +662,14 @@ fn loadRocListFields(self: *Self, list_ptr: u32) Allocator.Error!RocListFields {
     return fields;
 }
 
-fn emitRocListFields(self: *Self, fields: RocListFields) Allocator.Error!void {
+fn emitRocListFields(self: *Self, fields: ClawListFields) Allocator.Error!void {
     try self.emitLocalGet(fields.bytes);
     try self.emitLocalGet(fields.len);
     try self.emitLocalGet(fields.cap);
 }
 
-fn loadRocStrFields(self: *Self, str_ptr: u32) Allocator.Error!RocStrFields {
-    const fields = RocStrFields{
+fn loadRocStrFields(self: *Self, str_ptr: u32) Allocator.Error!ClawStrFields {
+    const fields = ClawStrFields{
         .bytes = self.storage.allocAnonymousLocal(.i32) catch return error.OutOfMemory,
         .len = self.storage.allocAnonymousLocal(.i32) catch return error.OutOfMemory,
         .cap = self.storage.allocAnonymousLocal(.i32) catch return error.OutOfMemory,
@@ -690,7 +690,7 @@ fn loadRocStrFields(self: *Self, str_ptr: u32) Allocator.Error!RocStrFields {
     return fields;
 }
 
-fn emitRocStrFields(self: *Self, fields: RocStrFields) Allocator.Error!void {
+fn emitRocStrFields(self: *Self, fields: ClawStrFields) Allocator.Error!void {
     try self.emitLocalGet(fields.bytes);
     try self.emitLocalGet(fields.len);
     try self.emitLocalGet(fields.cap);
@@ -1050,7 +1050,7 @@ fn builtinInternalRcHelperTableIndex(self: *Self, helper_key: RcHelperKey) Alloc
     return table_idx;
 }
 
-fn listElementCallbacks(self: *Self, list_abi: BuiltinListAbi) Allocator.Error!RocListElementCallbacks {
+fn listElementCallbacks(self: *Self, list_abi: BuiltinListAbi) Allocator.Error!ClawListElementCallbacks {
     if (!list_abi.elements_refcounted) {
         return .{
             .elements_refcounted = 0,
@@ -1295,7 +1295,7 @@ fn localFunctionIndexFromGlobal(self: *const Self, global_func_idx: u32) LocalFu
     return index_types.functionToLocal(FunctionIndex.fromRaw(global_func_idx), self.module.importCount());
 }
 
-/// Register shared wasm types used by RocOps and hosted-function indirect calls.
+/// Register shared wasm types used by ClawOps and hosted-function indirect calls.
 pub fn registerIndirectCallTypes(self: *Self) Allocator.Error!void {
     if (self.indirect_call_types_registered) return;
 
@@ -1345,7 +1345,7 @@ fn registerHostImports(self: *Self) Allocator.Error!void {
     self.dec_to_str_import = try self.module.addImport("env", "roc_dec_to_str", dec_to_str_type);
 
     // roc_str_eq: (i32 str_a_ptr, i32 str_b_ptr) -> i32 (0 or 1)
-    // Compares two 12-byte RocStr structs for content equality.
+    // Compares two 12-byte ClawStr structs for content equality.
     const str_eq_type = try self.module.addFuncType(
         &.{ .i32, .i32 },
         &.{.i32},
@@ -1353,7 +1353,7 @@ fn registerHostImports(self: *Self) Allocator.Error!void {
     self.str_eq_import = try self.module.addImport("env", "roc_str_eq", str_eq_type);
 
     // roc_list_eq: (i32 list_a_ptr, i32 list_b_ptr, i32 elem_size) -> i32
-    // Compares two 12-byte RocList structs for content equality (byte-wise comparison of elements).
+    // Compares two 12-byte ClawList structs for content equality (byte-wise comparison of elements).
     const list_eq_type = try self.module.addFuncType(
         &.{ .i32, .i32, .i32 },
         &.{.i32},
@@ -1407,12 +1407,12 @@ fn registerHostImports(self: *Self) Allocator.Error!void {
     self.crypto_sha256_hasher_finish_import = try self.module.addImport("env", "roc_crypto_sha256_hasher_finish", crypto_hasher_finish_type);
     self.crypto_blake3_hasher_finish_import = try self.module.addImport("env", "roc_crypto_blake3_hasher_finish", crypto_hasher_finish_type);
 
-    // RocOps function imports follow the platform C ABI: each takes a leading `*RocOps`
-    // (the i32 pointer to the RocOps struct in linear memory) followed by its natural
+    // ClawOps function imports follow the platform C ABI: each takes a leading `*ClawOps`
+    // (the i32 pointer to the ClawOps struct in linear memory) followed by its natural
     // arguments. They are invoked via the wasm funcref table and `call_indirect`.
     try self.registerIndirectCallTypes();
 
-    // Enable table and add each RocOps function as a table element
+    // Enable table and add each ClawOps function as a table element
     const roc_alloc_idx = try self.module.addImport("env", "roc_alloc", self.roc_alloc_type_idx);
     self.roc_alloc_table_idx = try self.module.addTableElement(roc_alloc_idx);
 
@@ -1832,7 +1832,7 @@ pub fn generateEntrypointWrapper(
 }
 
 /// Generate a complete wasm module for a zero-argument root proc.
-/// The exported `main` function initializes RocOps and tail-calls the root proc.
+/// The exported `main` function initializes ClawOps and tail-calls the root proc.
 pub fn generateModule(self: *Self, root_proc_id: LIR.LirProcSpecId, result_layout: layout.Idx) Allocator.Error!GenerateResult {
     // Register host function imports (must be done before addFunction calls)
     self.registerHostImports() catch return error.OutOfMemory;
@@ -1878,7 +1878,7 @@ pub fn generateModule(self: *Self, root_proc_id: LIR.LirProcSpecId, result_layou
 
     // Local 0 = env_ptr parameter
     const env_ptr_local = self.storage.allocAnonymousLocal(.i32) catch return error.OutOfMemory;
-    // Local 1 = roc_ops_local (will hold constant 0, the RocOps struct address)
+    // Local 1 = roc_ops_local (will hold constant 0, the ClawOps struct address)
     self.roc_ops_local = self.storage.allocAnonymousLocal(.i32) catch return error.OutOfMemory;
     // Pre-allocate frame pointer local so it doesn't collide with user locals
     self.fp_local = self.storage.allocAnonymousLocal(.i32) catch return error.OutOfMemory;
@@ -1886,7 +1886,7 @@ pub fn generateModule(self: *Self, root_proc_id: LIR.LirProcSpecId, result_layou
     try self.emitLocalGet(self.roc_ops_local);
     try self.emitCall(root_func_idx);
 
-    // Always enable memory + stack pointer (RocOps struct + allocations need linear memory)
+    // Always enable memory + stack pointer (ClawOps struct + allocations need linear memory)
     const stack_pages = (self.wasm_stack_bytes + 65535) / 65536; // round up to page boundary
     const memory_pages = if (self.wasm_memory_pages > 0) self.wasm_memory_pages else stack_pages;
     self.module.enableMemory(memory_pages);
@@ -1916,7 +1916,7 @@ pub fn generateModule(self: *Self, root_proc_id: LIR.LirProcSpecId, result_layou
     // global.set $__stack_pointer
     try self.appendStackPointerGlobalTo(prefix_allocator, &prefix.bytes, &prefix_relocs, Op.global_set);
 
-    // Build RocOps struct at memory offset 0 (36 bytes on wasm32)
+    // Build ClawOps struct at memory offset 0 (36 bytes on wasm32)
     // Set roc_ops_local = 0 (constant address of the struct)
     prefix.bytes.append(prefix_allocator, Op.i32_const) catch return error.OutOfMemory;
     WasmModule.leb128WriteI32(prefix_allocator, &prefix.bytes, 0) catch return error.OutOfMemory;
@@ -2387,7 +2387,7 @@ fn emitCallRocDealloc(self: *Self, ptr_local: u32, alignment: u32) Allocator.Err
         return;
     }
 
-    // roc_dealloc(*RocOps, ptr, alignment) -> ()
+    // roc_dealloc(*ClawOps, ptr, alignment) -> ()
     try self.emitLocalGet(self.roc_ops_local);
 
     try self.emitLocalGet(ptr_local);
@@ -2395,7 +2395,7 @@ fn emitCallRocDealloc(self: *Self, ptr_local: u32, alignment: u32) Allocator.Err
     self.currentCode().append(self.allocator, Op.i32_const) catch return error.OutOfMemory;
     WasmModule.leb128WriteI32(self.allocator, self.currentCode(), @intCast(alignment)) catch return error.OutOfMemory;
 
-    // Load roc_dealloc table index from the RocOps struct (offset 8)
+    // Load roc_dealloc table index from the ClawOps struct (offset 8)
     try self.emitLocalGet(self.roc_ops_local);
     try self.emitLoadOp(.i32, wasm_roc_ops_dealloc_offset);
 
@@ -3741,7 +3741,7 @@ fn compareTagUnionByLayout(self: *Self, lhs_local: u32, rhs_local: u32, layout_i
 /// Emit an inline element-by-element comparison loop for two lists whose elements
 /// need structural (non-bytewise) equality — e.g. lists of records/tuples/tag-unions
 /// containing refcounted fields.
-/// lhs_local/rhs_local are i32 pointers to 12-byte RocList structs.
+/// lhs_local/rhs_local are i32 pointers to 12-byte ClawList structs.
 /// Pushes i32 (1=equal, 0=not equal) onto the WASM stack.
 fn emitListEqLoop(
     self: *Self,
@@ -4131,12 +4131,12 @@ fn expandListLoop(
     const lhs_elem = self.storage.allocAnonymousLocal(.i32) catch return error.OutOfMemory;
     const rhs_elem = self.storage.allocAnonymousLocal(.i32) catch return error.OutOfMemory;
 
-    // Load lhs length (offset 4 in RocList)
+    // Load lhs length (offset 4 in ClawList)
     try self.emitLocalGet(lhs_local);
     try self.emitLoadOp(.i32, 4);
     try self.emitLocalSet(lhs_len);
 
-    // Load rhs length (offset 4 in RocList)
+    // Load rhs length (offset 4 in ClawList)
     try self.emitLocalGet(rhs_local);
     try self.emitLoadOp(.i32, 4);
     try self.emitLocalSet(rhs_len);
@@ -4147,7 +4147,7 @@ fn expandListLoop(
     self.currentCode().append(self.allocator, Op.i32_eq) catch return error.OutOfMemory;
     try self.emitLocalSet(result_local);
 
-    // Load data pointers (offset 0 in RocList)
+    // Load data pointers (offset 0 in ClawList)
     try self.emitLocalGet(lhs_local);
     try self.emitLoadOp(.i32, 0);
     try self.emitLocalSet(lhs_data);
@@ -6394,7 +6394,7 @@ fn allocStackMemory(self: *Self, size: u32, alignment: u32) Allocator.Error!u32 
     return aligned_offset;
 }
 
-/// Emit heap allocation via roc_alloc (erased call through RocOps).
+/// Emit heap allocation via roc_alloc (erased call through ClawOps).
 /// `size_local` holds the size to allocate; `alignment` is the byte alignment.
 /// Leaves the raw allocated pointer on the wasm stack. Roc refcounted data
 /// allocations must use emitHeapAllocWithRefcount instead.
@@ -6408,8 +6408,8 @@ fn emitHeapAlloc(self: *Self, size_local: u32, alignment: u32) Allocator.Error!v
         return;
     }
 
-    // roc_alloc(*RocOps, length, alignment) -> ptr
-    // Push the RocOps pointer, length, and alignment as direct wasm values.
+    // roc_alloc(*ClawOps, length, alignment) -> ptr
+    // Push the ClawOps pointer, length, and alignment as direct wasm values.
     try self.emitLocalGet(self.roc_ops_local);
 
     try self.emitLocalGet(size_local);
@@ -6417,7 +6417,7 @@ fn emitHeapAlloc(self: *Self, size_local: u32, alignment: u32) Allocator.Error!v
     self.currentCode().append(self.allocator, Op.i32_const) catch return error.OutOfMemory;
     WasmModule.leb128WriteI32(self.allocator, self.currentCode(), @intCast(alignment)) catch return error.OutOfMemory;
 
-    // Load roc_alloc table index from the RocOps struct (offset 4)
+    // Load roc_alloc table index from the ClawOps struct (offset 4)
     try self.emitLocalGet(self.roc_ops_local);
     self.currentCode().append(self.allocator, Op.i32_load) catch return error.OutOfMemory;
     WasmModule.leb128WriteU32(self.allocator, self.currentCode(), 2) catch return error.OutOfMemory;
@@ -6464,9 +6464,9 @@ fn emitHeapAllocWithRefcountConst(self: *Self, data_size: u32, element_alignment
 }
 
 /// Emit i32.store to a func_body buffer: stores a local's value at memory offset 0 + field_offset.
-/// Used during main() prologue to build the RocOps struct.
+/// Used during main() prologue to build the ClawOps struct.
 fn emitI32StoreToBody(allocator: Allocator, func_body: *std.ArrayList(u8), field_offset: u32, local_idx: u32) Allocator.Error!void {
-    // i32.const 0  (base address of RocOps struct)
+    // i32.const 0  (base address of ClawOps struct)
     func_body.append(allocator, Op.i32_const) catch return error.OutOfMemory;
     WasmModule.leb128WriteI32(allocator, func_body, 0) catch return error.OutOfMemory;
     // local.get $local_idx
@@ -6479,9 +6479,9 @@ fn emitI32StoreToBody(allocator: Allocator, func_body: *std.ArrayList(u8), field
 }
 
 /// Emit i32.store to a func_body buffer: stores a constant value at memory offset 0 + field_offset.
-/// Used during main() prologue to build the RocOps struct.
+/// Used during main() prologue to build the ClawOps struct.
 fn emitI32StoreConstToBody(allocator: Allocator, func_body: *std.ArrayList(u8), field_offset: u32, value: u32) Allocator.Error!void {
-    // i32.const 0  (base address of RocOps struct)
+    // i32.const 0  (base address of ClawOps struct)
     func_body.append(allocator, Op.i32_const) catch return error.OutOfMemory;
     WasmModule.leb128WriteI32(allocator, func_body, 0) catch return error.OutOfMemory;
     // i32.const value
@@ -6626,8 +6626,8 @@ fn registerProcSpec(self: *Self, proc_id: LIR.LirProcSpecId, proc: LirProcSpec) 
         return;
     }
 
-    // Build parameter types: under the symbol ABI procs carry no RocOps;
-    // the playground/eval module flavor threads the linear-memory RocOps
+    // Build parameter types: under the symbol ABI procs carry no ClawOps;
+    // the playground/eval module flavor threads the linear-memory ClawOps
     // pointer first.
     const args = self.store.getLocalSpan(proc.args);
     var param_types: std.ArrayList(ValType) = .empty;
@@ -6701,7 +6701,7 @@ fn compileProcSpecBody(self: *Self, proc_id: LIR.LirProcSpecId, proc: LirProcSpe
             _ = self.storage.allocLocal(arg, vt) catch return error.OutOfMemory;
         }
         if (symbol_abi_proc) {
-            // Symbol-ABI procs receive no RocOps. Builtins helper signatures
+            // Symbol-ABI procs receive no ClawOps. Builtins helper signatures
             // still carry an ops slot, which their extern flavor ignores;
             // feed those calls a null.
             self.roc_ops_local = self.storage.allocAnonymousLocal(.i32) catch return error.OutOfMemory;
@@ -7890,8 +7890,8 @@ fn generateIntLiteralForLayout(self: *Self, value: i128, layout_idx: layout.Idx)
     }
 }
 
-/// Emit a diagnostic RocOps callback (dbg/expect_failed/crashed) following the C ABI:
-/// (*RocOps, bytes_ptr, len) -> (). The bytes pointer and length are sourced from the
+/// Emit a diagnostic ClawOps callback (dbg/expect_failed/crashed) following the C ABI:
+/// (*ClawOps, bytes_ptr, len) -> (). The bytes pointer and length are sourced from the
 /// two i32 fields packed at `args_slot` (field 0 = bytes_ptr, field 4 = len).
 fn emitRocOpsCall(self: *Self, args_slot: u32, table_offset: u32) Allocator.Error!void {
     if (self.runtime_symbol_targets) |targets| {
@@ -7919,7 +7919,7 @@ fn emitRocOpsCall(self: *Self, args_slot: u32, table_offset: u32) Allocator.Erro
     try self.emitFpOffset(args_slot);
     try self.emitLoadOp(.i32, 4);
 
-    // Load the callback's table index from the RocOps struct.
+    // Load the callback's table index from the ClawOps struct.
     try self.emitLocalGet(self.roc_ops_local);
     try self.emitLoadOp(.i32, table_offset);
 
@@ -7959,7 +7959,7 @@ fn emitRocDbg(self: *Self, message: ProcLocalId) Allocator.Error!void {
     try self.emitRocStrCall(message, wasm_roc_ops_dbg_offset);
 }
 
-/// Call a RocOps callback taking (bytes, len) with the contents of a
+/// Call a ClawOps callback taking (bytes, len) with the contents of a
 /// Str-layout proc local.
 fn emitRocStrCall(self: *Self, message: ProcLocalId, ops_offset: u32) Allocator.Error!void {
     if (builtin.mode == .Debug and self.procLocalLayoutIdx(message) != .str) {
@@ -9215,7 +9215,7 @@ fn generateList(self: *Self, l: anytype) Allocator.Error!void {
         }
     }
 
-    // Construct the 12-byte RocList struct on the stack frame
+    // Construct the 12-byte ClawList struct on the stack frame
     const list_offset = try self.allocStackMemory(12, 4);
     const list_base = self.storage.allocAnonymousLocal(.i32) catch return error.OutOfMemory;
     try self.emitFpOffset(list_offset);
@@ -9237,7 +9237,7 @@ fn generateList(self: *Self, l: anytype) Allocator.Error!void {
     WasmModule.leb128WriteI32(self.allocator, self.currentCode(), @intCast(elems.len << 1)) catch return error.OutOfMemory;
     try self.emitStoreToMem(list_base, 8, .i32);
 
-    // Push pointer to the RocList struct
+    // Push pointer to the ClawList struct
     self.currentCode().append(self.allocator, Op.local_get) catch return error.OutOfMemory;
     WasmModule.leb128WriteU32(self.allocator, self.currentCode(), list_base) catch return error.OutOfMemory;
 }
@@ -9729,7 +9729,7 @@ fn generateLowLevel(self: *Self, ll: anytype) Allocator.Error!void {
 
         // List operations
         .list_len => {
-            // Load length from RocList struct (offset 4)
+            // Load length from ClawList struct (offset 4)
             try self.emitProcLocal(args[0]);
             try self.emitLoadOp(.i32, 4);
             // list_len returns U64 in Roc, but we store it as i32 on wasm32
@@ -10054,7 +10054,7 @@ fn generateLowLevel(self: *Self, ll: anytype) Allocator.Error!void {
         },
         .list_drop_first => {
             // list_drop_first(list, count) -> list
-            // Returns a RocList with adjusted elements_ptr and length
+            // Returns a ClawList with adjusted elements_ptr and length
             // No allocation needed — returns a view
             try self.emitProcLocal(args[0]);
             const list_local = self.storage.allocAnonymousLocal(.i32) catch return error.OutOfMemory;
@@ -10069,7 +10069,7 @@ fn generateLowLevel(self: *Self, ll: anytype) Allocator.Error!void {
             self.currentCode().append(self.allocator, Op.local_set) catch return error.OutOfMemory;
             WasmModule.leb128WriteU32(self.allocator, self.currentCode(), count_local) catch return error.OutOfMemory;
 
-            // Allocate result RocList (12 bytes)
+            // Allocate result ClawList (12 bytes)
             const result_offset = try self.allocStackMemory(12, 4);
             const result_local = self.storage.allocAnonymousLocal(.i32) catch return error.OutOfMemory;
             try self.emitFpOffset(result_offset);
@@ -10121,7 +10121,7 @@ fn generateLowLevel(self: *Self, ll: anytype) Allocator.Error!void {
         },
         .list_drop_last => {
             // list_drop_last(list, count) -> list
-            // Returns a RocList with adjusted length (pointer stays same)
+            // Returns a ClawList with adjusted length (pointer stays same)
             try self.emitProcLocal(args[0]);
             const list_local = self.storage.allocAnonymousLocal(.i32) catch return error.OutOfMemory;
             self.currentCode().append(self.allocator, Op.local_set) catch return error.OutOfMemory;
@@ -10135,7 +10135,7 @@ fn generateLowLevel(self: *Self, ll: anytype) Allocator.Error!void {
             self.currentCode().append(self.allocator, Op.local_set) catch return error.OutOfMemory;
             WasmModule.leb128WriteU32(self.allocator, self.currentCode(), count_local) catch return error.OutOfMemory;
 
-            // Allocate result RocList (12 bytes)
+            // Allocate result ClawList (12 bytes)
             const result_offset = try self.allocStackMemory(12, 4);
             const result_local = self.storage.allocAnonymousLocal(.i32) catch return error.OutOfMemory;
             try self.emitFpOffset(result_offset);
@@ -10474,7 +10474,7 @@ fn generateLowLevel(self: *Self, ll: anytype) Allocator.Error!void {
             self.currentCode().append(self.allocator, Op.local_set) catch return error.OutOfMemory;
             WasmModule.leb128WriteU32(self.allocator, self.currentCode(), actual_len) catch return error.OutOfMemory;
 
-            // Allocate result RocList (12 bytes)
+            // Allocate result ClawList (12 bytes)
             const result_offset = try self.allocStackMemory(12, 4);
             const result_local = self.storage.allocAnonymousLocal(.i32) catch return error.OutOfMemory;
             try self.emitFpOffset(result_offset);
@@ -13321,7 +13321,7 @@ fn emitNumericLowLevel(self: *Self, op: anytype, args: []const ProcLocalId, ret_
 }
 
 /// Generate string equality comparison.
-/// Both lhs and rhs should produce i32 pointers to 12-byte RocStr values.
+/// Both lhs and rhs should produce i32 pointers to 12-byte ClawStr values.
 fn emitStrEq(self: *Self, lhs: ProcLocalId, rhs: ProcLocalId, negate: bool) Allocator.Error!void {
     // Generate both string expressions, store to locals
     try self.emitProcLocal(lhs);
@@ -13341,7 +13341,7 @@ fn emitStrEq(self: *Self, lhs: ProcLocalId, rhs: ProcLocalId, negate: bool) Allo
 }
 
 /// Generate list equality comparison using roc_list_eq host function.
-/// Both lhs and rhs should produce i32 pointers to 12-byte RocList values.
+/// Both lhs and rhs should produce i32 pointers to 12-byte ClawList values.
 fn emitListEq(self: *Self, lhs: ProcLocalId, rhs: ProcLocalId, list_layout_idx: layout.Idx, negate: bool) Allocator.Error!void {
     const ls = self.getLayoutStore();
     const list_layout = ls.getLayout(list_layout_idx);
@@ -13388,8 +13388,8 @@ fn emitListEqWithElemLayout(self: *Self, lhs: ProcLocalId, rhs: ProcLocalId, ele
     }
 }
 
-/// Generate a RocStr for a string literal.
-/// On wasm32, RocStr is 12 bytes: { ptr/bytes[0..3], encoded cap/bytes[4..7], len/bytes[8..11] }.
+/// Generate a ClawStr for a string literal.
+/// On wasm32, ClawStr is 12 bytes: { ptr/bytes[0..3], encoded cap/bytes[4..7], len/bytes[8..11] }.
 /// Small strings (≤11 bytes) use SSO: bytes inline, byte 11 = len | 0x80.
 /// Large strings (>11 bytes) use a data segment in linear memory.
 fn generateStrLiteral(self: *Self, literal: LIR.StrLiteral) Allocator.Error!void {
@@ -13398,7 +13398,7 @@ fn generateStrLiteral(self: *Self, literal: LIR.StrLiteral) Allocator.Error!void
     const whole_backing = literal.offset == 0 and @as(usize, literal.len) == backing_bytes.len;
     const len = str_bytes.len;
 
-    // Allocate 12 bytes on stack frame for the RocStr struct
+    // Allocate 12 bytes on stack frame for the ClawStr struct
     const base_offset = try self.allocStackMemory(12, 4);
     const base_local = self.fp_local;
 
@@ -13463,7 +13463,7 @@ fn generateStrLiteral(self: *Self, literal: LIR.StrLiteral) Allocator.Error!void
         try self.emitStoreOp(.i32, base_offset + 8);
     }
 
-    // Push pointer to the RocStr on the stack
+    // Push pointer to the ClawStr on the stack
     self.currentCode().append(self.allocator, Op.local_get) catch return error.OutOfMemory;
     WasmModule.leb128WriteU32(self.allocator, self.currentCode(), base_local) catch return error.OutOfMemory;
     if (base_offset > 0) {
@@ -13473,8 +13473,8 @@ fn generateStrLiteral(self: *Self, literal: LIR.StrLiteral) Allocator.Error!void
     }
 }
 
-/// Generate a RocList(U8) for a byte-list literal.
-/// On wasm32, RocList is 12 bytes: { ptr/bytes[0..3], len/bytes[4..7], encoded cap/bytes[8..11] }.
+/// Generate a ClawList(U8) for a byte-list literal.
+/// On wasm32, ClawList is 12 bytes: { ptr/bytes[0..3], len/bytes[4..7], encoded cap/bytes[8..11] }.
 fn generateBytesLiteral(self: *Self, literal: LIR.StrLiteral) Allocator.Error!void {
     const bytes = self.store.getStringLiteral(literal);
     const backing_bytes = self.store.getStringLiteralBacking(literal);
@@ -13548,8 +13548,8 @@ fn staticStrDataOffset(self: *Self, backing_idx: base.StringLiteral.Idx) Allocat
     return data_address;
 }
 
-/// Generate code for str_concat: concatenate multiple RocStr values into one.
-/// Each sub-expression produces a RocStr pointer (12 bytes: ptr/bytes, encoded cap/bytes, len/bytes).
+/// Generate code for str_concat: concatenate multiple ClawStr values into one.
+/// Each sub-expression produces a ClawStr pointer (12 bytes: ptr/bytes, encoded cap/bytes, len/bytes).
 fn emitExtractStrPtrLen(self: *Self, str_local: u32, ptr_local: u32, len_local: u32) Allocator.Error!void {
     // Load byte 11 to check SSO bit
     self.currentCode().append(self.allocator, Op.local_get) catch return error.OutOfMemory;
@@ -13682,8 +13682,8 @@ fn emitMemCopyLoop(self: *Self, dst_base_local: u32, dst_offset_local: u32, src_
     self.currentCode().append(self.allocator, Op.end) catch return error.OutOfMemory;
 }
 
-/// Build a heap-format RocStr on the stack frame from ptr and len locals.
-/// Leaves a pointer to the 12-byte RocStr on the wasm value stack.
+/// Build a heap-format ClawStr on the stack frame from ptr and len locals.
+/// Leaves a pointer to the 12-byte ClawStr on the wasm value stack.
 fn buildHeapRocStr(self: *Self, ptr_local: u32, len_local: u32) Allocator.Error!void {
     const result_offset = try self.allocStackMemory(12, 4);
     const base_local = self.fp_local;
@@ -14013,17 +14013,17 @@ fn emitStrEscapeAndQuote(self: *Self, value: ProcLocalId) Allocator.Error!void {
     try self.emitFpOffset(result_offset);
 }
 
-/// Generate str_to_utf8: convert RocStr to RocList(U8).
+/// Generate str_to_utf8: convert ClawStr to ClawList(U8).
 /// SSO strings have their bytes copied to heap memory.
-/// Non-SSO strings are converted field-by-field because RocStr stores encoded
-/// capacity before length, while RocList stores length before encoded capacity.
+/// Non-SSO strings are converted field-by-field because ClawStr stores encoded
+/// capacity before length, while ClawList stores length before encoded capacity.
 fn emitStrToUtf8(self: *Self, str_arg: ProcLocalId) Allocator.Error!void {
-    // Generate the string expression (produces i32 pointer to 12-byte RocStr)
+    // Generate the string expression (produces i32 pointer to 12-byte ClawStr)
     try self.emitProcLocal(str_arg);
     const str_ptr = self.storage.allocAnonymousLocal(.i32) catch return error.OutOfMemory;
     try self.emitLocalSet(str_ptr);
 
-    // Allocate result memory (12 bytes for RocList(U8))
+    // Allocate result memory (12 bytes for ClawList(U8))
     const result_offset = try self.allocStackMemory(12, 4);
     const result_ptr = self.storage.allocAnonymousLocal(.i32) catch return error.OutOfMemory;
     try self.emitFpOffset(result_offset);
@@ -14067,7 +14067,7 @@ fn emitStrToUtf8(self: *Self, str_arg: ProcLocalId) Allocator.Error!void {
         try self.emitLocalSet(zero);
         try self.emitMemCopyLoop(heap_ptr, zero, str_ptr, sso_len);
 
-        // Write RocList {heap_ptr, sso_len, sso_len << 1} to result_ptr
+        // Write ClawList {heap_ptr, sso_len, sso_len << 1} to result_ptr
         // ptr (offset 0)
         try self.emitLocalGet(result_ptr);
         try self.emitLocalGet(heap_ptr);
@@ -14127,17 +14127,17 @@ fn emitStrToUtf8(self: *Self, str_arg: ProcLocalId) Allocator.Error!void {
     try self.emitLocalGet(result_ptr);
 }
 
-/// Generate str_from_utf8_lossy: convert RocList(U8) to RocStr.
+/// Generate str_from_utf8_lossy: convert ClawList(U8) to ClawStr.
 /// Short lists (len <= 11) produce SSO strings.
-/// Longer lists are converted field-by-field because RocList stores length
-/// before encoded capacity, while RocStr stores encoded capacity before length.
+/// Longer lists are converted field-by-field because ClawList stores length
+/// before encoded capacity, while ClawStr stores encoded capacity before length.
 fn emitStrFromUtf8Lossy(self: *Self, list_arg: ProcLocalId) Allocator.Error!void {
-    // Generate the list expression (produces i32 pointer to 12-byte RocList)
+    // Generate the list expression (produces i32 pointer to 12-byte ClawList)
     try self.emitProcLocal(list_arg);
     const list_ptr = self.storage.allocAnonymousLocal(.i32) catch return error.OutOfMemory;
     try self.emitLocalSet(list_ptr);
 
-    // Allocate result memory (12 bytes for RocStr)
+    // Allocate result memory (12 bytes for ClawStr)
     const result_offset = try self.allocStackMemory(12, 4);
     const result_ptr = self.storage.allocAnonymousLocal(.i32) catch return error.OutOfMemory;
     try self.emitFpOffset(result_offset);
@@ -15639,7 +15639,7 @@ fn generateLLListReverse(self: *Self, args: anytype, ret_layout: layout.Idx, uni
     try self.emitFpOffset(result_offset);
 }
 
-/// Build a RocList struct on the stack frame from data ptr and length locals.
+/// Build a ClawList struct on the stack frame from data ptr and length locals.
 fn buildRocList(self: *Self, data_local: u32, len_local: u32) Allocator.Error!void {
     const list_offset = try self.allocStackMemory(12, 4);
     const list_base = self.storage.allocAnonymousLocal(.i32) catch return error.OutOfMemory;
@@ -15665,7 +15665,7 @@ fn buildRocList(self: *Self, data_local: u32, len_local: u32) Allocator.Error!vo
     try self.emitLocalGet(list_base);
 }
 
-/// Build a RocList struct with separate capacity value.
+/// Build a ClawList struct with separate capacity value.
 fn buildRocListWithCap(self: *Self, data_local: u32, len_local: u32, cap_local: u32) Allocator.Error!void {
     const list_offset = try self.allocStackMemory(12, 4);
     const list_base = self.storage.allocAnonymousLocal(.i32) catch return error.OutOfMemory;

@@ -11,8 +11,8 @@ const U256 = @import("num.zig").U256;
 const TestEnv = @import("utils.zig").TestEnv;
 const WithOverflow = @import("utils.zig").WithOverflow;
 const NumParseResult = @import("num.zig").NumParseResult;
-const RocOps = @import("host_abi.zig").RocOps;
-const RocStr = @import("str.zig").RocStr;
+const ClawOps = @import("host_abi.zig").ClawOps;
+const ClawStr = @import("str.zig").ClawStr;
 const mul_u128 = @import("num.zig").mul_u128;
 const math = std.math;
 
@@ -54,7 +54,7 @@ fn printI128Decimal(buf: []u8, val: i128) usize {
 /// `num` stores the decimal value scaled by 10^18, so `1.0` is represented as
 /// `1_000_000_000_000_000_000`. The extern layout is part of the C ABI used by
 /// generated code and builtin exports.
-pub const RocDec = extern struct {
+pub const ClawDec = extern struct {
     num: i128,
 
     pub const decimal_places: u5 = 18;
@@ -62,33 +62,33 @@ pub const RocDec = extern struct {
     pub const max_digits: u6 = 39;
     pub const max_str_length: u6 = max_digits + 2; // + 2 here to account for the sign & decimal dot
 
-    pub const min: RocDec = .{ .num = math.minInt(i128) };
-    pub const max: RocDec = .{ .num = math.maxInt(i128) };
+    pub const min: ClawDec = .{ .num = math.minInt(i128) };
+    pub const max: ClawDec = .{ .num = math.maxInt(i128) };
 
-    pub const one_point_zero_i128: i128 = math.pow(i128, 10, RocDec.decimal_places);
-    pub const one_point_zero: RocDec = .{ .num = one_point_zero_i128 };
-    pub const neg_one_point_zero: RocDec = .{ .num = -one_point_zero_i128 };
-    pub const e: RocDec = fromComptimeFloat(math.e);
-    pub const pi: RocDec = fromComptimeFloat(math.pi);
-    pub const tau: RocDec = fromComptimeFloat(math.tau);
-    pub const half_pi: RocDec = fromComptimeFloat(math.pi / 2.0);
-    pub const ln2: RocDec = fromComptimeFloat(math.ln2);
+    pub const one_point_zero_i128: i128 = math.pow(i128, 10, ClawDec.decimal_places);
+    pub const one_point_zero: ClawDec = .{ .num = one_point_zero_i128 };
+    pub const neg_one_point_zero: ClawDec = .{ .num = -one_point_zero_i128 };
+    pub const e: ClawDec = fromComptimeFloat(math.e);
+    pub const pi: ClawDec = fromComptimeFloat(math.pi);
+    pub const tau: ClawDec = fromComptimeFloat(math.tau);
+    pub const half_pi: ClawDec = fromComptimeFloat(math.pi / 2.0);
+    pub const ln2: ClawDec = fromComptimeFloat(math.ln2);
 
-    pub const two_point_zero: RocDec = .{ .num = one_point_zero_i128 * 2 };
-    pub const zero_point_five: RocDec = .{ .num = one_point_zero_i128 / 2 };
+    pub const two_point_zero: ClawDec = .{ .num = one_point_zero_i128 * 2 };
+    pub const zero_point_five: ClawDec = .{ .num = one_point_zero_i128 / 2 };
 
-    pub fn fromU64(num: u64) RocDec {
+    pub fn fromU64(num: u64) ClawDec {
         return .{ .num = i128h.mul_i128(@as(i128, num), one_point_zero_i128) };
     }
 
-    fn fromComptimeFloat(comptime num: comptime_float) RocDec {
+    fn fromComptimeFloat(comptime num: comptime_float) ClawDec {
         const scale: comptime_float = @floatFromInt(one_point_zero_i128);
         return .{ .num = @intFromFloat(num * scale) };
     }
 
-    /// Convert a fraction represented as numerator / 10^denominator_power to RocDec.
+    /// Convert a fraction represented as numerator / 10^denominator_power to ClawDec.
     /// For example, 314 with power 2 represents 3.14 (314 / 100).
-    pub fn fromFraction(numerator: i128, denominator_power: u8) RocDec {
+    pub fn fromFraction(numerator: i128, denominator_power: u8) ClawDec {
         // decimal_places is 18, so scale_power = 18 - denominator_power (clamped to 0)
         const scale_power: u7 = if (denominator_power >= decimal_places)
             0
@@ -98,7 +98,7 @@ pub const RocDec = extern struct {
         return .{ .num = i128h.mul_i128(numerator, scale) };
     }
 
-    pub fn fromF64(num: f64) ?RocDec {
+    pub fn fromF64(num: f64) ?ClawDec {
         const result: f64 = num * comptime @as(f64, @floatFromInt(one_point_zero_i128));
 
         if (result > comptime @as(f64, @floatFromInt(math.maxInt(i128)))) {
@@ -109,26 +109,26 @@ pub const RocDec = extern struct {
             return null;
         }
 
-        const ret: RocDec = .{ .num = i128h.f64_to_i128(result) };
+        const ret: ClawDec = .{ .num = i128h.f64_to_i128(result) };
         return ret;
     }
 
-    pub fn toF64(dec: RocDec) f64 {
+    pub fn toF64(dec: ClawDec) f64 {
         return i128h.i128_to_f64(dec.num) / comptime @as(f64, @floatFromInt(one_point_zero_i128));
     }
 
     // All parse failures currently map to null; the Roc wrapper reports that as
     // BadNumStr.
-    pub fn fromStr(roc_str: RocStr) ?RocDec {
+    pub fn fromStr(roc_str: ClawStr) ?ClawDec {
         if (roc_str.isEmpty()) {
             return null;
         }
 
-        return @call(.always_inline, RocDec.fromNonemptySlice, .{roc_str.asSlice()});
+        return @call(.always_inline, ClawDec.fromNonemptySlice, .{roc_str.asSlice()});
     }
 
     // This a separate function because the compiler uses it.
-    pub fn fromNonemptySlice(roc_str_slice: []const u8) ?RocDec {
+    pub fn fromNonemptySlice(roc_str_slice: []const u8) ?ClawDec {
         const length = roc_str_slice.len;
         const is_negative: bool = roc_str_slice[0] == '-';
         const initial_index: usize = @intFromBool(is_negative);
@@ -210,8 +210,8 @@ pub const RocDec = extern struct {
 
     /// Format this Dec value into the provided buffer, returning the slice containing the result.
     /// The buffer must be at least `max_str_length` bytes.
-    /// This is the allocation-free version; use `to_str` if you need a RocStr.
-    pub fn format_to_buf(self: RocDec, buf: *[max_str_length]u8) []const u8 {
+    /// This is the allocation-free version; use `to_str` if you need a ClawStr.
+    pub fn format_to_buf(self: ClawDec, buf: *[max_str_length]u8) []const u8 {
         // Special case
         if (self.num == 0) {
             buf[0] = '0';
@@ -304,66 +304,66 @@ pub const RocDec = extern struct {
         return buf[0..position];
     }
 
-    pub fn to_str(self: RocDec, roc_ops: *RocOps) RocStr {
+    pub fn to_str(self: ClawDec, roc_ops: *ClawOps) ClawStr {
         var buf: [max_str_length]u8 = undefined;
         const len = self.format_to_buf(&buf).len;
-        return RocStr.init(&buf, len, roc_ops);
+        return ClawStr.init(&buf, len, roc_ops);
     }
 
-    pub fn toI128(self: RocDec) i128 {
+    pub fn toI128(self: ClawDec) i128 {
         return self.num;
     }
 
-    pub fn fromI128(num: i128) RocDec {
+    pub fn fromI128(num: i128) ClawDec {
         return .{ .num = num };
     }
 
     /// Extract the whole number part of a Dec via truncating division.
     /// Truncates toward zero: -1.5 → -1, 1.5 → 1
-    pub fn toWholeInt(self: RocDec) i128 {
+    pub fn toWholeInt(self: ClawDec) i128 {
         return i128h.divTrunc_i128(self.num, one_point_zero_i128);
     }
 
     /// Convert a whole number to Dec representation.
     /// Returns null if the integer would overflow Dec's range.
-    pub fn fromWholeInt(int: i128) ?RocDec {
+    pub fn fromWholeInt(int: i128) ?ClawDec {
         const result = @import("num.zig").mulWithOverflow(i128, int, one_point_zero_i128);
-        return if (result.has_overflowed) null else RocDec{ .num = result.value };
+        return if (result.has_overflowed) null else ClawDec{ .num = result.value };
     }
 
-    pub fn eq(self: RocDec, other: RocDec) bool {
+    pub fn eq(self: ClawDec, other: ClawDec) bool {
         return self.num == other.num;
     }
 
-    pub fn neq(self: RocDec, other: RocDec) bool {
+    pub fn neq(self: ClawDec, other: ClawDec) bool {
         return self.num != other.num;
     }
 
-    pub fn negate(self: RocDec) ?RocDec {
+    pub fn negate(self: ClawDec) ?ClawDec {
         const negated = math.negate(self.num) catch null;
         return if (negated) |n| .{ .num = n } else null;
     }
 
-    pub fn abs(self: RocDec) error{OutOfRange}!RocDec {
+    pub fn abs(self: ClawDec) error{OutOfRange}!ClawDec {
         const absolute = @abs(self.num);
         if (absolute <= @as(u128, @intCast(std.math.maxInt(i128)))) {
-            return RocDec{ .num = @intCast(absolute) };
+            return ClawDec{ .num = @intCast(absolute) };
         }
         return error.OutOfRange;
     }
 
-    pub fn addWithOverflow(self: RocDec, other: RocDec) WithOverflow(RocDec) {
+    pub fn addWithOverflow(self: ClawDec, other: ClawDec) WithOverflow(ClawDec) {
         const answer = @addWithOverflow(self.num, other.num);
 
-        return .{ .value = RocDec{ .num = answer[0] }, .has_overflowed = answer[1] == 1 };
+        return .{ .value = ClawDec{ .num = answer[0] }, .has_overflowed = answer[1] == 1 };
     }
 
     pub fn add(
-        self: RocDec,
-        other: RocDec,
-        roc_ops: *RocOps,
-    ) RocDec {
-        const answer = RocDec.addWithOverflow(self, other);
+        self: ClawDec,
+        other: ClawDec,
+        roc_ops: *ClawOps,
+    ) ClawDec {
+        const answer = ClawDec.addWithOverflow(self, other);
 
         if (answer.has_overflowed) {
             roc_ops.crash("Decimal addition overflowed!");
@@ -373,32 +373,32 @@ pub const RocDec = extern struct {
         }
     }
 
-    pub fn addSaturated(self: RocDec, other: RocDec) RocDec {
-        const answer = RocDec.addWithOverflow(self, other);
+    pub fn addSaturated(self: ClawDec, other: ClawDec) ClawDec {
+        const answer = ClawDec.addWithOverflow(self, other);
         if (answer.has_overflowed) {
             // We can unambiguously tell which way it wrapped, because we have 129 bits including the overflow bit
             if (answer.value.num < 0) {
-                return RocDec.max;
+                return ClawDec.max;
             } else {
-                return RocDec.min;
+                return ClawDec.min;
             }
         } else {
             return answer.value;
         }
     }
 
-    pub fn subWithOverflow(self: RocDec, other: RocDec) WithOverflow(RocDec) {
+    pub fn subWithOverflow(self: ClawDec, other: ClawDec) WithOverflow(ClawDec) {
         const answer = @subWithOverflow(self.num, other.num);
 
-        return .{ .value = RocDec{ .num = answer[0] }, .has_overflowed = answer[1] == 1 };
+        return .{ .value = ClawDec{ .num = answer[0] }, .has_overflowed = answer[1] == 1 };
     }
 
     pub fn sub(
-        self: RocDec,
-        other: RocDec,
-        roc_ops: *RocOps,
-    ) RocDec {
-        const answer = RocDec.subWithOverflow(self, other);
+        self: ClawDec,
+        other: ClawDec,
+        roc_ops: *ClawOps,
+    ) ClawDec {
+        const answer = ClawDec.subWithOverflow(self, other);
 
         if (answer.has_overflowed) {
             roc_ops.crash("Decimal subtraction overflowed!");
@@ -408,20 +408,20 @@ pub const RocDec = extern struct {
         }
     }
 
-    pub fn subSaturated(self: RocDec, other: RocDec) RocDec {
-        const answer = RocDec.subWithOverflow(self, other);
+    pub fn subSaturated(self: ClawDec, other: ClawDec) ClawDec {
+        const answer = ClawDec.subWithOverflow(self, other);
         if (answer.has_overflowed) {
             if (answer.value.num < 0) {
-                return RocDec.max;
+                return ClawDec.max;
             } else {
-                return RocDec.min;
+                return ClawDec.min;
             }
         } else {
             return answer.value;
         }
     }
 
-    pub fn mulWithOverflow(self: RocDec, other: RocDec) WithOverflow(RocDec) {
+    pub fn mulWithOverflow(self: ClawDec, other: ClawDec) WithOverflow(ClawDec) {
         const self_i128 = self.num;
         const other_i128 = other.num;
         // const answer = 0; //self_i256 * other_i256;
@@ -431,72 +431,72 @@ pub const RocDec = extern struct {
         const self_u128 = @abs(self_i128);
         if (self_u128 > @as(u128, @intCast(std.math.maxInt(i128)))) {
             if (other_i128 == 0) {
-                return .{ .value = RocDec{ .num = 0 }, .has_overflowed = false };
-            } else if (other_i128 == RocDec.one_point_zero.num) {
+                return .{ .value = ClawDec{ .num = 0 }, .has_overflowed = false };
+            } else if (other_i128 == ClawDec.one_point_zero.num) {
                 return .{ .value = self, .has_overflowed = false };
             } else if (is_answer_negative) {
-                return .{ .value = RocDec.min, .has_overflowed = true };
+                return .{ .value = ClawDec.min, .has_overflowed = true };
             } else {
-                return .{ .value = RocDec.max, .has_overflowed = true };
+                return .{ .value = ClawDec.max, .has_overflowed = true };
             }
         }
 
         const other_u128 = @abs(other_i128);
         if (other_u128 > @as(u128, @intCast(std.math.maxInt(i128)))) {
             if (self_i128 == 0) {
-                return .{ .value = RocDec{ .num = 0 }, .has_overflowed = false };
-            } else if (self_i128 == RocDec.one_point_zero.num) {
+                return .{ .value = ClawDec{ .num = 0 }, .has_overflowed = false };
+            } else if (self_i128 == ClawDec.one_point_zero.num) {
                 return .{ .value = other, .has_overflowed = false };
             } else if (is_answer_negative) {
-                return .{ .value = RocDec.min, .has_overflowed = true };
+                return .{ .value = ClawDec.min, .has_overflowed = true };
             } else {
-                return .{ .value = RocDec.max, .has_overflowed = true };
+                return .{ .value = ClawDec.max, .has_overflowed = true };
             }
         }
 
         const unsigned_answer = mul_and_decimalize(self_u128, other_u128);
         if (is_answer_negative) {
-            return .{ .value = RocDec{ .num = -unsigned_answer.value }, .has_overflowed = unsigned_answer.has_overflowed };
+            return .{ .value = ClawDec{ .num = -unsigned_answer.value }, .has_overflowed = unsigned_answer.has_overflowed };
         } else {
-            return .{ .value = RocDec{ .num = unsigned_answer.value }, .has_overflowed = unsigned_answer.has_overflowed };
+            return .{ .value = ClawDec{ .num = unsigned_answer.value }, .has_overflowed = unsigned_answer.has_overflowed };
         }
     }
 
     pub fn trunc(
-        self: RocDec,
-        roc_ops: *RocOps,
-    ) RocDec {
-        return RocDec.sub(
+        self: ClawDec,
+        roc_ops: *ClawOps,
+    ) ClawDec {
+        return ClawDec.sub(
             self,
             self.fract(),
             roc_ops,
         );
     }
 
-    pub fn fract(self: RocDec) RocDec {
+    pub fn fract(self: ClawDec) ClawDec {
         const abs_num: u128 = @abs(self.num);
-        const digits = i128h.rem_u128(abs_num, @as(u128, @intCast(RocDec.one_point_zero.num)));
+        const digits = i128h.rem_u128(abs_num, @as(u128, @intCast(ClawDec.one_point_zero.num)));
         const digits_i128: i128 = @intCast(digits);
 
-        return RocDec{ .num = if (self.num < 0) -digits_i128 else digits_i128 };
+        return ClawDec{ .num = if (self.num < 0) -digits_i128 else digits_i128 };
     }
 
     // Returns the nearest integer to self. If a value is half-way between two integers, round away from 0.0.
     pub fn round(
-        arg1: RocDec,
-        roc_ops: *RocOps,
-    ) RocDec {
+        arg1: ClawDec,
+        roc_ops: *ClawOps,
+    ) ClawDec {
         // this rounds towards zero
         const tmp = arg1.trunc(roc_ops);
 
         const fract_num = arg1.fract().num;
         const abs_fract: i128 = if (fract_num < 0) -fract_num else fract_num;
 
-        if (abs_fract >= RocDec.zero_point_five.num) {
-            const one_signed: i128 = if (arg1.num < 0) -RocDec.one_point_zero.num else RocDec.one_point_zero.num;
-            return RocDec.add(
+        if (abs_fract >= ClawDec.zero_point_five.num) {
+            const one_signed: i128 = if (arg1.num < 0) -ClawDec.one_point_zero.num else ClawDec.one_point_zero.num;
+            return ClawDec.add(
                 tmp,
-                RocDec{ .num = one_signed },
+                ClawDec{ .num = one_signed },
                 roc_ops,
             );
         } else {
@@ -506,13 +506,13 @@ pub const RocDec = extern struct {
 
     // Returns the largest integer less than or equal to itself
     fn floor(
-        arg1: RocDec,
-        roc_ops: *RocOps,
-    ) RocDec {
+        arg1: ClawDec,
+        roc_ops: *ClawOps,
+    ) ClawDec {
         const tmp = arg1.trunc(roc_ops);
 
         if (arg1.num < 0 and arg1.fract().num != 0) {
-            return RocDec.sub(tmp, RocDec.one_point_zero, roc_ops);
+            return ClawDec.sub(tmp, ClawDec.one_point_zero, roc_ops);
         } else {
             return tmp;
         }
@@ -520,15 +520,15 @@ pub const RocDec = extern struct {
 
     // Returns the smallest integer greater than or equal to itself
     fn ceiling(
-        arg1: RocDec,
-        roc_ops: *RocOps,
-    ) RocDec {
+        arg1: ClawDec,
+        roc_ops: *ClawOps,
+    ) ClawDec {
         const tmp = arg1.trunc(roc_ops);
 
         if (arg1.num > 0 and arg1.fract().num != 0) {
-            return RocDec.add(
+            return ClawDec.add(
                 tmp,
-                RocDec.one_point_zero,
+                ClawDec.one_point_zero,
                 roc_ops,
             );
         } else {
@@ -537,32 +537,32 @@ pub const RocDec = extern struct {
     }
 
     pub fn powInt(
-        base: RocDec,
+        base: ClawDec,
         exponent: i128,
-        roc_ops: *RocOps,
-    ) RocDec {
+        roc_ops: *ClawOps,
+    ) ClawDec {
         if (exponent == 0) {
-            return RocDec.one_point_zero;
+            return ClawDec.one_point_zero;
         } else if (exponent > 0) {
             if (exponent & 1 == 0) {
-                const half_power = RocDec.powInt(base, i128h.shr_i128(exponent, 1), roc_ops); // `>> 1` == `/ 2`
-                return RocDec.mul(half_power, half_power, roc_ops);
+                const half_power = ClawDec.powInt(base, i128h.shr_i128(exponent, 1), roc_ops); // `>> 1` == `/ 2`
+                return ClawDec.mul(half_power, half_power, roc_ops);
             } else {
-                return RocDec.mul(base, RocDec.powInt(base, exponent - 1, roc_ops), roc_ops);
+                return ClawDec.mul(base, ClawDec.powInt(base, exponent - 1, roc_ops), roc_ops);
             }
         } else {
-            return RocDec.div(RocDec.one_point_zero, RocDec.powInt(base, -exponent, roc_ops), roc_ops);
+            return ClawDec.div(ClawDec.one_point_zero, ClawDec.powInt(base, -exponent, roc_ops), roc_ops);
         }
     }
 
     pub fn pow(
-        base: RocDec,
-        exponent: RocDec,
-        roc_ops: *RocOps,
-    ) RocDec {
+        base: ClawDec,
+        exponent: ClawDec,
+        roc_ops: *ClawOps,
+    ) ClawDec {
         if (exponent.trunc(roc_ops).num == exponent.num) {
             return base.powInt(
-                i128h.divTrunc_i128(exponent.num, RocDec.one_point_zero_i128),
+                i128h.divTrunc_i128(exponent.num, ClawDec.one_point_zero_i128),
                 roc_ops,
             );
         } else if (base.num <= 0) {
@@ -570,15 +570,15 @@ pub const RocDec = extern struct {
             unreachable;
         } else {
             const log_base = decLnPositive(base, roc_ops);
-            const scaled_exponent = RocDec.mul(log_base, exponent, roc_ops);
+            const scaled_exponent = ClawDec.mul(log_base, exponent, roc_ops);
             return decExp(scaled_exponent, roc_ops);
         }
     }
 
     pub fn sqrt(
-        self: RocDec,
-        roc_ops: *RocOps,
-    ) RocDec {
+        self: ClawDec,
+        roc_ops: *ClawOps,
+    ) ClawDec {
         // sqrt(-n) is an error
         if (self.num < 0) {
             roc_ops.crash("Decimal square root of a negative number!");
@@ -589,11 +589,11 @@ pub const RocDec = extern struct {
     }
 
     pub fn mul(
-        self: RocDec,
-        other: RocDec,
-        roc_ops: *RocOps,
-    ) RocDec {
-        const answer = RocDec.mulWithOverflow(self, other);
+        self: ClawDec,
+        other: ClawDec,
+        roc_ops: *ClawOps,
+    ) ClawDec {
+        const answer = ClawDec.mulWithOverflow(self, other);
 
         if (answer.has_overflowed) {
             roc_ops.crash("Decimal multiplication overflowed!");
@@ -603,13 +603,13 @@ pub const RocDec = extern struct {
         }
     }
 
-    pub fn mulSaturated(self: RocDec, other: RocDec) RocDec {
-        const answer = RocDec.mulWithOverflow(self, other);
+    pub fn mulSaturated(self: ClawDec, other: ClawDec) ClawDec {
+        const answer = ClawDec.mulWithOverflow(self, other);
         if (answer.has_overflowed) {
             if (answer.value.num < 0) {
-                return RocDec.max;
+                return ClawDec.max;
             } else {
-                return RocDec.min;
+                return ClawDec.min;
             }
         } else {
             return answer.value;
@@ -617,10 +617,10 @@ pub const RocDec = extern struct {
     }
 
     pub fn div(
-        self: RocDec,
-        other: RocDec,
-        roc_ops: *RocOps,
-    ) RocDec {
+        self: ClawDec,
+        other: ClawDec,
+        roc_ops: *ClawOps,
+    ) ClawDec {
         const numerator_i128 = self.num;
         const denominator_i128 = other.num;
 
@@ -631,7 +631,7 @@ pub const RocDec = extern struct {
 
         // (0 / n) is always 0
         if (numerator_i128 == 0) {
-            return RocDec{ .num = 0 };
+            return ClawDec{ .num = 0 };
         }
 
         // If they're both negative, or if neither is negative, the final answer
@@ -687,72 +687,72 @@ pub const RocDec = extern struct {
             roc_ops.crash("Decimal division overflow!");
         }
 
-        return RocDec{ .num = if (is_answer_negative) -unsigned_answer else unsigned_answer };
+        return ClawDec{ .num = if (is_answer_negative) -unsigned_answer else unsigned_answer };
     }
 
-    pub fn log(self: RocDec, roc_ops: *RocOps) RocDec {
+    pub fn log(self: ClawDec, roc_ops: *ClawOps) ClawDec {
         return decLnPositive(self, roc_ops);
     }
 
-    pub fn sin(self: RocDec) RocDec {
+    pub fn sin(self: ClawDec) ClawDec {
         return decSinCos(self).sin;
     }
 
-    pub fn cos(self: RocDec) RocDec {
+    pub fn cos(self: ClawDec) ClawDec {
         return decSinCos(self).cos;
     }
 
-    pub fn tan(self: RocDec, roc_ops: *RocOps) RocDec {
+    pub fn tan(self: ClawDec, roc_ops: *ClawOps) ClawDec {
         const pair = decSinCos(self);
-        return RocDec.div(pair.sin, pair.cos, roc_ops);
+        return ClawDec.div(pair.sin, pair.cos, roc_ops);
     }
 
-    pub fn asin(self: RocDec, roc_ops: *RocOps) RocDec {
-        if (self.num > RocDec.one_point_zero.num or self.num < RocDec.neg_one_point_zero.num) {
+    pub fn asin(self: ClawDec, roc_ops: *ClawOps) ClawDec {
+        if (self.num > ClawDec.one_point_zero.num or self.num < ClawDec.neg_one_point_zero.num) {
             roc_ops.crash("Decimal asin input is outside [-1, 1]!");
             unreachable;
         }
-        if (self.num == RocDec.one_point_zero.num) return RocDec.half_pi;
-        if (self.num == RocDec.neg_one_point_zero.num) return RocDec{ .num = -RocDec.half_pi.num };
+        if (self.num == ClawDec.one_point_zero.num) return ClawDec.half_pi;
+        if (self.num == ClawDec.neg_one_point_zero.num) return ClawDec{ .num = -ClawDec.half_pi.num };
 
-        const squared = RocDec.mul(self, self, roc_ops);
-        const complement = RocDec.sub(RocDec.one_point_zero, squared, roc_ops);
-        const denominator = RocDec.sqrt(complement, roc_ops);
-        return RocDec.atan(RocDec.div(self, denominator, roc_ops), roc_ops);
+        const squared = ClawDec.mul(self, self, roc_ops);
+        const complement = ClawDec.sub(ClawDec.one_point_zero, squared, roc_ops);
+        const denominator = ClawDec.sqrt(complement, roc_ops);
+        return ClawDec.atan(ClawDec.div(self, denominator, roc_ops), roc_ops);
     }
 
-    pub fn acos(self: RocDec, roc_ops: *RocOps) RocDec {
-        return RocDec.sub(RocDec.half_pi, RocDec.asin(self, roc_ops), roc_ops);
+    pub fn acos(self: ClawDec, roc_ops: *ClawOps) ClawDec {
+        return ClawDec.sub(ClawDec.half_pi, ClawDec.asin(self, roc_ops), roc_ops);
     }
 
-    pub fn atan(self: RocDec, roc_ops: *RocOps) RocDec {
-        if (self.num > RocDec.one_point_zero.num) {
-            const reciprocal = RocDec.div(RocDec.one_point_zero, self, roc_ops);
-            return RocDec.sub(RocDec.half_pi, decAtanReduced(reciprocal), roc_ops);
+    pub fn atan(self: ClawDec, roc_ops: *ClawOps) ClawDec {
+        if (self.num > ClawDec.one_point_zero.num) {
+            const reciprocal = ClawDec.div(ClawDec.one_point_zero, self, roc_ops);
+            return ClawDec.sub(ClawDec.half_pi, decAtanReduced(reciprocal), roc_ops);
         }
-        if (self.num < RocDec.neg_one_point_zero.num) {
-            const reciprocal = RocDec.div(RocDec.one_point_zero, self, roc_ops);
-            return RocDec.sub(RocDec{ .num = -RocDec.half_pi.num }, decAtanReduced(reciprocal), roc_ops);
+        if (self.num < ClawDec.neg_one_point_zero.num) {
+            const reciprocal = ClawDec.div(ClawDec.one_point_zero, self, roc_ops);
+            return ClawDec.sub(ClawDec{ .num = -ClawDec.half_pi.num }, decAtanReduced(reciprocal), roc_ops);
         }
         return decAtanReduced(self);
     }
 
     pub fn rem(
-        self: RocDec,
-        other: RocDec,
-        roc_ops: *RocOps,
-    ) RocDec {
+        self: ClawDec,
+        other: ClawDec,
+        roc_ops: *ClawOps,
+    ) ClawDec {
         // (n % 0) is an error
         if (other.num == 0) {
             roc_ops.crash("Decimal remainder by 0!");
         }
 
         // For Dec, remainder is straightforward since both operands have the same scaling factor
-        return RocDec{ .num = i128h.rem_i128(self.num, other.num) };
+        return ClawDec{ .num = i128h.rem_i128(self.num, other.num) };
     }
 };
 
-const dec_cordic_k = RocDec{ .num = 607252935008881256 };
+const dec_cordic_k = ClawDec{ .num = 607252935008881256 };
 
 const dec_cordic_atan = [_]i128{
     785398163397448309,
@@ -822,15 +822,15 @@ const dec_cordic_atan = [_]i128{
 };
 
 const DecSinCos = struct {
-    sin: RocDec,
-    cos: RocDec,
+    sin: ClawDec,
+    cos: ClawDec,
 };
 
-fn decSqrtNonNegative(value: RocDec) RocDec {
+fn decSqrtNonNegative(value: ClawDec) ClawDec {
     const raw: u128 = @intCast(value.num);
-    const scaled = mul_u128(raw, @as(u128, @intCast(RocDec.one_point_zero_i128)));
+    const scaled = mul_u128(raw, @as(u128, @intCast(ClawDec.one_point_zero_i128)));
     const root = intSqrtU256(scaled);
-    return RocDec{ .num = @intCast(root) };
+    return ClawDec{ .num = @intCast(root) };
 }
 
 fn intSqrtU256(value: U256) u128 {
@@ -859,12 +859,12 @@ fn u256Le(lhs: U256, rhs: U256) bool {
     return lhs.hi < rhs.hi or (lhs.hi == rhs.hi and lhs.lo <= rhs.lo);
 }
 
-fn decRemKnownNonZero(self: RocDec, other: RocDec) RocDec {
+fn decRemKnownNonZero(self: ClawDec, other: ClawDec) ClawDec {
     std.debug.assert(other.num != 0);
-    return RocDec{ .num = i128h.rem_i128(self.num, other.num) };
+    return ClawDec{ .num = i128h.rem_i128(self.num, other.num) };
 }
 
-fn decLnPositive(value: RocDec, roc_ops: *RocOps) RocDec {
+fn decLnPositive(value: ClawDec, roc_ops: *ClawOps) ClawDec {
     if (value.num <= 0) {
         roc_ops.crash("Decimal log is undefined for non-positive input!");
         unreachable;
@@ -872,59 +872,59 @@ fn decLnPositive(value: RocDec, roc_ops: *RocOps) RocDec {
 
     var reduced = value;
     var power_of_two: i128 = 0;
-    while (reduced.num >= RocDec.two_point_zero.num) {
-        reduced = RocDec.div(reduced, RocDec.two_point_zero, roc_ops);
+    while (reduced.num >= ClawDec.two_point_zero.num) {
+        reduced = ClawDec.div(reduced, ClawDec.two_point_zero, roc_ops);
         power_of_two += 1;
     }
-    while (reduced.num < RocDec.one_point_zero.num) {
-        reduced = RocDec.mul(reduced, RocDec.two_point_zero, roc_ops);
+    while (reduced.num < ClawDec.one_point_zero.num) {
+        reduced = ClawDec.mul(reduced, ClawDec.two_point_zero, roc_ops);
         power_of_two -= 1;
     }
 
-    const numerator = RocDec.sub(reduced, RocDec.one_point_zero, roc_ops);
-    const denominator = RocDec.add(reduced, RocDec.one_point_zero, roc_ops);
-    const z = RocDec.div(numerator, denominator, roc_ops);
-    const z_squared = RocDec.mul(z, z, roc_ops);
+    const numerator = ClawDec.sub(reduced, ClawDec.one_point_zero, roc_ops);
+    const denominator = ClawDec.add(reduced, ClawDec.one_point_zero, roc_ops);
+    const z = ClawDec.div(numerator, denominator, roc_ops);
+    const z_squared = ClawDec.mul(z, z, roc_ops);
 
     var term = z;
-    var sum = RocDec{ .num = 0 };
+    var sum = ClawDec{ .num = 0 };
     var divisor: i128 = 1;
     while (term.num != 0) {
-        const divisor_dec = RocDec.fromWholeInt(divisor).?;
-        const next = RocDec.div(term, divisor_dec, roc_ops);
+        const divisor_dec = ClawDec.fromWholeInt(divisor).?;
+        const next = ClawDec.div(term, divisor_dec, roc_ops);
         if (next.num == 0) break;
-        sum = RocDec.add(sum, next, roc_ops);
-        term = RocDec.mul(term, z_squared, roc_ops);
+        sum = ClawDec.add(sum, next, roc_ops);
+        term = ClawDec.mul(term, z_squared, roc_ops);
         divisor += 2;
     }
 
-    var result = RocDec.mul(RocDec.two_point_zero, sum, roc_ops);
+    var result = ClawDec.mul(ClawDec.two_point_zero, sum, roc_ops);
     if (power_of_two != 0) {
-        const power_dec = RocDec.fromWholeInt(power_of_two).?;
-        const correction = RocDec.mul(power_dec, RocDec.ln2, roc_ops);
-        result = RocDec.add(result, correction, roc_ops);
+        const power_dec = ClawDec.fromWholeInt(power_of_two).?;
+        const correction = ClawDec.mul(power_dec, ClawDec.ln2, roc_ops);
+        result = ClawDec.add(result, correction, roc_ops);
     }
     return result;
 }
 
-fn decExp(value: RocDec, roc_ops: *RocOps) RocDec {
-    const quotient = RocDec.div(value, RocDec.ln2, roc_ops);
-    const whole_quotient = RocDec.trunc(quotient, roc_ops);
+fn decExp(value: ClawDec, roc_ops: *ClawOps) ClawDec {
+    const quotient = ClawDec.div(value, ClawDec.ln2, roc_ops);
+    const whole_quotient = ClawDec.trunc(quotient, roc_ops);
     const exponent = whole_quotient.toWholeInt();
-    const reduced = RocDec.sub(value, RocDec.mul(whole_quotient, RocDec.ln2, roc_ops), roc_ops);
+    const reduced = ClawDec.sub(value, ClawDec.mul(whole_quotient, ClawDec.ln2, roc_ops), roc_ops);
     return decScaleByPowerOfTwo(decExpReduced(reduced, roc_ops), exponent, roc_ops);
 }
 
-fn decExpReduced(value: RocDec, roc_ops: *RocOps) RocDec {
-    var sum = RocDec.one_point_zero;
-    var term = RocDec.one_point_zero;
+fn decExpReduced(value: ClawDec, roc_ops: *ClawOps) ClawDec {
+    var sum = ClawDec.one_point_zero;
+    var term = ClawDec.one_point_zero;
     var divisor: i128 = 1;
 
     while (true) {
-        const divisor_dec = RocDec.fromWholeInt(divisor).?;
-        const next = RocDec.div(RocDec.mul(term, value, roc_ops), divisor_dec, roc_ops);
+        const divisor_dec = ClawDec.fromWholeInt(divisor).?;
+        const next = ClawDec.div(ClawDec.mul(term, value, roc_ops), divisor_dec, roc_ops);
         if (next.num == 0) break;
-        sum = RocDec.add(sum, next, roc_ops);
+        sum = ClawDec.add(sum, next, roc_ops);
         term = next;
         divisor += 1;
     }
@@ -932,34 +932,34 @@ fn decExpReduced(value: RocDec, roc_ops: *RocOps) RocDec {
     return sum;
 }
 
-fn decScaleByPowerOfTwo(value: RocDec, exponent: i128, roc_ops: *RocOps) RocDec {
+fn decScaleByPowerOfTwo(value: ClawDec, exponent: i128, roc_ops: *ClawOps) ClawDec {
     var result = value;
     var remaining = exponent;
     while (remaining > 0) {
-        result = RocDec.mul(result, RocDec.two_point_zero, roc_ops);
+        result = ClawDec.mul(result, ClawDec.two_point_zero, roc_ops);
         remaining -= 1;
     }
     while (remaining < 0 and result.num != 0) {
-        result = RocDec.div(result, RocDec.two_point_zero, roc_ops);
+        result = ClawDec.div(result, ClawDec.two_point_zero, roc_ops);
         remaining += 1;
     }
     return result;
 }
 
-fn decSinCos(value: RocDec) DecSinCos {
-    var angle = decRemKnownNonZero(value, RocDec.tau);
-    if (angle.num > RocDec.pi.num) {
-        angle = RocDec{ .num = angle.num - RocDec.tau.num };
-    } else if (angle.num < -RocDec.pi.num) {
-        angle = RocDec{ .num = angle.num + RocDec.tau.num };
+fn decSinCos(value: ClawDec) DecSinCos {
+    var angle = decRemKnownNonZero(value, ClawDec.tau);
+    if (angle.num > ClawDec.pi.num) {
+        angle = ClawDec{ .num = angle.num - ClawDec.tau.num };
+    } else if (angle.num < -ClawDec.pi.num) {
+        angle = ClawDec{ .num = angle.num + ClawDec.tau.num };
     }
 
     var cos_sign: i128 = 1;
-    if (angle.num > RocDec.half_pi.num) {
-        angle = RocDec{ .num = RocDec.pi.num - angle.num };
+    if (angle.num > ClawDec.half_pi.num) {
+        angle = ClawDec{ .num = ClawDec.pi.num - angle.num };
         cos_sign = -1;
-    } else if (angle.num < -RocDec.half_pi.num) {
-        angle = RocDec{ .num = -RocDec.pi.num - angle.num };
+    } else if (angle.num < -ClawDec.half_pi.num) {
+        angle = ClawDec{ .num = -ClawDec.pi.num - angle.num };
         cos_sign = -1;
     }
 
@@ -968,7 +968,7 @@ fn decSinCos(value: RocDec) DecSinCos {
     return pair;
 }
 
-fn decCordicSinCos(angle: RocDec) DecSinCos {
+fn decCordicSinCos(angle: ClawDec) DecSinCos {
     var x = dec_cordic_k.num;
     var y: i128 = 0;
     var z = angle.num;
@@ -989,13 +989,13 @@ fn decCordicSinCos(angle: RocDec) DecSinCos {
     }
 
     return .{
-        .sin = RocDec{ .num = y },
-        .cos = RocDec{ .num = x },
+        .sin = ClawDec{ .num = y },
+        .cos = ClawDec{ .num = x },
     };
 }
 
-fn decAtanReduced(value: RocDec) RocDec {
-    var x = RocDec.one_point_zero.num;
+fn decAtanReduced(value: ClawDec) ClawDec {
+    var x = ClawDec.one_point_zero.num;
     var y = value.num;
     var z: i128 = 0;
 
@@ -1016,7 +1016,7 @@ fn decAtanReduced(value: RocDec) RocDec {
         }
     }
 
-    return RocDec{ .num = z };
+    return ClawDec{ .num = z };
 }
 
 fn mul_and_decimalize(a: u128, b: u128) WithOverflow(i128) {
@@ -1333,8 +1333,8 @@ const expectEqualSlices = std.testing.expectEqualSlices;
 
 /// C ABI parse wrapper. Returns errorcode 0 with the scaled i128 on success, or
 /// errorcode 1 with value 0 for any invalid or out-of-range decimal string.
-pub fn fromStr(arg: RocStr) callconv(.c) NumParseResult(i128) {
-    if (@call(.always_inline, RocDec.fromStr, .{arg})) |dec| {
+pub fn fromStr(arg: ClawStr) callconv(.c) NumParseResult(i128) {
+    if (@call(.always_inline, ClawDec.fromStr, .{arg})) |dec| {
         return .{ .errorcode = 0, .value = dec.num };
     } else {
         return .{ .errorcode = 1, .value = 0 };
@@ -1343,19 +1343,19 @@ pub fn fromStr(arg: RocStr) callconv(.c) NumParseResult(i128) {
 
 /// C ABI allocator-backed string wrapper for Dec formatting.
 pub fn to_str(
-    arg: RocDec,
-    roc_ops: *RocOps,
-) callconv(.c) RocStr {
-    return @call(.always_inline, RocDec.to_str, .{ arg, roc_ops });
+    arg: ClawDec,
+    roc_ops: *ClawOps,
+) callconv(.c) ClawStr {
+    return @call(.always_inline, ClawDec.to_str, .{ arg, roc_ops });
 }
 
-/// C ABI conversion wrapper from f64 to Dec. Crashes through RocOps if the
+/// C ABI conversion wrapper from f64 to Dec. Crashes through ClawOps if the
 /// scaled value is outside Dec's i128 range.
 pub fn fromF64C(
     arg: f64,
-    roc_ops: *RocOps,
+    roc_ops: *ClawOps,
 ) callconv(.c) i128 {
-    if (@call(.always_inline, RocDec.fromF64, .{arg})) |dec| {
+    if (@call(.always_inline, ClawDec.fromF64, .{arg})) |dec| {
         return dec.num;
     } else {
         roc_ops.crash("Decimal conversion from f64 failed!");
@@ -1363,14 +1363,14 @@ pub fn fromF64C(
     }
 }
 
-/// C ABI conversion wrapper from f32 to Dec. Crashes through RocOps if the
+/// C ABI conversion wrapper from f32 to Dec. Crashes through ClawOps if the
 /// scaled value is outside Dec's i128 range.
 pub fn fromF32C(
     arg_f32: f32,
-    roc_ops: *RocOps,
+    roc_ops: *ClawOps,
 ) callconv(.c) i128 {
     const arg_f64 = arg_f32;
-    if (@call(.always_inline, RocDec.fromF64, .{arg_f64})) |dec| {
+    if (@call(.always_inline, ClawDec.fromF64, .{arg_f64})) |dec| {
         return dec.num;
     } else {
         roc_ops.crash("Decimal conversion from f32!");
@@ -1379,17 +1379,17 @@ pub fn fromF32C(
 }
 
 /// C ABI conversion wrapper from Dec to f64.
-pub fn toF64(arg: RocDec) callconv(.c) f64 {
-    return @call(.always_inline, RocDec.toF64, .{arg});
+pub fn toF64(arg: ClawDec) callconv(.c) f64 {
+    return @call(.always_inline, ClawDec.toF64, .{arg});
 }
 
 /// Convert Dec to F32 (lossy conversion)
-pub fn toF32(arg: RocDec) callconv(.c) f32 {
+pub fn toF32(arg: ClawDec) callconv(.c) f32 {
     return @floatCast(arg.toF64());
 }
 
 /// Convert Dec to F32 with range check - returns null if out of range
-pub fn toF32Try(arg: RocDec) ?f32 {
+pub fn toF32Try(arg: ClawDec) ?f32 {
     const f64_val = arg.toF64();
     // Check if the value is within F32 range
     if (f64_val > math.floatMax(f32) or f64_val < -math.floatMax(f32)) {
@@ -1404,9 +1404,9 @@ pub fn toF32Try(arg: RocDec) ?f32 {
 }
 
 /// Convert Dec to integer by truncating the fractional part (wrapping on overflow)
-pub fn toIntWrap(comptime T: type, arg: RocDec) T {
+pub fn toIntWrap(comptime T: type, arg: ClawDec) T {
     // Divide by one_point_zero_i128 to get the integer part
-    const whole_part = i128h.divTrunc_i128(arg.num, RocDec.one_point_zero_i128);
+    const whole_part = i128h.divTrunc_i128(arg.num, ClawDec.one_point_zero_i128);
     // Truncate to the target type (wrapping)
     // First cast the i128 to u128, then truncate to the target size, then cast back to T if needed
     const as_u128: u128 = @bitCast(whole_part);
@@ -1415,9 +1415,9 @@ pub fn toIntWrap(comptime T: type, arg: RocDec) T {
 }
 
 /// Convert Dec to integer by truncating the fractional part (returns null if out of range)
-pub fn toIntTry(comptime T: type, arg: RocDec) ?T {
+pub fn toIntTry(comptime T: type, arg: ClawDec) ?T {
     // Divide by one_point_zero_i128 to get the integer part
-    const whole_part = i128h.divTrunc_i128(arg.num, RocDec.one_point_zero_i128);
+    const whole_part = i128h.divTrunc_i128(arg.num, ClawDec.one_point_zero_i128);
     // Check if it fits in the target type
     if (whole_part < math.minInt(T) or whole_part > math.maxInt(T)) {
         return null;
@@ -1426,16 +1426,16 @@ pub fn toIntTry(comptime T: type, arg: RocDec) ?T {
 }
 
 /// Export an integer-to-Dec conversion wrapper for type T. The generated
-/// function scales the integer by 10^18 and crashes through RocOps on overflow.
+/// function scales the integer by 10^18 and crashes through ClawOps on overflow.
 pub fn exportFromInt(comptime T: type, comptime name: []const u8) void {
     const f = struct {
         fn func(
             self: T,
-            roc_ops: *RocOps,
+            roc_ops: *ClawOps,
         ) callconv(.c) i128 {
             const this = @as(i128, @intCast(self));
 
-            const answer = @import("num.zig").mulWithOverflow(i128, this, RocDec.one_point_zero_i128);
+            const answer = @import("num.zig").mulWithOverflow(i128, this, ClawDec.one_point_zero_i128);
             if (answer.has_overflowed) {
                 roc_ops.crash("Decimal conversion from Integer failed!");
             } else {
@@ -1448,48 +1448,48 @@ pub fn exportFromInt(comptime T: type, comptime name: []const u8) void {
 
 /// C ABI conversion wrapper from u64 to Dec. Every u64 value fits in Dec.
 pub fn fromU64C(arg: u64) callconv(.c) i128 {
-    return @call(.always_inline, RocDec.fromU64, .{arg}).toI128();
+    return @call(.always_inline, ClawDec.fromU64, .{arg}).toI128();
 }
 
 /// C ABI wrapper that returns the raw scaled i128 backing a Dec.
-pub fn toI128(arg: RocDec) callconv(.c) i128 {
-    return @call(.always_inline, RocDec.toI128, .{arg});
+pub fn toI128(arg: ClawDec) callconv(.c) i128 {
+    return @call(.always_inline, ClawDec.toI128, .{arg});
 }
 
 /// C ABI wrapper that builds a Dec from an already scaled i128.
-pub fn fromI128(arg: i128) callconv(.c) RocDec {
-    return @call(.always_inline, RocDec.fromI128, .{arg});
+pub fn fromI128(arg: i128) callconv(.c) ClawDec {
+    return @call(.always_inline, ClawDec.fromI128, .{arg});
 }
 
 /// C ABI equality comparison wrapper.
-pub fn eqC(arg1: RocDec, arg2: RocDec) callconv(.c) bool {
-    return @call(.always_inline, RocDec.eq, .{ arg1, arg2 });
+pub fn eqC(arg1: ClawDec, arg2: ClawDec) callconv(.c) bool {
+    return @call(.always_inline, ClawDec.eq, .{ arg1, arg2 });
 }
 
 /// C ABI inequality comparison wrapper.
-pub fn neqC(arg1: RocDec, arg2: RocDec) callconv(.c) bool {
-    return @call(.always_inline, RocDec.neq, .{ arg1, arg2 });
+pub fn neqC(arg1: ClawDec, arg2: ClawDec) callconv(.c) bool {
+    return @call(.always_inline, ClawDec.neq, .{ arg1, arg2 });
 }
 
-/// C ABI negation wrapper. Crashes through RocOps when negating Dec.lowest
+/// C ABI negation wrapper. Crashes through ClawOps when negating Dec.lowest
 /// would overflow.
 pub fn negateC(
-    arg: RocDec,
-    roc_ops: *RocOps,
+    arg: ClawDec,
+    roc_ops: *ClawOps,
 ) callconv(.c) i128 {
-    return if (@call(.always_inline, RocDec.negate, .{arg})) |dec| dec.num else {
+    return if (@call(.always_inline, ClawDec.negate, .{arg})) |dec| dec.num else {
         roc_ops.crash("Decimal negation overflow!");
         unreachable;
     };
 }
 
-/// C ABI absolute-value wrapper. Crashes through RocOps when abs(Dec.lowest)
+/// C ABI absolute-value wrapper. Crashes through ClawOps when abs(Dec.lowest)
 /// would overflow.
 pub fn absC(
-    arg: RocDec,
-    roc_ops: *RocOps,
+    arg: ClawDec,
+    roc_ops: *ClawOps,
 ) callconv(.c) i128 {
-    const result = @call(.always_inline, RocDec.abs, .{arg}) catch {
+    const result = @call(.always_inline, ClawDec.abs, .{arg}) catch {
         roc_ops.crash("Decimal absolute value overflow!");
         unreachable;
     };
@@ -1497,140 +1497,140 @@ pub fn absC(
 }
 
 /// C ABI checked-add wrapper. Returns a result value plus an overflow flag.
-pub fn addC(arg1: RocDec, arg2: RocDec) callconv(.c) WithOverflow(RocDec) {
-    return @call(.always_inline, RocDec.addWithOverflow, .{ arg1, arg2 });
+pub fn addC(arg1: ClawDec, arg2: ClawDec) callconv(.c) WithOverflow(ClawDec) {
+    return @call(.always_inline, ClawDec.addWithOverflow, .{ arg1, arg2 });
 }
 
 /// C ABI checked-subtract wrapper. Returns a result value plus an overflow
 /// flag.
-pub fn subC(arg1: RocDec, arg2: RocDec) callconv(.c) WithOverflow(RocDec) {
-    return @call(.always_inline, RocDec.subWithOverflow, .{ arg1, arg2 });
+pub fn subC(arg1: ClawDec, arg2: ClawDec) callconv(.c) WithOverflow(ClawDec) {
+    return @call(.always_inline, ClawDec.subWithOverflow, .{ arg1, arg2 });
 }
 
 /// C ABI checked-multiply wrapper. Returns a result value plus an overflow
 /// flag.
-pub fn mulC(arg1: RocDec, arg2: RocDec) callconv(.c) WithOverflow(RocDec) {
-    return @call(.always_inline, RocDec.mulWithOverflow, .{ arg1, arg2 });
+pub fn mulC(arg1: ClawDec, arg2: ClawDec) callconv(.c) WithOverflow(ClawDec) {
+    return @call(.always_inline, ClawDec.mulWithOverflow, .{ arg1, arg2 });
 }
 
-/// C ABI division wrapper. Crashes through RocOps on division by zero or
+/// C ABI division wrapper. Crashes through ClawOps on division by zero or
 /// overflow and otherwise returns the scaled i128 result.
 pub fn divC(
-    arg1: RocDec,
-    arg2: RocDec,
-    roc_ops: *RocOps,
+    arg1: ClawDec,
+    arg2: ClawDec,
+    roc_ops: *ClawOps,
 ) callconv(.c) i128 {
-    return @call(.always_inline, RocDec.div, .{ arg1, arg2, roc_ops }).num;
+    return @call(.always_inline, ClawDec.div, .{ arg1, arg2, roc_ops }).num;
 }
 
 /// Truncating division: divide and truncate to the nearest integer toward zero.
 pub fn divTruncC(
-    arg1: RocDec,
-    arg2: RocDec,
-    roc_ops: *RocOps,
+    arg1: ClawDec,
+    arg2: ClawDec,
+    roc_ops: *ClawOps,
 ) callconv(.c) i128 {
-    const quotient = @call(.always_inline, RocDec.div, .{ arg1, arg2, roc_ops });
-    return @call(.always_inline, RocDec.trunc, .{ quotient, roc_ops }).num;
+    const quotient = @call(.always_inline, ClawDec.div, .{ arg1, arg2, roc_ops });
+    return @call(.always_inline, ClawDec.trunc, .{ quotient, roc_ops }).num;
 }
 
 /// C ABI natural-log wrapper. The caller must provide a positive Dec; arithmetic
-/// failures crash through RocOps.
-pub fn logC(arg: RocDec, roc_ops: *RocOps) callconv(.c) i128 {
-    return @call(.always_inline, RocDec.log, .{ arg, roc_ops }).num;
+/// failures crash through ClawOps.
+pub fn logC(arg: ClawDec, roc_ops: *ClawOps) callconv(.c) i128 {
+    return @call(.always_inline, ClawDec.log, .{ arg, roc_ops }).num;
 }
 
 /// C ABI power wrapper. Domain errors, division by zero, and overflow crash
-/// through RocOps.
+/// through ClawOps.
 pub fn powC(
-    arg1: RocDec,
-    arg2: RocDec,
-    roc_ops: *RocOps,
+    arg1: ClawDec,
+    arg2: ClawDec,
+    roc_ops: *ClawOps,
 ) callconv(.c) i128 {
-    return @call(.always_inline, RocDec.pow, .{ arg1, arg2, roc_ops }).num;
+    return @call(.always_inline, ClawDec.pow, .{ arg1, arg2, roc_ops }).num;
 }
 
 /// C ABI square-root wrapper. Negative inputs and overflow crash through
-/// RocOps.
+/// ClawOps.
 pub fn sqrtC(
-    arg: RocDec,
-    roc_ops: *RocOps,
+    arg: ClawDec,
+    roc_ops: *ClawOps,
 ) callconv(.c) i128 {
-    return @call(.always_inline, RocDec.sqrt, .{ arg, roc_ops }).num;
+    return @call(.always_inline, ClawDec.sqrt, .{ arg, roc_ops }).num;
 }
 
 /// C ABI sine wrapper returning the scaled i128 result.
-pub fn sinC(arg: RocDec, _: *RocOps) callconv(.c) i128 {
-    return @call(.always_inline, RocDec.sin, .{arg}).num;
+pub fn sinC(arg: ClawDec, _: *ClawOps) callconv(.c) i128 {
+    return @call(.always_inline, ClawDec.sin, .{arg}).num;
 }
 
 /// C ABI cosine wrapper returning the scaled i128 result.
-pub fn cosC(arg: RocDec, _: *RocOps) callconv(.c) i128 {
-    return @call(.always_inline, RocDec.cos, .{arg}).num;
+pub fn cosC(arg: ClawDec, _: *ClawOps) callconv(.c) i128 {
+    return @call(.always_inline, ClawDec.cos, .{arg}).num;
 }
 
-/// C ABI tangent wrapper. Division by zero or overflow crashes through RocOps.
-pub fn tanC(arg: RocDec, roc_ops: *RocOps) callconv(.c) i128 {
-    return @call(.always_inline, RocDec.tan, .{ arg, roc_ops }).num;
+/// C ABI tangent wrapper. Division by zero or overflow crashes through ClawOps.
+pub fn tanC(arg: ClawDec, roc_ops: *ClawOps) callconv(.c) i128 {
+    return @call(.always_inline, ClawDec.tan, .{ arg, roc_ops }).num;
 }
 
 /// C ABI arcsine wrapper. Inputs outside [-1, 1] and arithmetic failures crash
-/// through RocOps.
-pub fn asinC(arg: RocDec, roc_ops: *RocOps) callconv(.c) i128 {
-    return @call(.always_inline, RocDec.asin, .{ arg, roc_ops }).num;
+/// through ClawOps.
+pub fn asinC(arg: ClawDec, roc_ops: *ClawOps) callconv(.c) i128 {
+    return @call(.always_inline, ClawDec.asin, .{ arg, roc_ops }).num;
 }
 
 /// C ABI arccosine wrapper. Inputs outside [-1, 1] and arithmetic failures
-/// crash through RocOps.
-pub fn acosC(arg: RocDec, roc_ops: *RocOps) callconv(.c) i128 {
-    return @call(.always_inline, RocDec.acos, .{ arg, roc_ops }).num;
+/// crash through ClawOps.
+pub fn acosC(arg: ClawDec, roc_ops: *ClawOps) callconv(.c) i128 {
+    return @call(.always_inline, ClawDec.acos, .{ arg, roc_ops }).num;
 }
 
 /// C ABI arctangent wrapper returning the scaled i128 result. Arithmetic
-/// failures crash through RocOps.
-pub fn atanC(arg: RocDec, roc_ops: *RocOps) callconv(.c) i128 {
-    return @call(.always_inline, RocDec.atan, .{ arg, roc_ops }).num;
+/// failures crash through ClawOps.
+pub fn atanC(arg: ClawDec, roc_ops: *ClawOps) callconv(.c) i128 {
+    return @call(.always_inline, ClawDec.atan, .{ arg, roc_ops }).num;
 }
 
-/// C ABI addition wrapper that crashes through RocOps on overflow.
+/// C ABI addition wrapper that crashes through ClawOps on overflow.
 pub fn addOrPanicC(
-    arg1: RocDec,
-    arg2: RocDec,
-    roc_ops: *RocOps,
-) callconv(.c) RocDec {
-    return @call(.always_inline, RocDec.add, .{ arg1, arg2, roc_ops });
+    arg1: ClawDec,
+    arg2: ClawDec,
+    roc_ops: *ClawOps,
+) callconv(.c) ClawDec {
+    return @call(.always_inline, ClawDec.add, .{ arg1, arg2, roc_ops });
 }
 
-/// C ABI saturated-add wrapper. Overflow clamps to RocDec.min or RocDec.max.
-pub fn addSaturatedC(arg1: RocDec, arg2: RocDec) callconv(.c) RocDec {
-    return @call(.always_inline, RocDec.addSaturated, .{ arg1, arg2 });
+/// C ABI saturated-add wrapper. Overflow clamps to ClawDec.min or ClawDec.max.
+pub fn addSaturatedC(arg1: ClawDec, arg2: ClawDec) callconv(.c) ClawDec {
+    return @call(.always_inline, ClawDec.addSaturated, .{ arg1, arg2 });
 }
 
-/// C ABI subtraction wrapper that crashes through RocOps on overflow.
+/// C ABI subtraction wrapper that crashes through ClawOps on overflow.
 pub fn subOrPanicC(
-    arg1: RocDec,
-    arg2: RocDec,
-    roc_ops: *RocOps,
-) callconv(.c) RocDec {
-    return @call(.always_inline, RocDec.sub, .{ arg1, arg2, roc_ops });
+    arg1: ClawDec,
+    arg2: ClawDec,
+    roc_ops: *ClawOps,
+) callconv(.c) ClawDec {
+    return @call(.always_inline, ClawDec.sub, .{ arg1, arg2, roc_ops });
 }
 
-/// C ABI saturated-subtract wrapper. Overflow clamps to RocDec.min or RocDec.max.
-pub fn subSaturatedC(arg1: RocDec, arg2: RocDec) callconv(.c) RocDec {
-    return @call(.always_inline, RocDec.subSaturated, .{ arg1, arg2 });
+/// C ABI saturated-subtract wrapper. Overflow clamps to ClawDec.min or ClawDec.max.
+pub fn subSaturatedC(arg1: ClawDec, arg2: ClawDec) callconv(.c) ClawDec {
+    return @call(.always_inline, ClawDec.subSaturated, .{ arg1, arg2 });
 }
 
-/// C ABI multiplication wrapper that crashes through RocOps on overflow.
+/// C ABI multiplication wrapper that crashes through ClawOps on overflow.
 pub fn mulOrPanicC(
-    arg1: RocDec,
-    arg2: RocDec,
-    roc_ops: *RocOps,
-) callconv(.c) RocDec {
-    return @call(.always_inline, RocDec.mul, .{ arg1, arg2, roc_ops });
+    arg1: ClawDec,
+    arg2: ClawDec,
+    roc_ops: *ClawOps,
+) callconv(.c) ClawDec {
+    return @call(.always_inline, ClawDec.mul, .{ arg1, arg2, roc_ops });
 }
 
-/// C ABI saturated-multiply wrapper. Overflow clamps to RocDec.min or RocDec.max.
-pub fn mulSaturatedC(arg1: RocDec, arg2: RocDec) callconv(.c) RocDec {
-    return @call(.always_inline, RocDec.mulSaturated, .{ arg1, arg2 });
+/// C ABI saturated-multiply wrapper. Overflow clamps to ClawDec.min or ClawDec.max.
+pub fn mulSaturatedC(arg1: ClawDec, arg2: ClawDec) callconv(.c) ClawDec {
+    return @call(.always_inline, ClawDec.mulSaturated, .{ arg1, arg2 });
 }
 
 /// Export a Dec rounding wrapper for integer return type T. The generated
@@ -1638,10 +1638,10 @@ pub fn mulSaturatedC(arg1: RocDec, arg2: RocDec) callconv(.c) RocDec {
 pub fn exportRound(comptime T: type, comptime name: []const u8) void {
     const f = struct {
         fn func(
-            input: RocDec,
-            roc_ops: *RocOps,
+            input: ClawDec,
+            roc_ops: *ClawOps,
         ) callconv(.c) T {
-            return @as(T, @intCast(i128h.divFloor_i128(input.round(roc_ops).num, RocDec.one_point_zero_i128)));
+            return @as(T, @intCast(i128h.divFloor_i128(input.round(roc_ops).num, ClawDec.one_point_zero_i128)));
         }
     }.func;
     @export(&f, .{ .name = name ++ @typeName(T), .linkage = .strong });
@@ -1651,10 +1651,10 @@ pub fn exportRound(comptime T: type, comptime name: []const u8) void {
 pub fn exportFloor(comptime T: type, comptime name: []const u8) void {
     const f = struct {
         fn func(
-            input: RocDec,
-            roc_ops: *RocOps,
+            input: ClawDec,
+            roc_ops: *ClawOps,
         ) callconv(.c) T {
-            return @as(T, @intCast(i128h.divFloor_i128(input.floor(roc_ops).num, RocDec.one_point_zero_i128)));
+            return @as(T, @intCast(i128h.divFloor_i128(input.floor(roc_ops).num, ClawDec.one_point_zero_i128)));
         }
     }.func;
     @export(&f, .{ .name = name ++ @typeName(T), .linkage = .strong });
@@ -1664,49 +1664,49 @@ pub fn exportFloor(comptime T: type, comptime name: []const u8) void {
 pub fn exportCeiling(comptime T: type, comptime name: []const u8) void {
     const f = struct {
         fn func(
-            input: RocDec,
-            roc_ops: *RocOps,
+            input: ClawDec,
+            roc_ops: *ClawOps,
         ) callconv(.c) T {
-            return @as(T, @intCast(i128h.divFloor_i128(input.ceiling(roc_ops).num, RocDec.one_point_zero_i128)));
+            return @as(T, @intCast(i128h.divFloor_i128(input.ceiling(roc_ops).num, ClawDec.one_point_zero_i128)));
         }
     }.func;
     @export(&f, .{ .name = name ++ @typeName(T), .linkage = .strong });
 }
 
-fn expectRocDecConstant(actual: RocDec, expected_text: []const u8) error{ InvalidExpectedDecimal, TestExpectedEqual }!void {
-    const expected = RocDec.fromNonemptySlice(expected_text) orelse return error.InvalidExpectedDecimal;
+fn expectRocDecConstant(actual: ClawDec, expected_text: []const u8) error{ InvalidExpectedDecimal, TestExpectedEqual }!void {
+    const expected = ClawDec.fromNonemptySlice(expected_text) orelse return error.InvalidExpectedDecimal;
     try std.testing.expectEqual(expected, actual);
 
-    var buf: [RocDec.max_str_length]u8 = undefined;
+    var buf: [ClawDec.max_str_length]u8 = undefined;
     try std.testing.expectEqualStrings(expected_text, actual.format_to_buf(&buf));
 }
 
 test "math constants use fixed-point std.math values" {
-    try expectRocDecConstant(RocDec.e, "2.718281828459045235");
-    try expectRocDecConstant(RocDec.pi, "3.141592653589793238");
-    try expectRocDecConstant(RocDec.tau, "6.283185307179586476");
-    try expectRocDecConstant(RocDec.half_pi, "1.570796326794896619");
-    try expectRocDecConstant(RocDec.ln2, "0.693147180559945309");
+    try expectRocDecConstant(ClawDec.e, "2.718281828459045235");
+    try expectRocDecConstant(ClawDec.pi, "3.141592653589793238");
+    try expectRocDecConstant(ClawDec.tau, "6.283185307179586476");
+    try expectRocDecConstant(ClawDec.half_pi, "1.570796326794896619");
+    try expectRocDecConstant(ClawDec.ln2, "0.693147180559945309");
 }
 
 test "math constants preserve exact fixed-point relationships" {
-    try std.testing.expectEqual(RocDec.pi.num * 2, RocDec.tau.num);
-    try std.testing.expectEqual(@divTrunc(RocDec.pi.num, 2), RocDec.half_pi.num);
+    try std.testing.expectEqual(ClawDec.pi.num * 2, ClawDec.tau.num);
+    try std.testing.expectEqual(@divTrunc(ClawDec.pi.num, 2), ClawDec.half_pi.num);
 }
 
 test "fromU64" {
-    const dec = RocDec.fromU64(25);
+    const dec = ClawDec.fromU64(25);
 
-    try std.testing.expectEqual(RocDec{ .num = 25000000000000000000 }, dec);
+    try std.testing.expectEqual(ClawDec{ .num = 25000000000000000000 }, dec);
 }
 
 test "fromF64" {
-    const dec = RocDec.fromF64(25.5);
-    try std.testing.expectEqual(RocDec{ .num = 25500000000000000000 }, dec.?);
+    const dec = ClawDec.fromF64(25.5);
+    try std.testing.expectEqual(ClawDec{ .num = 25500000000000000000 }, dec.?);
 }
 
 test "fromF64 overflow" {
-    const dec = RocDec.fromF64(1e308);
+    const dec = ClawDec.fromF64(1e308);
     try std.testing.expectEqual(dec, null);
 }
 
@@ -1714,8 +1714,8 @@ test "fromStr: empty" {
     var test_env = TestEnv.init(std.testing.allocator);
     defer test_env.deinit();
 
-    const roc_str = RocStr.init("", 0, test_env.getOps());
-    const dec = RocDec.fromStr(roc_str);
+    const roc_str = ClawStr.init("", 0, test_env.getOps());
+    const dec = ClawDec.fromStr(roc_str);
 
     try std.testing.expectEqual(dec, null);
 }
@@ -1724,108 +1724,108 @@ test "fromStr: 0" {
     var test_env = TestEnv.init(std.testing.allocator);
     defer test_env.deinit();
 
-    const roc_str = RocStr.init("0", 1, test_env.getOps());
-    const dec = RocDec.fromStr(roc_str);
+    const roc_str = ClawStr.init("0", 1, test_env.getOps());
+    const dec = ClawDec.fromStr(roc_str);
 
-    try std.testing.expectEqual(RocDec{ .num = 0 }, dec.?);
+    try std.testing.expectEqual(ClawDec{ .num = 0 }, dec.?);
 }
 
 test "fromStr: 1" {
     var test_env = TestEnv.init(std.testing.allocator);
     defer test_env.deinit();
 
-    const roc_str = RocStr.init("1", 1, test_env.getOps());
-    const dec = RocDec.fromStr(roc_str);
+    const roc_str = ClawStr.init("1", 1, test_env.getOps());
+    const dec = ClawDec.fromStr(roc_str);
 
-    try std.testing.expectEqual(RocDec.one_point_zero, dec.?);
+    try std.testing.expectEqual(ClawDec.one_point_zero, dec.?);
 }
 
 test "fromStr: 123.45" {
     var test_env = TestEnv.init(std.testing.allocator);
     defer test_env.deinit();
 
-    const roc_str = RocStr.init("123.45", 6, test_env.getOps());
-    const dec = RocDec.fromStr(roc_str);
+    const roc_str = ClawStr.init("123.45", 6, test_env.getOps());
+    const dec = ClawDec.fromStr(roc_str);
 
-    try std.testing.expectEqual(RocDec{ .num = 123450000000000000000 }, dec.?);
+    try std.testing.expectEqual(ClawDec{ .num = 123450000000000000000 }, dec.?);
 }
 
 test "fromStr: .45" {
     var test_env = TestEnv.init(std.testing.allocator);
     defer test_env.deinit();
 
-    const roc_str = RocStr.init(".45", 3, test_env.getOps());
-    const dec = RocDec.fromStr(roc_str);
+    const roc_str = ClawStr.init(".45", 3, test_env.getOps());
+    const dec = ClawDec.fromStr(roc_str);
 
-    try std.testing.expectEqual(RocDec{ .num = 450000000000000000 }, dec.?);
+    try std.testing.expectEqual(ClawDec{ .num = 450000000000000000 }, dec.?);
 }
 
 test "fromStr: 0.45" {
     var test_env = TestEnv.init(std.testing.allocator);
     defer test_env.deinit();
 
-    const roc_str = RocStr.init("0.45", 4, test_env.getOps());
-    const dec = RocDec.fromStr(roc_str);
+    const roc_str = ClawStr.init("0.45", 4, test_env.getOps());
+    const dec = ClawDec.fromStr(roc_str);
 
-    try std.testing.expectEqual(RocDec{ .num = 450000000000000000 }, dec.?);
+    try std.testing.expectEqual(ClawDec{ .num = 450000000000000000 }, dec.?);
 }
 
 test "fromStr: 123" {
     var test_env = TestEnv.init(std.testing.allocator);
     defer test_env.deinit();
 
-    const roc_str = RocStr.init("123", 3, test_env.getOps());
-    const dec = RocDec.fromStr(roc_str);
+    const roc_str = ClawStr.init("123", 3, test_env.getOps());
+    const dec = ClawDec.fromStr(roc_str);
 
-    try std.testing.expectEqual(RocDec{ .num = 123000000000000000000 }, dec.?);
+    try std.testing.expectEqual(ClawDec{ .num = 123000000000000000000 }, dec.?);
 }
 
 test "fromStr: -.45" {
     var test_env = TestEnv.init(std.testing.allocator);
     defer test_env.deinit();
 
-    const roc_str = RocStr.init("-.45", 4, test_env.getOps());
-    const dec = RocDec.fromStr(roc_str);
+    const roc_str = ClawStr.init("-.45", 4, test_env.getOps());
+    const dec = ClawDec.fromStr(roc_str);
 
-    try std.testing.expectEqual(RocDec{ .num = -450000000000000000 }, dec.?);
+    try std.testing.expectEqual(ClawDec{ .num = -450000000000000000 }, dec.?);
 }
 
 test "fromStr: -0.45" {
     var test_env = TestEnv.init(std.testing.allocator);
     defer test_env.deinit();
 
-    const roc_str = RocStr.init("-0.45", 5, test_env.getOps());
-    const dec = RocDec.fromStr(roc_str);
+    const roc_str = ClawStr.init("-0.45", 5, test_env.getOps());
+    const dec = ClawDec.fromStr(roc_str);
 
-    try std.testing.expectEqual(RocDec{ .num = -450000000000000000 }, dec.?);
+    try std.testing.expectEqual(ClawDec{ .num = -450000000000000000 }, dec.?);
 }
 
 test "fromStr: -123" {
     var test_env = TestEnv.init(std.testing.allocator);
     defer test_env.deinit();
 
-    const roc_str = RocStr.init("-123", 4, test_env.getOps());
-    const dec = RocDec.fromStr(roc_str);
+    const roc_str = ClawStr.init("-123", 4, test_env.getOps());
+    const dec = ClawDec.fromStr(roc_str);
 
-    try std.testing.expectEqual(RocDec{ .num = -123000000000000000000 }, dec.?);
+    try std.testing.expectEqual(ClawDec{ .num = -123000000000000000000 }, dec.?);
 }
 
 test "fromStr: -123.45" {
     var test_env = TestEnv.init(std.testing.allocator);
     defer test_env.deinit();
 
-    const roc_str = RocStr.init("-123.45", 7, test_env.getOps());
-    const dec = RocDec.fromStr(roc_str);
+    const roc_str = ClawStr.init("-123.45", 7, test_env.getOps());
+    const dec = ClawDec.fromStr(roc_str);
 
-    try std.testing.expectEqual(RocDec{ .num = -123450000000000000000 }, dec.?);
+    try std.testing.expectEqual(ClawDec{ .num = -123450000000000000000 }, dec.?);
 }
 
 test "fromStr: abc" {
     var test_env = TestEnv.init(std.testing.allocator);
     defer test_env.deinit();
 
-    const roc_str = RocStr.init("abc", 3, test_env.getOps());
-    const dec = RocDec.fromStr(roc_str);
+    const roc_str = ClawStr.init("abc", 3, test_env.getOps());
+    const dec = ClawDec.fromStr(roc_str);
 
     try std.testing.expectEqual(dec, null);
 }
@@ -1834,8 +1834,8 @@ test "fromStr: 123.abc" {
     var test_env = TestEnv.init(std.testing.allocator);
     defer test_env.deinit();
 
-    const roc_str = RocStr.init("123.abc", 7, test_env.getOps());
-    const dec = RocDec.fromStr(roc_str);
+    const roc_str = ClawStr.init("123.abc", 7, test_env.getOps());
+    const dec = ClawDec.fromStr(roc_str);
 
     try std.testing.expectEqual(dec, null);
 }
@@ -1844,8 +1844,8 @@ test "fromStr: abc.123" {
     var test_env = TestEnv.init(std.testing.allocator);
     defer test_env.deinit();
 
-    const roc_str = RocStr.init("abc.123", 7, test_env.getOps());
-    const dec = RocDec.fromStr(roc_str);
+    const roc_str = ClawStr.init("abc.123", 7, test_env.getOps());
+    const dec = ClawDec.fromStr(roc_str);
 
     try std.testing.expectEqual(dec, null);
 }
@@ -1854,8 +1854,8 @@ test "fromStr: .123.1" {
     var test_env = TestEnv.init(std.testing.allocator);
     defer test_env.deinit();
 
-    const roc_str = RocStr.init(".123.1", 6, test_env.getOps());
-    const dec = RocDec.fromStr(roc_str);
+    const roc_str = ClawStr.init(".123.1", 6, test_env.getOps());
+    const dec = ClawDec.fromStr(roc_str);
 
     try std.testing.expectEqual(dec, null);
 }
@@ -1864,7 +1864,7 @@ test "to_str: 100.00" {
     var test_env = TestEnv.init(std.testing.allocator);
     defer test_env.deinit();
 
-    var dec: RocDec = .{ .num = 100000000000000000000 };
+    var dec: ClawDec = .{ .num = 100000000000000000000 };
     var res_roc_str = dec.to_str(test_env.getOps());
 
     const res_slice: []const u8 = "100.0"[0..];
@@ -1875,7 +1875,7 @@ test "to_str: 123.45" {
     var test_env = TestEnv.init(std.testing.allocator);
     defer test_env.deinit();
 
-    var dec: RocDec = .{ .num = 123450000000000000000 };
+    var dec: ClawDec = .{ .num = 123450000000000000000 };
     var res_roc_str = dec.to_str(test_env.getOps());
 
     const res_slice: []const u8 = "123.45"[0..];
@@ -1886,7 +1886,7 @@ test "to_str: -123.45" {
     var test_env = TestEnv.init(std.testing.allocator);
     defer test_env.deinit();
 
-    var dec: RocDec = .{ .num = -123450000000000000000 };
+    var dec: ClawDec = .{ .num = -123450000000000000000 };
     var res_roc_str = dec.to_str(test_env.getOps());
 
     const res_slice: []const u8 = "-123.45"[0..];
@@ -1897,7 +1897,7 @@ test "to_str: 123.0" {
     var test_env = TestEnv.init(std.testing.allocator);
     defer test_env.deinit();
 
-    var dec: RocDec = .{ .num = 123000000000000000000 };
+    var dec: ClawDec = .{ .num = 123000000000000000000 };
     var res_roc_str = dec.to_str(test_env.getOps());
 
     const res_slice: []const u8 = "123.0"[0..];
@@ -1908,7 +1908,7 @@ test "to_str: -123.0" {
     var test_env = TestEnv.init(std.testing.allocator);
     defer test_env.deinit();
 
-    var dec: RocDec = .{ .num = -123000000000000000000 };
+    var dec: ClawDec = .{ .num = -123000000000000000000 };
     var res_roc_str = dec.to_str(test_env.getOps());
 
     const res_slice: []const u8 = "-123.0"[0..];
@@ -1919,7 +1919,7 @@ test "to_str: 0.45" {
     var test_env = TestEnv.init(std.testing.allocator);
     defer test_env.deinit();
 
-    var dec: RocDec = .{ .num = 450000000000000000 };
+    var dec: ClawDec = .{ .num = 450000000000000000 };
     var res_roc_str = dec.to_str(test_env.getOps());
 
     const res_slice: []const u8 = "0.45"[0..];
@@ -1930,7 +1930,7 @@ test "to_str: -0.45" {
     var test_env = TestEnv.init(std.testing.allocator);
     defer test_env.deinit();
 
-    var dec: RocDec = .{ .num = -450000000000000000 };
+    var dec: ClawDec = .{ .num = -450000000000000000 };
     var res_roc_str = dec.to_str(test_env.getOps());
 
     const res_slice: []const u8 = "-0.45"[0..];
@@ -1941,7 +1941,7 @@ test "to_str: 0.00045" {
     var test_env = TestEnv.init(std.testing.allocator);
     defer test_env.deinit();
 
-    var dec: RocDec = .{ .num = 450000000000000 };
+    var dec: ClawDec = .{ .num = 450000000000000 };
     var res_roc_str = dec.to_str(test_env.getOps());
 
     const res_slice: []const u8 = "0.00045"[0..];
@@ -1952,7 +1952,7 @@ test "to_str: -0.00045" {
     var test_env = TestEnv.init(std.testing.allocator);
     defer test_env.deinit();
 
-    var dec: RocDec = .{ .num = -450000000000000 };
+    var dec: ClawDec = .{ .num = -450000000000000 };
     var res_roc_str = dec.to_str(test_env.getOps());
 
     const res_slice: []const u8 = "-0.00045"[0..];
@@ -1963,7 +1963,7 @@ test "to_str: -111.123456" {
     var test_env = TestEnv.init(std.testing.allocator);
     defer test_env.deinit();
 
-    var dec: RocDec = .{ .num = -111123456000000000000 };
+    var dec: ClawDec = .{ .num = -111123456000000000000 };
     var res_roc_str = dec.to_str(test_env.getOps());
 
     const res_slice: []const u8 = "-111.123456"[0..];
@@ -1974,7 +1974,7 @@ test "to_str: 123.1111111" {
     var test_env = TestEnv.init(std.testing.allocator);
     defer test_env.deinit();
 
-    var dec: RocDec = .{ .num = 123111111100000000000 };
+    var dec: ClawDec = .{ .num = 123111111100000000000 };
     var res_roc_str = dec.to_str(test_env.getOps());
 
     const res_slice: []const u8 = "123.1111111"[0..];
@@ -1985,7 +1985,7 @@ test "to_str: 123.1111111111111 (big str)" {
     var test_env = TestEnv.init(std.testing.allocator);
     defer test_env.deinit();
 
-    var dec: RocDec = .{ .num = 123111111111111000000 };
+    var dec: ClawDec = .{ .num = 123111111111111000000 };
     var res_roc_str = dec.to_str(test_env.getOps());
     errdefer res_roc_str.decref(test_env.getOps());
     defer res_roc_str.decref(test_env.getOps());
@@ -1998,7 +1998,7 @@ test "to_str: 123.111111111111444444 (max number of decimal places)" {
     var test_env = TestEnv.init(std.testing.allocator);
     defer test_env.deinit();
 
-    var dec: RocDec = .{ .num = 123111111111111444444 };
+    var dec: ClawDec = .{ .num = 123111111111111444444 };
     var res_roc_str = dec.to_str(test_env.getOps());
     errdefer res_roc_str.decref(test_env.getOps());
     defer res_roc_str.decref(test_env.getOps());
@@ -2011,7 +2011,7 @@ test "to_str: 12345678912345678912.111111111111111111 (max number of digits)" {
     var test_env = TestEnv.init(std.testing.allocator);
     defer test_env.deinit();
 
-    var dec: RocDec = .{ .num = 12345678912345678912111111111111111111 };
+    var dec: ClawDec = .{ .num = 12345678912345678912111111111111111111 };
     var res_roc_str = dec.to_str(test_env.getOps());
     errdefer res_roc_str.decref(test_env.getOps());
     defer res_roc_str.decref(test_env.getOps());
@@ -2024,7 +2024,7 @@ test "to_str: std.math.maxInt" {
     var test_env = TestEnv.init(std.testing.allocator);
     defer test_env.deinit();
 
-    var dec: RocDec = .{ .num = std.math.maxInt(i128) };
+    var dec: ClawDec = .{ .num = std.math.maxInt(i128) };
     var res_roc_str = dec.to_str(test_env.getOps());
     errdefer res_roc_str.decref(test_env.getOps());
     defer res_roc_str.decref(test_env.getOps());
@@ -2037,7 +2037,7 @@ test "to_str: std.math.minInt" {
     var test_env = TestEnv.init(std.testing.allocator);
     defer test_env.deinit();
 
-    var dec: RocDec = .{ .num = std.math.minInt(i128) };
+    var dec: ClawDec = .{ .num = std.math.minInt(i128) };
     var res_roc_str = dec.to_str(test_env.getOps());
     errdefer res_roc_str.decref(test_env.getOps());
     defer res_roc_str.decref(test_env.getOps());
@@ -2050,7 +2050,7 @@ test "to_str: 0" {
     var test_env = TestEnv.init(std.testing.allocator);
     defer test_env.deinit();
 
-    var dec: RocDec = .{ .num = 0 };
+    var dec: ClawDec = .{ .num = 0 };
     var res_roc_str = dec.to_str(test_env.getOps());
 
     const res_slice: []const u8 = "0.0"[0..];
@@ -2061,113 +2061,113 @@ test "add: 0" {
     var test_env = TestEnv.init(std.testing.allocator);
     defer test_env.deinit();
 
-    var dec: RocDec = .{ .num = 0 };
+    var dec: ClawDec = .{ .num = 0 };
 
-    try std.testing.expectEqual(RocDec{ .num = 0 }, dec.add(.{ .num = 0 }, test_env.getOps()));
+    try std.testing.expectEqual(ClawDec{ .num = 0 }, dec.add(.{ .num = 0 }, test_env.getOps()));
 }
 
 test "add: 1" {
     var test_env = TestEnv.init(std.testing.allocator);
     defer test_env.deinit();
 
-    var dec: RocDec = .{ .num = 0 };
+    var dec: ClawDec = .{ .num = 0 };
 
-    try std.testing.expectEqual(RocDec{ .num = 1 }, dec.add(.{ .num = 1 }, test_env.getOps()));
+    try std.testing.expectEqual(ClawDec{ .num = 1 }, dec.add(.{ .num = 1 }, test_env.getOps()));
 }
 
 test "sub: 0" {
     var test_env = TestEnv.init(std.testing.allocator);
     defer test_env.deinit();
 
-    var dec: RocDec = .{ .num = 1 };
+    var dec: ClawDec = .{ .num = 1 };
 
-    try std.testing.expectEqual(RocDec{ .num = 1 }, dec.sub(.{ .num = 0 }, test_env.getOps()));
+    try std.testing.expectEqual(ClawDec{ .num = 1 }, dec.sub(.{ .num = 0 }, test_env.getOps()));
 }
 
 test "sub: 1" {
     var test_env = TestEnv.init(std.testing.allocator);
     defer test_env.deinit();
 
-    var dec: RocDec = .{ .num = 1 };
+    var dec: ClawDec = .{ .num = 1 };
 
-    try std.testing.expectEqual(RocDec{ .num = 0 }, dec.sub(.{ .num = 1 }, test_env.getOps()));
+    try std.testing.expectEqual(ClawDec{ .num = 0 }, dec.sub(.{ .num = 1 }, test_env.getOps()));
 }
 
 test "mul: by 0" {
     var test_env = TestEnv.init(std.testing.allocator);
     defer test_env.deinit();
 
-    var dec: RocDec = .{ .num = -2 };
+    var dec: ClawDec = .{ .num = -2 };
 
-    try std.testing.expectEqual(RocDec{ .num = 0 }, dec.mul(.{ .num = 0 }, test_env.getOps()));
+    try std.testing.expectEqual(ClawDec{ .num = 0 }, dec.mul(.{ .num = 0 }, test_env.getOps()));
 }
 
 test "mul: by 1" {
     var test_env = TestEnv.init(std.testing.allocator);
     defer test_env.deinit();
 
-    var dec: RocDec = RocDec.fromU64(15);
+    var dec: ClawDec = ClawDec.fromU64(15);
 
-    try std.testing.expectEqual(RocDec.fromU64(15), dec.mul(RocDec.fromU64(1), test_env.getOps()));
+    try std.testing.expectEqual(ClawDec.fromU64(15), dec.mul(ClawDec.fromU64(1), test_env.getOps()));
 }
 
 test "mul: by 2" {
     var test_env = TestEnv.init(std.testing.allocator);
     defer test_env.deinit();
 
-    var dec: RocDec = RocDec.fromU64(15);
+    var dec: ClawDec = ClawDec.fromU64(15);
 
-    try std.testing.expectEqual(RocDec.fromU64(30), dec.mul(RocDec.fromU64(2), test_env.getOps()));
+    try std.testing.expectEqual(ClawDec.fromU64(30), dec.mul(ClawDec.fromU64(2), test_env.getOps()));
 }
 
 test "div: 0 / 2" {
     var test_env = TestEnv.init(std.testing.allocator);
     defer test_env.deinit();
 
-    var dec: RocDec = RocDec.fromU64(0);
+    var dec: ClawDec = ClawDec.fromU64(0);
 
-    try std.testing.expectEqual(RocDec.fromU64(0), dec.div(RocDec.fromU64(2), test_env.getOps()));
+    try std.testing.expectEqual(ClawDec.fromU64(0), dec.div(ClawDec.fromU64(2), test_env.getOps()));
 }
 
 test "div: 2 / 2" {
     var test_env = TestEnv.init(std.testing.allocator);
     defer test_env.deinit();
 
-    var dec: RocDec = RocDec.fromU64(2);
+    var dec: ClawDec = ClawDec.fromU64(2);
 
-    try std.testing.expectEqual(RocDec.fromU64(1), dec.div(RocDec.fromU64(2), test_env.getOps()));
+    try std.testing.expectEqual(ClawDec.fromU64(1), dec.div(ClawDec.fromU64(2), test_env.getOps()));
 }
 
 test "div: 20 / 2" {
     var test_env = TestEnv.init(std.testing.allocator);
     defer test_env.deinit();
 
-    var dec: RocDec = RocDec.fromU64(20);
+    var dec: ClawDec = ClawDec.fromU64(20);
 
-    try std.testing.expectEqual(RocDec.fromU64(10), dec.div(RocDec.fromU64(2), test_env.getOps()));
+    try std.testing.expectEqual(ClawDec.fromU64(10), dec.div(ClawDec.fromU64(2), test_env.getOps()));
 }
 
 test "div: 8 / 5" {
     var test_env = TestEnv.init(std.testing.allocator);
     defer test_env.deinit();
 
-    var dec: RocDec = RocDec.fromU64(8);
-    const res: RocDec = RocDec.fromStr(RocStr.init("1.6", 3, test_env.getOps())).?;
-    try std.testing.expectEqual(res, dec.div(RocDec.fromU64(5), test_env.getOps()));
+    var dec: ClawDec = ClawDec.fromU64(8);
+    const res: ClawDec = ClawDec.fromStr(ClawStr.init("1.6", 3, test_env.getOps())).?;
+    try std.testing.expectEqual(res, dec.div(ClawDec.fromU64(5), test_env.getOps()));
 }
 
 test "div: 10 / 3" {
     var test_env = TestEnv.init(std.testing.allocator);
     defer test_env.deinit();
 
-    var numerator: RocDec = RocDec.fromU64(10);
-    const denom: RocDec = RocDec.fromU64(3);
+    var numerator: ClawDec = ClawDec.fromU64(10);
+    const denom: ClawDec = ClawDec.fromU64(3);
 
-    var roc_str = RocStr.init("3.333333333333333333", 20, test_env.getOps());
+    var roc_str = ClawStr.init("3.333333333333333333", 20, test_env.getOps());
     errdefer roc_str.decref(test_env.getOps());
     defer roc_str.decref(test_env.getOps());
 
-    const res: RocDec = RocDec.fromStr(roc_str).?;
+    const res: ClawDec = ClawDec.fromStr(roc_str).?;
 
     try std.testing.expectEqual(res, numerator.div(denom, test_env.getOps()));
 }
@@ -2176,99 +2176,99 @@ test "div: 341 / 341" {
     var test_env = TestEnv.init(std.testing.allocator);
     defer test_env.deinit();
 
-    var number1: RocDec = RocDec.fromU64(341);
-    const number2: RocDec = RocDec.fromU64(341);
-    try std.testing.expectEqual(RocDec.fromU64(1), number1.div(number2, test_env.getOps()));
+    var number1: ClawDec = ClawDec.fromU64(341);
+    const number2: ClawDec = ClawDec.fromU64(341);
+    try std.testing.expectEqual(ClawDec.fromU64(1), number1.div(number2, test_env.getOps()));
 }
 
 test "div: 342 / 343" {
     var test_env = TestEnv.init(std.testing.allocator);
     defer test_env.deinit();
 
-    var number1: RocDec = RocDec.fromU64(342);
-    const number2: RocDec = RocDec.fromU64(343);
-    const roc_str = RocStr.init("0.997084548104956268", 20, test_env.getOps());
-    try std.testing.expectEqual(RocDec.fromStr(roc_str), number1.div(number2, test_env.getOps()));
+    var number1: ClawDec = ClawDec.fromU64(342);
+    const number2: ClawDec = ClawDec.fromU64(343);
+    const roc_str = ClawStr.init("0.997084548104956268", 20, test_env.getOps());
+    try std.testing.expectEqual(ClawDec.fromStr(roc_str), number1.div(number2, test_env.getOps()));
 }
 
 test "div: 680 / 340" {
     var test_env = TestEnv.init(std.testing.allocator);
     defer test_env.deinit();
 
-    var number1: RocDec = RocDec.fromU64(680);
-    const number2: RocDec = RocDec.fromU64(340);
-    try std.testing.expectEqual(RocDec.fromU64(2), number1.div(number2, test_env.getOps()));
+    var number1: ClawDec = ClawDec.fromU64(680);
+    const number2: ClawDec = ClawDec.fromU64(340);
+    try std.testing.expectEqual(ClawDec.fromU64(2), number1.div(number2, test_env.getOps()));
 }
 
 test "div: 500 / 1000" {
     var test_env = TestEnv.init(std.testing.allocator);
     defer test_env.deinit();
 
-    const number1: RocDec = RocDec.fromU64(500);
-    const number2: RocDec = RocDec.fromU64(1000);
-    const roc_str = RocStr.init("0.5", 3, test_env.getOps());
-    try std.testing.expectEqual(RocDec.fromStr(roc_str), number1.div(number2, test_env.getOps()));
+    const number1: ClawDec = ClawDec.fromU64(500);
+    const number2: ClawDec = ClawDec.fromU64(1000);
+    const roc_str = ClawStr.init("0.5", 3, test_env.getOps());
+    try std.testing.expectEqual(ClawDec.fromStr(roc_str), number1.div(number2, test_env.getOps()));
 }
 
 test "log: 1" {
     var test_env = TestEnv.init(std.testing.allocator);
     defer test_env.deinit();
 
-    try std.testing.expectEqual(RocDec.fromU64(0), RocDec.log(RocDec.fromU64(1), test_env.getOps()));
+    try std.testing.expectEqual(ClawDec.fromU64(0), ClawDec.log(ClawDec.fromU64(1), test_env.getOps()));
 }
 
 test "fract: 0" {
     var test_env = TestEnv.init(std.testing.allocator);
     defer test_env.deinit();
 
-    const roc_str = RocStr.init("0", 1, test_env.getOps());
-    var dec = RocDec.fromStr(roc_str).?;
+    const roc_str = ClawStr.init("0", 1, test_env.getOps());
+    var dec = ClawDec.fromStr(roc_str).?;
 
-    try std.testing.expectEqual(RocDec{ .num = 0 }, dec.fract());
+    try std.testing.expectEqual(ClawDec{ .num = 0 }, dec.fract());
 }
 
 test "fract: 1" {
     var test_env = TestEnv.init(std.testing.allocator);
     defer test_env.deinit();
 
-    const roc_str = RocStr.init("1", 1, test_env.getOps());
-    var dec = RocDec.fromStr(roc_str).?;
+    const roc_str = ClawStr.init("1", 1, test_env.getOps());
+    var dec = ClawDec.fromStr(roc_str).?;
 
-    try std.testing.expectEqual(RocDec{ .num = 0 }, dec.fract());
+    try std.testing.expectEqual(ClawDec{ .num = 0 }, dec.fract());
 }
 
 test "fract: 123.45" {
     var test_env = TestEnv.init(std.testing.allocator);
     defer test_env.deinit();
 
-    const roc_str = RocStr.init("123.45", 6, test_env.getOps());
-    var dec = RocDec.fromStr(roc_str).?;
+    const roc_str = ClawStr.init("123.45", 6, test_env.getOps());
+    var dec = ClawDec.fromStr(roc_str).?;
 
-    try std.testing.expectEqual(RocDec{ .num = 450000000000000000 }, dec.fract());
+    try std.testing.expectEqual(ClawDec{ .num = 450000000000000000 }, dec.fract());
 }
 
 test "fract: -123.45" {
     var test_env = TestEnv.init(std.testing.allocator);
     defer test_env.deinit();
 
-    const roc_str = RocStr.init("-123.45", 7, test_env.getOps());
-    var dec = RocDec.fromStr(roc_str).?;
+    const roc_str = ClawStr.init("-123.45", 7, test_env.getOps());
+    var dec = ClawDec.fromStr(roc_str).?;
 
-    try std.testing.expectEqual(RocDec{ .num = -450000000000000000 }, dec.fract());
+    try std.testing.expectEqual(ClawDec{ .num = -450000000000000000 }, dec.fract());
 }
 
 test "fract: .45" {
     var test_env = TestEnv.init(std.testing.allocator);
     defer test_env.deinit();
 
-    const roc_str = RocStr.init(".45", 3, test_env.getOps());
-    var dec = RocDec.fromStr(roc_str).?;
+    const roc_str = ClawStr.init(".45", 3, test_env.getOps());
+    var dec = ClawDec.fromStr(roc_str).?;
 
-    try std.testing.expectEqual(RocDec{ .num = 450000000000000000 }, dec.fract());
+    try std.testing.expectEqual(ClawDec{ .num = 450000000000000000 }, dec.fract());
 }
 
 test "fract: -0.00045" {
-    const dec: RocDec = .{ .num = -450000000000000 };
+    const dec: ClawDec = .{ .num = -450000000000000 };
     const res = dec.fract();
 
     try std.testing.expectEqual(dec.num, res.num);
@@ -2278,118 +2278,118 @@ test "trunc: 0" {
     var test_env = TestEnv.init(std.testing.allocator);
     defer test_env.deinit();
 
-    const roc_str = RocStr.init("0", 1, test_env.getOps());
-    var dec = RocDec.fromStr(roc_str).?;
+    const roc_str = ClawStr.init("0", 1, test_env.getOps());
+    var dec = ClawDec.fromStr(roc_str).?;
 
-    try std.testing.expectEqual(RocDec{ .num = 0 }, dec.trunc(test_env.getOps()));
+    try std.testing.expectEqual(ClawDec{ .num = 0 }, dec.trunc(test_env.getOps()));
 }
 
 test "trunc: 1" {
     var test_env = TestEnv.init(std.testing.allocator);
     defer test_env.deinit();
 
-    const roc_str = RocStr.init("1", 1, test_env.getOps());
-    var dec = RocDec.fromStr(roc_str).?;
+    const roc_str = ClawStr.init("1", 1, test_env.getOps());
+    var dec = ClawDec.fromStr(roc_str).?;
 
-    try std.testing.expectEqual(RocDec.one_point_zero, dec.trunc(test_env.getOps()));
+    try std.testing.expectEqual(ClawDec.one_point_zero, dec.trunc(test_env.getOps()));
 }
 
 test "trunc: 123.45" {
     var test_env = TestEnv.init(std.testing.allocator);
     defer test_env.deinit();
 
-    const roc_str = RocStr.init("123.45", 6, test_env.getOps());
-    var dec = RocDec.fromStr(roc_str).?;
+    const roc_str = ClawStr.init("123.45", 6, test_env.getOps());
+    var dec = ClawDec.fromStr(roc_str).?;
 
-    try std.testing.expectEqual(RocDec{ .num = 123000000000000000000 }, dec.trunc(test_env.getOps()));
+    try std.testing.expectEqual(ClawDec{ .num = 123000000000000000000 }, dec.trunc(test_env.getOps()));
 }
 
 test "trunc: -123.45" {
     var test_env = TestEnv.init(std.testing.allocator);
     defer test_env.deinit();
 
-    const roc_str = RocStr.init("-123.45", 7, test_env.getOps());
-    var dec = RocDec.fromStr(roc_str).?;
+    const roc_str = ClawStr.init("-123.45", 7, test_env.getOps());
+    var dec = ClawDec.fromStr(roc_str).?;
 
-    try std.testing.expectEqual(RocDec{ .num = -123000000000000000000 }, dec.trunc(test_env.getOps()));
+    try std.testing.expectEqual(ClawDec{ .num = -123000000000000000000 }, dec.trunc(test_env.getOps()));
 }
 
 test "trunc: .45" {
     var test_env = TestEnv.init(std.testing.allocator);
     defer test_env.deinit();
 
-    const roc_str = RocStr.init(".45", 3, test_env.getOps());
-    var dec = RocDec.fromStr(roc_str).?;
+    const roc_str = ClawStr.init(".45", 3, test_env.getOps());
+    var dec = ClawDec.fromStr(roc_str).?;
 
-    try std.testing.expectEqual(RocDec{ .num = 0 }, dec.trunc(test_env.getOps()));
+    try std.testing.expectEqual(ClawDec{ .num = 0 }, dec.trunc(test_env.getOps()));
 }
 
 test "trunc: -0.00045" {
     var test_env = TestEnv.init(std.testing.allocator);
     defer test_env.deinit();
 
-    const dec: RocDec = .{ .num = -450000000000000 };
+    const dec: ClawDec = .{ .num = -450000000000000 };
     const res = dec.trunc(test_env.getOps());
 
-    try std.testing.expectEqual(RocDec{ .num = 0 }, res);
+    try std.testing.expectEqual(ClawDec{ .num = 0 }, res);
 }
 
 test "round: 123.45" {
     var test_env = TestEnv.init(std.testing.allocator);
     defer test_env.deinit();
 
-    const roc_str = RocStr.init("123.45", 6, test_env.getOps());
-    var dec = RocDec.fromStr(roc_str).?;
+    const roc_str = ClawStr.init("123.45", 6, test_env.getOps());
+    var dec = ClawDec.fromStr(roc_str).?;
 
-    try std.testing.expectEqual(RocDec{ .num = 123000000000000000000 }, dec.round(test_env.getOps()));
+    try std.testing.expectEqual(ClawDec{ .num = 123000000000000000000 }, dec.round(test_env.getOps()));
 }
 
 test "round: -123.45" {
     var test_env = TestEnv.init(std.testing.allocator);
     defer test_env.deinit();
 
-    const roc_str = RocStr.init("-123.45", 7, test_env.getOps());
-    var dec = RocDec.fromStr(roc_str).?;
+    const roc_str = ClawStr.init("-123.45", 7, test_env.getOps());
+    var dec = ClawDec.fromStr(roc_str).?;
 
-    try std.testing.expectEqual(RocDec{ .num = -123000000000000000000 }, dec.round(test_env.getOps()));
+    try std.testing.expectEqual(ClawDec{ .num = -123000000000000000000 }, dec.round(test_env.getOps()));
 }
 
 test "round: 0.5" {
     var test_env = TestEnv.init(std.testing.allocator);
     defer test_env.deinit();
 
-    const roc_str = RocStr.init("0.5", 3, test_env.getOps());
-    var dec = RocDec.fromStr(roc_str).?;
+    const roc_str = ClawStr.init("0.5", 3, test_env.getOps());
+    var dec = ClawDec.fromStr(roc_str).?;
 
-    try std.testing.expectEqual(RocDec.one_point_zero, dec.round(test_env.getOps()));
+    try std.testing.expectEqual(ClawDec.one_point_zero, dec.round(test_env.getOps()));
 }
 
 test "round: -0.5" {
     var test_env = TestEnv.init(std.testing.allocator);
     defer test_env.deinit();
 
-    const roc_str = RocStr.init("-0.5", 4, test_env.getOps());
-    var dec = RocDec.fromStr(roc_str).?;
+    const roc_str = ClawStr.init("-0.5", 4, test_env.getOps());
+    var dec = ClawDec.fromStr(roc_str).?;
 
-    try std.testing.expectEqual(RocDec{ .num = -1000000000000000000 }, dec.round(test_env.getOps()));
+    try std.testing.expectEqual(ClawDec{ .num = -1000000000000000000 }, dec.round(test_env.getOps()));
 }
 
 test "powInt: 3.1 ^ 0" {
     var test_env = TestEnv.init(std.testing.allocator);
     defer test_env.deinit();
 
-    const roc_str = RocStr.init("3.1", 3, test_env.getOps());
-    var dec = RocDec.fromStr(roc_str).?;
+    const roc_str = ClawStr.init("3.1", 3, test_env.getOps());
+    var dec = ClawDec.fromStr(roc_str).?;
 
-    try std.testing.expectEqual(RocDec.one_point_zero, dec.powInt(0, test_env.getOps()));
+    try std.testing.expectEqual(ClawDec.one_point_zero, dec.powInt(0, test_env.getOps()));
 }
 
 test "powInt: 3.1 ^ 1" {
     var test_env = TestEnv.init(std.testing.allocator);
     defer test_env.deinit();
 
-    const roc_str = RocStr.init("3.1", 3, test_env.getOps());
-    var dec = RocDec.fromStr(roc_str).?;
+    const roc_str = ClawStr.init("3.1", 3, test_env.getOps());
+    var dec = ClawDec.fromStr(roc_str).?;
 
     try std.testing.expectEqual(dec, dec.powInt(1, test_env.getOps()));
 }
@@ -2398,48 +2398,48 @@ test "powInt: 2 ^ 2" {
     var test_env = TestEnv.init(std.testing.allocator);
     defer test_env.deinit();
 
-    const roc_str = RocStr.init("4", 1, test_env.getOps());
-    const dec = RocDec.fromStr(roc_str).?;
+    const roc_str = ClawStr.init("4", 1, test_env.getOps());
+    const dec = ClawDec.fromStr(roc_str).?;
 
-    try std.testing.expectEqual(dec, RocDec.two_point_zero.powInt(2, test_env.getOps()));
+    try std.testing.expectEqual(dec, ClawDec.two_point_zero.powInt(2, test_env.getOps()));
 }
 
 test "powInt: 0.5 ^ 2" {
     var test_env = TestEnv.init(std.testing.allocator);
     defer test_env.deinit();
 
-    const roc_str = RocStr.init("0.25", 4, test_env.getOps());
-    const dec = RocDec.fromStr(roc_str).?;
+    const roc_str = ClawStr.init("0.25", 4, test_env.getOps());
+    const dec = ClawDec.fromStr(roc_str).?;
 
-    try std.testing.expectEqual(dec, RocDec.zero_point_five.powInt(2, test_env.getOps()));
+    try std.testing.expectEqual(dec, ClawDec.zero_point_five.powInt(2, test_env.getOps()));
 }
 
 test "pow: 0.5 ^ 2.0" {
     var test_env = TestEnv.init(std.testing.allocator);
     defer test_env.deinit();
 
-    const roc_str = RocStr.init("0.25", 4, test_env.getOps());
-    const dec = RocDec.fromStr(roc_str).?;
+    const roc_str = ClawStr.init("0.25", 4, test_env.getOps());
+    const dec = ClawDec.fromStr(roc_str).?;
 
-    try std.testing.expectEqual(dec, RocDec.zero_point_five.pow(RocDec.two_point_zero, test_env.getOps()));
+    try std.testing.expectEqual(dec, ClawDec.zero_point_five.pow(ClawDec.two_point_zero, test_env.getOps()));
 }
 
 test "sqrt: 1.0" {
     var test_env = TestEnv.init(std.testing.allocator);
     defer test_env.deinit();
 
-    const roc_str = RocStr.init("1.0", 3, test_env.getOps());
-    const dec = RocDec.fromStr(roc_str).?;
+    const roc_str = ClawStr.init("1.0", 3, test_env.getOps());
+    const dec = ClawDec.fromStr(roc_str).?;
 
-    try std.testing.expectEqual(dec, RocDec.sqrt(RocDec.one_point_zero, test_env.getOps()));
+    try std.testing.expectEqual(dec, ClawDec.sqrt(ClawDec.one_point_zero, test_env.getOps()));
 }
 
 test "sqrt: 0.0" {
     var test_env = TestEnv.init(std.testing.allocator);
     defer test_env.deinit();
 
-    const roc_str = RocStr.init("0.0", 3, test_env.getOps());
-    const dec = RocDec.fromStr(roc_str).?;
+    const roc_str = ClawStr.init("0.0", 3, test_env.getOps());
+    const dec = ClawDec.fromStr(roc_str).?;
 
     try std.testing.expectEqual(dec, dec.sqrt(test_env.getOps()));
 }
@@ -2448,11 +2448,11 @@ test "sqrt: 9.0" {
     var test_env = TestEnv.init(std.testing.allocator);
     defer test_env.deinit();
 
-    const roc_str = RocStr.init("9.0", 3, test_env.getOps());
-    const dec = RocDec.fromStr(roc_str).?;
+    const roc_str = ClawStr.init("9.0", 3, test_env.getOps());
+    const dec = ClawDec.fromStr(roc_str).?;
 
-    const roc_str_expected = RocStr.init("3.0", 3, test_env.getOps());
-    const expected = RocDec.fromStr(roc_str_expected).?;
+    const roc_str_expected = ClawStr.init("3.0", 3, test_env.getOps());
+    const expected = ClawDec.fromStr(roc_str_expected).?;
 
     try std.testing.expectEqual(expected, dec.sqrt(test_env.getOps()));
 }
@@ -2461,32 +2461,32 @@ test "sqrt: 1.44" {
     var test_env = TestEnv.init(std.testing.allocator);
     defer test_env.deinit();
 
-    const roc_str = RocStr.init("1.44", 4, test_env.getOps());
-    const dec = RocDec.fromStr(roc_str).?;
+    const roc_str = ClawStr.init("1.44", 4, test_env.getOps());
+    const dec = ClawDec.fromStr(roc_str).?;
 
-    const roc_str_expected = RocStr.init("1.2", 3, test_env.getOps());
-    const expected = RocDec.fromStr(roc_str_expected).?;
+    const roc_str_expected = ClawStr.init("1.2", 3, test_env.getOps());
+    const expected = ClawDec.fromStr(roc_str_expected).?;
 
     try std.testing.expectEqual(expected, dec.sqrt(test_env.getOps()));
 }
 
-fn expectApproxDec(expected: RocDec, actual: RocDec, tolerance: u128) error{TestUnexpectedResult}!void {
+fn expectApproxDec(expected: ClawDec, actual: ClawDec, tolerance: u128) error{TestUnexpectedResult}!void {
     const diff: u128 = @abs(expected.num - actual.num);
     try std.testing.expect(diff <= tolerance);
 }
 
-fn decFromText(text: []const u8) error{InvalidExpectedDecimal}!RocDec {
-    return RocDec.fromNonemptySlice(text) orelse error.InvalidExpectedDecimal;
+fn decFromText(text: []const u8) error{InvalidExpectedDecimal}!ClawDec {
+    return ClawDec.fromNonemptySlice(text) orelse error.InvalidExpectedDecimal;
 }
 
-fn comptimeDecFromText(comptime text: []const u8) RocDec {
+fn comptimeDecFromText(comptime text: []const u8) ClawDec {
     @setEvalBranchQuota(100_000);
-    return RocDec.fromNonemptySlice(text) orelse @compileError("invalid Dec fixture: " ++ text);
+    return ClawDec.fromNonemptySlice(text) orelse @compileError("invalid Dec fixture: " ++ text);
 }
 
 const DecExactUnaryCase = struct {
-    input: RocDec,
-    expected: RocDec,
+    input: ClawDec,
+    expected: ClawDec,
 };
 
 const DecOracleUnaryOp = enum {
@@ -2500,8 +2500,8 @@ const DecOracleUnaryOp = enum {
 };
 
 const DecOracleUnaryCase = struct {
-    input: RocDec,
-    expected: RocDec,
+    input: ClawDec,
+    expected: ClawDec,
     max_error_raw: u128,
 };
 
@@ -2510,32 +2510,32 @@ const DecOracleBinaryOp = enum {
 };
 
 const DecOracleBinaryCase = struct {
-    lhs: RocDec,
-    rhs: RocDec,
-    expected: RocDec,
+    lhs: ClawDec,
+    rhs: ClawDec,
+    expected: ClawDec,
     max_error_raw: u128,
 };
 
-fn comptimeDecToF128(comptime dec: RocDec) f128 {
-    return @as(f128, @floatFromInt(dec.num)) / @as(f128, @floatFromInt(RocDec.one_point_zero_i128));
+fn comptimeDecToF128(comptime dec: ClawDec) f128 {
+    return @as(f128, @floatFromInt(dec.num)) / @as(f128, @floatFromInt(ClawDec.one_point_zero_i128));
 }
 
-fn comptimeDecFromF128Trunc(comptime value: f128) RocDec {
-    const scaled = value * @as(f128, @floatFromInt(RocDec.one_point_zero_i128));
+fn comptimeDecFromF128Trunc(comptime value: f128) ClawDec {
+    const scaled = value * @as(f128, @floatFromInt(ClawDec.one_point_zero_i128));
     if (scaled > @as(f128, @floatFromInt(math.maxInt(i128)))) {
         @compileError("Dec oracle fixture overflowed above max Dec");
     }
     if (scaled < @as(f128, @floatFromInt(math.minInt(i128)))) {
         @compileError("Dec oracle fixture overflowed below min Dec");
     }
-    return RocDec{ .num = @intFromFloat(scaled) };
+    return ClawDec{ .num = @intFromFloat(scaled) };
 }
 
-fn comptimeSqrtExpected(comptime input: RocDec) RocDec {
+fn comptimeSqrtExpected(comptime input: ClawDec) ClawDec {
     @setEvalBranchQuota(20_000);
     if (input.num < 0) @compileError("sqrt fixture input must be non-negative");
 
-    const scaled = mul_u128(@as(u128, @intCast(input.num)), @as(u128, @intCast(RocDec.one_point_zero_i128)));
+    const scaled = mul_u128(@as(u128, @intCast(input.num)), @as(u128, @intCast(ClawDec.one_point_zero_i128)));
     var low: u128 = 0;
     var high: u128 = @intCast(math.maxInt(i128));
     var answer: u128 = 0;
@@ -2553,7 +2553,7 @@ fn comptimeSqrtExpected(comptime input: RocDec) RocDec {
         }
     }
 
-    return RocDec{ .num = @intCast(answer) };
+    return ClawDec{ .num = @intCast(answer) };
 }
 
 fn buildSqrtSpecCases(comptime input_texts: []const []const u8) [input_texts.len]DecExactUnaryCase {
@@ -2568,7 +2568,7 @@ fn buildSqrtSpecCases(comptime input_texts: []const []const u8) [input_texts.len
     return cases;
 }
 
-fn decUnaryOracle(comptime op: DecOracleUnaryOp, comptime input: RocDec) RocDec {
+fn decUnaryOracle(comptime op: DecOracleUnaryOp, comptime input: ClawDec) ClawDec {
     const x = comptimeDecToF128(input);
     const expected = switch (op) {
         .sin => @sin(x),
@@ -2599,7 +2599,7 @@ fn buildUnaryOracleCases(
     return cases;
 }
 
-fn decBinaryOracle(comptime op: DecOracleBinaryOp, comptime lhs: RocDec, comptime rhs: RocDec) RocDec {
+fn decBinaryOracle(comptime op: DecOracleBinaryOp, comptime lhs: ClawDec, comptime rhs: ClawDec) ClawDec {
     const x = comptimeDecToF128(lhs);
     const y = comptimeDecToF128(rhs);
     const expected = switch (op) {
@@ -2627,7 +2627,7 @@ fn buildBinaryOracleCases(
     return cases;
 }
 
-fn expectDecWithin(expected: RocDec, actual: RocDec, max_error_raw: u128) error{TestUnexpectedResult}!void {
+fn expectDecWithin(expected: ClawDec, actual: ClawDec, max_error_raw: u128) error{TestUnexpectedResult}!void {
     const diff: u128 = @abs(expected.num - actual.num);
     if (diff > max_error_raw) {
         std.debug.print(
@@ -2743,8 +2743,8 @@ test "sqrt: 2.0 truncates to fixed-point precision" {
     var test_env = TestEnv.init(std.testing.allocator);
     defer test_env.deinit();
 
-    const two = RocDec.two_point_zero;
-    const expected = RocDec{ .num = 1414213562373095048 };
+    const two = ClawDec.two_point_zero;
+    const expected = ClawDec{ .num = 1414213562373095048 };
 
     try std.testing.expectEqual(expected, two.sqrt(test_env.getOps()));
 }
@@ -2770,16 +2770,16 @@ test "known-nonzero Dec remainder matches checked remainder" {
     var test_env = TestEnv.init(std.testing.allocator);
     defer test_env.deinit();
 
-    inline for ([_]RocDec{
-        RocDec{ .num = -RocDec.tau.num * 2 - 1 },
-        RocDec{ .num = -RocDec.pi.num },
-        RocDec{ .num = 0 },
-        RocDec.pi,
-        RocDec{ .num = RocDec.tau.num * 2 + 1 },
+    inline for ([_]ClawDec{
+        ClawDec{ .num = -ClawDec.tau.num * 2 - 1 },
+        ClawDec{ .num = -ClawDec.pi.num },
+        ClawDec{ .num = 0 },
+        ClawDec.pi,
+        ClawDec{ .num = ClawDec.tau.num * 2 + 1 },
     }) |input| {
         try std.testing.expectEqual(
-            RocDec.rem(input, RocDec.tau, test_env.getOps()),
-            decRemKnownNonZero(input, RocDec.tau),
+            ClawDec.rem(input, ClawDec.tau, test_env.getOps()),
+            decRemKnownNonZero(input, ClawDec.tau),
         );
     }
 }
@@ -2829,26 +2829,26 @@ test "Dec log and fractional pow match f128 oracle envelope" {
 test "cordic trig identities" {
     const tolerance: u128 = 10_000;
 
-    try expectApproxDec(RocDec{ .num = 0 }, (RocDec{ .num = 0 }).sin(), tolerance);
-    try expectApproxDec(RocDec.one_point_zero, (RocDec{ .num = 0 }).cos(), tolerance);
-    try expectApproxDec(RocDec.one_point_zero, RocDec.half_pi.sin(), tolerance);
-    try expectApproxDec(RocDec{ .num = 0 }, RocDec.half_pi.cos(), tolerance);
+    try expectApproxDec(ClawDec{ .num = 0 }, (ClawDec{ .num = 0 }).sin(), tolerance);
+    try expectApproxDec(ClawDec.one_point_zero, (ClawDec{ .num = 0 }).cos(), tolerance);
+    try expectApproxDec(ClawDec.one_point_zero, ClawDec.half_pi.sin(), tolerance);
+    try expectApproxDec(ClawDec{ .num = 0 }, ClawDec.half_pi.cos(), tolerance);
 }
 
 test "cordic trig range reduction and quadrant signs" {
     var test_env = TestEnv.init(std.testing.allocator);
     defer test_env.deinit();
     const tolerance: u128 = 20_000;
-    const quarter_pi = RocDec{ .num = @divTrunc(RocDec.pi.num, 4) };
-    const neg_half_pi = RocDec{ .num = -RocDec.half_pi.num };
+    const quarter_pi = ClawDec{ .num = @divTrunc(ClawDec.pi.num, 4) };
+    const neg_half_pi = ClawDec{ .num = -ClawDec.half_pi.num };
 
-    try expectApproxDec(RocDec{ .num = 0 }, RocDec.pi.sin(), tolerance);
-    try expectApproxDec(RocDec.neg_one_point_zero, RocDec.pi.cos(), tolerance);
-    try expectApproxDec(RocDec{ .num = 0 }, RocDec.tau.sin(), tolerance);
-    try expectApproxDec(RocDec.one_point_zero, RocDec.tau.cos(), tolerance);
-    try expectApproxDec(RocDec.neg_one_point_zero, neg_half_pi.sin(), tolerance);
-    try expectApproxDec(RocDec{ .num = 0 }, neg_half_pi.cos(), tolerance);
-    try expectApproxDec(RocDec.one_point_zero, quarter_pi.tan(test_env.getOps()), tolerance);
+    try expectApproxDec(ClawDec{ .num = 0 }, ClawDec.pi.sin(), tolerance);
+    try expectApproxDec(ClawDec.neg_one_point_zero, ClawDec.pi.cos(), tolerance);
+    try expectApproxDec(ClawDec{ .num = 0 }, ClawDec.tau.sin(), tolerance);
+    try expectApproxDec(ClawDec.one_point_zero, ClawDec.tau.cos(), tolerance);
+    try expectApproxDec(ClawDec.neg_one_point_zero, neg_half_pi.sin(), tolerance);
+    try expectApproxDec(ClawDec{ .num = 0 }, neg_half_pi.cos(), tolerance);
+    try expectApproxDec(ClawDec.one_point_zero, quarter_pi.tan(test_env.getOps()), tolerance);
 }
 
 test "cordic atan and inverse trig identities" {
@@ -2856,57 +2856,57 @@ test "cordic atan and inverse trig identities" {
     defer test_env.deinit();
     const tolerance: u128 = 10_000;
 
-    try expectApproxDec(RocDec{ .num = 785398163397448309 }, RocDec.one_point_zero.atan(test_env.getOps()), tolerance);
-    try expectApproxDec(RocDec.half_pi, RocDec.one_point_zero.asin(test_env.getOps()), tolerance);
-    try expectApproxDec(RocDec{ .num = 0 }, RocDec.one_point_zero.acos(test_env.getOps()), tolerance);
+    try expectApproxDec(ClawDec{ .num = 785398163397448309 }, ClawDec.one_point_zero.atan(test_env.getOps()), tolerance);
+    try expectApproxDec(ClawDec.half_pi, ClawDec.one_point_zero.asin(test_env.getOps()), tolerance);
+    try expectApproxDec(ClawDec{ .num = 0 }, ClawDec.one_point_zero.acos(test_env.getOps()), tolerance);
 }
 
 test "cordic atan handles negative values and reciprocal reduction" {
     var test_env = TestEnv.init(std.testing.allocator);
     defer test_env.deinit();
     const tolerance: u128 = 20_000;
-    const ten = RocDec.fromU64(10);
-    const tenth = RocDec.div(RocDec.one_point_zero, ten, test_env.getOps());
+    const ten = ClawDec.fromU64(10);
+    const tenth = ClawDec.div(ClawDec.one_point_zero, ten, test_env.getOps());
     const atan_ten = ten.atan(test_env.getOps());
     const atan_tenth = tenth.atan(test_env.getOps());
 
-    try expectApproxDec(RocDec{ .num = -785398163397448309 }, RocDec.neg_one_point_zero.atan(test_env.getOps()), tolerance);
-    try expectApproxDec(RocDec.half_pi, RocDec.add(atan_ten, atan_tenth, test_env.getOps()), tolerance);
+    try expectApproxDec(ClawDec{ .num = -785398163397448309 }, ClawDec.neg_one_point_zero.atan(test_env.getOps()), tolerance);
+    try expectApproxDec(ClawDec.half_pi, ClawDec.add(atan_ten, atan_tenth, test_env.getOps()), tolerance);
 }
 
 test "inverse trig maps back through trig functions" {
     var test_env = TestEnv.init(std.testing.allocator);
     defer test_env.deinit();
     const tolerance: u128 = 50_000;
-    const half = RocDec.zero_point_five;
+    const half = ClawDec.zero_point_five;
 
     try expectApproxDec(half, half.asin(test_env.getOps()).sin(), tolerance);
     try expectApproxDec(half, half.acos(test_env.getOps()).cos(), tolerance);
-    try expectApproxDec(RocDec{ .num = -RocDec.half_pi.num }, RocDec.neg_one_point_zero.asin(test_env.getOps()), tolerance);
-    try expectApproxDec(RocDec.pi, RocDec.neg_one_point_zero.acos(test_env.getOps()), tolerance);
+    try expectApproxDec(ClawDec{ .num = -ClawDec.half_pi.num }, ClawDec.neg_one_point_zero.asin(test_env.getOps()), tolerance);
+    try expectApproxDec(ClawDec.pi, ClawDec.neg_one_point_zero.acos(test_env.getOps()), tolerance);
 }
 
 test "fractional pow uses deterministic fixed-point exp ln path" {
     var test_env = TestEnv.init(std.testing.allocator);
     defer test_env.deinit();
 
-    const four = RocDec.fromU64(4);
-    const half = RocDec.zero_point_five;
+    const four = ClawDec.fromU64(4);
+    const half = ClawDec.zero_point_five;
 
-    try expectApproxDec(RocDec.two_point_zero, four.pow(half, test_env.getOps()), 10_000);
+    try expectApproxDec(ClawDec.two_point_zero, four.pow(half, test_env.getOps()), 10_000);
 }
 
 test "pow covers integer negative and fractional exponents" {
     var test_env = TestEnv.init(std.testing.allocator);
     defer test_env.deinit();
 
-    const three = RocDec.fromU64(3);
-    const nine = RocDec.fromU64(9);
+    const three = ClawDec.fromU64(3);
+    const nine = ClawDec.fromU64(9);
     const quarter = try decFromText("0.25");
     const neg_three = try decFromText("-3.0");
 
-    try expectRocDecConstant(RocDec.two_point_zero.pow(try decFromText("10.0"), test_env.getOps()), "1024.0");
-    try expectRocDecConstant(RocDec.two_point_zero.pow(neg_three, test_env.getOps()), "0.125");
-    try expectApproxDec(three, nine.pow(RocDec.zero_point_five, test_env.getOps()), 10_000);
-    try expectApproxDec(RocDec.zero_point_five, quarter.pow(RocDec.zero_point_five, test_env.getOps()), 10_000);
+    try expectRocDecConstant(ClawDec.two_point_zero.pow(try decFromText("10.0"), test_env.getOps()), "1024.0");
+    try expectRocDecConstant(ClawDec.two_point_zero.pow(neg_three, test_env.getOps()), "0.125");
+    try expectApproxDec(three, nine.pow(ClawDec.zero_point_five, test_env.getOps()), 10_000);
+    try expectApproxDec(ClawDec.zero_point_five, quarter.pow(ClawDec.zero_point_five, test_env.getOps()), 10_000);
 }

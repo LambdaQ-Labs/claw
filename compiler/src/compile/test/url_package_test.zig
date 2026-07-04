@@ -43,7 +43,7 @@ test "URL dependency resolves from a warm cache with no network, and its modules
     const cwd = try tmp_dir.dir.realPathFileAlloc(io, ".", gpa);
     defer gpa.free(cwd);
 
-    var build_env = try BuildEnv.init(gpa, .single_threaded, 1, roc_target.RocTarget.detectNative(), cwd, io);
+    var build_env = try BuildEnv.init(gpa, .single_threaded, 1, roc_target.ClawTarget.detectNative(), cwd, io);
     defer build_env.deinit();
     build_env.package_cache_dir = try gpa.dupe(u8, cache_dir);
 

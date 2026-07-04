@@ -701,7 +701,7 @@ fn printHelp() void {
         \\Roc Runtime Host-Effects Test Runner
         \\
         \\Runs eval tests across the interpreter and dev backend and compares the
-        \\exact host callback traffic emitted through RocOps:
+        \\exact host callback traffic emitted through ClawOps:
         \\  - dbg
         \\  - expect_failed
         \\  - crashed

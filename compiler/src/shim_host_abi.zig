@@ -1,16 +1,16 @@
 //! Shared symbol-ABI bridge used by shim archives.
 //!
 //! The generated platform shim defines the hosted dispatch table. Each concrete
-//! shim root exports `roc_shim_get_ops` and delegates here to build the RocOps
+//! shim root exports `roc_shim_get_ops` and delegates here to build the ClawOps
 //! value over host-provided runtime symbols.
 
 const std = @import("std");
 const builtins = @import("builtins");
 
 const Allocator = std.mem.Allocator;
-const RocOps = builtins.host_abi.RocOps;
-const RocList = builtins.list.RocList;
-const RocStr = builtins.str.RocStr;
+const ClawOps = builtins.host_abi.ClawOps;
+const ClawList = builtins.list.ClawList;
+const ClawStr = builtins.str.ClawStr;
 
 const extern_host = struct {
     extern fn roc_alloc(length: usize, alignment: usize) ?*anyopaque;
@@ -26,35 +26,35 @@ const extern_host = struct {
 extern const roc_shim_hosted_fns: [*]const builtins.host_abi.HostedFn;
 extern const roc_shim_hosted_count: usize;
 
-fn shimAlloc(_: *RocOps, length: usize, alignment: usize) callconv(.c) ?*anyopaque {
+fn shimAlloc(_: *ClawOps, length: usize, alignment: usize) callconv(.c) ?*anyopaque {
     return extern_host.roc_alloc(length, alignment);
 }
 
-fn shimDealloc(_: *RocOps, ptr: *anyopaque, alignment: usize) callconv(.c) void {
+fn shimDealloc(_: *ClawOps, ptr: *anyopaque, alignment: usize) callconv(.c) void {
     extern_host.roc_dealloc(ptr, alignment);
 }
 
-fn shimRealloc(_: *RocOps, ptr: *anyopaque, new_length: usize, alignment: usize) callconv(.c) ?*anyopaque {
+fn shimRealloc(_: *ClawOps, ptr: *anyopaque, new_length: usize, alignment: usize) callconv(.c) ?*anyopaque {
     return extern_host.roc_realloc(ptr, new_length, alignment);
 }
 
-fn shimDbg(_: *RocOps, bytes: [*]const u8, len: usize) callconv(.c) void {
+fn shimDbg(_: *ClawOps, bytes: [*]const u8, len: usize) callconv(.c) void {
     extern_host.roc_dbg(bytes, len);
 }
 
-fn shimExpectFailed(_: *RocOps, bytes: [*]const u8, len: usize) callconv(.c) void {
+fn shimExpectFailed(_: *ClawOps, bytes: [*]const u8, len: usize) callconv(.c) void {
     extern_host.roc_expect_failed(bytes, len);
 }
 
-fn shimCrashed(_: *RocOps, bytes: [*]const u8, len: usize) callconv(.c) void {
+fn shimCrashed(_: *ClawOps, bytes: [*]const u8, len: usize) callconv(.c) void {
     extern_host.roc_crashed(bytes, len);
 }
 
-var shim_ops: RocOps = undefined;
+var shim_ops: ClawOps = undefined;
 var shim_ops_initialized = false;
 
-/// Return the process-global RocOps value backed by host runtime symbols.
-pub fn getOps() *RocOps {
+/// Return the process-global ClawOps value backed by host runtime symbols.
+pub fn getOps() *ClawOps {
     if (!shim_ops_initialized) {
         shim_ops = .{
             .env = @ptrCast(&shim_ops),
@@ -74,27 +74,27 @@ pub fn getOps() *RocOps {
     return &shim_ops;
 }
 
-/// Return the RocOps value as an opaque pointer for the C ABI export.
+/// Return the ClawOps value as an opaque pointer for the C ABI export.
 pub fn getOpsOpaque() *anyopaque {
     return @ptrCast(getOps());
 }
 
 /// Build the default platform's `List(Str)` CLI argument value.
-pub fn buildDefaultRunCliArgs(app_args: []const [*:0]const u8, gpa: Allocator) Allocator.Error!RocList {
-    if (app_args.len == 0) return RocList.empty();
+pub fn buildDefaultRunCliArgs(app_args: []const [*:0]const u8, gpa: Allocator) Allocator.Error!ClawList {
+    if (app_args.len == 0) return ClawList.empty();
 
     const ops = getOps();
-    const roc_strs = try gpa.alloc(RocStr, app_args.len);
+    const roc_strs = try gpa.alloc(ClawStr, app_args.len);
     defer gpa.free(roc_strs);
 
     for (app_args, 0..) |arg_z, index| {
         const arg = std.mem.span(arg_z);
         const sanitized = try sanitizeUtf8(arg, gpa);
         defer if (sanitized.ptr != arg.ptr) gpa.free(sanitized);
-        roc_strs[index] = RocStr.fromSlice(sanitized, ops);
+        roc_strs[index] = ClawStr.fromSlice(sanitized, ops);
     }
 
-    return RocList.fromSlice(RocStr, roc_strs, true, ops);
+    return ClawList.fromSlice(ClawStr, roc_strs, true, ops);
 }
 
 fn sanitizeUtf8(input: []const u8, gpa: Allocator) Allocator.Error![]const u8 {

@@ -87,7 +87,7 @@ pub fn classifyWindows(store: *const Store, idx: Idx) Class {
                     .dec => return .win_i128,
                 },
                 .int, .opaque_ptr => {},
-                // RocStr is a 24-byte aggregate -> by reference.
+                // ClawStr is a 24-byte aggregate -> by reference.
                 .str => return .memory,
             }
         },
@@ -128,7 +128,7 @@ pub fn classifySystemV(store: *const Store, idx: Idx, ctx: Context) [8]Class {
                     .f64 => return Class.f64,
                     .dec => return Class.two_integers, // i128-backed
                 },
-                // RocStr: three integer eightbytes -> exceeds 16 bytes -> memory.
+                // ClawStr: three integer eightbytes -> exceeds 16 bytes -> memory.
                 .str => return integerAggregateSysV(size),
             }
         },
@@ -328,7 +328,7 @@ test "x86_64 SysV: large aggregates go to memory" {
     var store = try Store.init(testing.allocator, .u64);
     defer store.deinit();
 
-    // RocStr / RocList are 24 bytes -> memory.
+    // ClawStr / ClawList are 24 bytes -> memory.
     try testing.expectEqual(Class.stack, classifySystemV(&store, .str, .arg));
     const list_idx = try store.insertLayout(Layout.list(.u8));
     try testing.expectEqual(Class.stack, classifySystemV(&store, list_idx, .arg));
@@ -366,6 +366,6 @@ test "x86_64 Win64: size-based classification" {
     const two_words = try testStruct(&store, &.{ .i64, .i64 });
     try testing.expectEqual(Class.memory, classifyWindows(&store, two_words));
 
-    // RocStr/RocList -> memory.
+    // ClawStr/ClawList -> memory.
     try testing.expectEqual(Class.memory, classifyWindows(&store, .str));
 }

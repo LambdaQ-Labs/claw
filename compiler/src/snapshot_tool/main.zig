@@ -2986,7 +2986,7 @@ fn generateMonoSection(output: *DualOutput, can_ir: *ModuleEnv, _: ?CIR.Expr.Idx
     defer mono_buffer.deinit(output.gpa);
 
     // Emit all top-level definitions (no module header - type modules are headerless)
-    var emitter = can.RocEmitter.init(output.gpa, can_ir);
+    var emitter = can.ClawEmitter.init(output.gpa, can_ir);
     defer emitter.deinit();
 
     const defs = can_ir.store.sliceDefs(can_ir.all_defs);
@@ -3457,7 +3457,7 @@ fn processDocsSnapshot(
 
     // 3. Build with BuildEnv
     const BuildEnv = compile.BuildEnv;
-    const native_target = roc_target.RocTarget.detectNative();
+    const native_target = roc_target.ClawTarget.detectNative();
 
     var build_env = BuildEnv.init(allocator, .single_threaded, 1, native_target, config.cwd, app_io) catch |err| {
         std.log.err("Failed to init BuildEnv: {}", .{err});
@@ -3901,7 +3901,7 @@ fn processDevObjectSnapshot(
     defer allocator.free(app_path);
 
     const BuildEnv = compile.BuildEnv;
-    const native_target = roc_target.RocTarget.detectNative();
+    const native_target = roc_target.ClawTarget.detectNative();
 
     var build_env = BuildEnv.init(allocator, .single_threaded, 1, native_target, config.cwd, app_io) catch |err| {
         std.log.err("Failed to init BuildEnv: {}", .{err});
@@ -3938,15 +3938,15 @@ fn processDevObjectSnapshot(
         return false;
     }
 
-    const RocTarget = roc_target.RocTarget;
+    const ClawTarget = roc_target.ClawTarget;
     const Blake3 = std.crypto.hash.Blake3;
-    const roc_target_fields = @typeInfo(RocTarget).@"enum".fields;
+    const roc_target_fields = @typeInfo(ClawTarget).@"enum".fields;
 
     var hash_results: [roc_target_fields.len]TargetHashResult = undefined;
     var object_compiler = backend.ObjectFileCompiler.init(allocator);
 
     inline for (roc_target_fields, 0..) |field, i| {
-        const target: RocTarget = @enumFromInt(field.value);
+        const target: ClawTarget = @enumFromInt(field.value);
         hash_results[i].target_name = field.name;
 
         target_snapshot: {
@@ -4047,7 +4047,7 @@ fn processDevObjectSnapshot(
         const mod_env = mod.semantic.env;
         const mod_name = base.module_path.getModuleName(mod_env.module_name);
 
-        var emitter = can.RocEmitter.init(allocator, mod_env);
+        var emitter = can.ClawEmitter.init(allocator, mod_env);
         defer emitter.deinit();
 
         const defs = mod_env.store.sliceDefs(mod_env.all_defs);

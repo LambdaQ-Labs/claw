@@ -5,7 +5,7 @@ const builtin = @import("builtin");
 
 const target_mod = @import("target.zig");
 
-pub const RocTarget = target_mod.RocTarget;
+pub const ClawTarget = target_mod.ClawTarget;
 pub const TargetsConfig = target_mod.TargetsConfig;
 pub const TargetLinkSpec = target_mod.TargetLinkSpec;
 pub const OutputKind = target_mod.OutputKind;
@@ -18,7 +18,7 @@ pub const SelectionSource = enum {
 
 /// Platform target and link spec chosen for a CLI command.
 pub const SelectedTarget = struct {
-    target: RocTarget,
+    target: ClawTarget,
     output: OutputKind,
     link_spec: TargetLinkSpec,
     source: SelectionSource,
@@ -28,16 +28,16 @@ pub const SelectedTarget = struct {
 pub const SelectionResult = union(enum) {
     selected: SelectedTarget,
     invalid_target: []const u8,
-    unsupported_target: RocTarget,
+    unsupported_target: ClawTarget,
     no_default,
-    not_runnable_on_host: RocTarget,
+    not_runnable_on_host: ClawTarget,
 };
 
-fn isBuildDefaultTarget(target: RocTarget) bool {
+fn isBuildDefaultTarget(target: ClawTarget) bool {
     return target == .wasm32 or target.matchesHostOsAndArch();
 }
 
-fn selectExplicitBuildTarget(config: TargetsConfig, target: RocTarget) SelectionResult {
+fn selectExplicitBuildTarget(config: TargetsConfig, target: ClawTarget) SelectionResult {
     if (config.getLinkSpec(target)) |link_spec| {
         return .{ .selected = .{
             .target = target,
@@ -68,7 +68,7 @@ fn selectDefaultBuildTarget(config: TargetsConfig) SelectionResult {
 /// Select a platform target for `roc build` without considering backend opt level.
 pub fn selectBuildTarget(config: TargetsConfig, target_arg: ?[]const u8) SelectionResult {
     if (target_arg) |target_str| {
-        const target = RocTarget.fromString(target_str) orelse {
+        const target = ClawTarget.fromString(target_str) orelse {
             return .{ .invalid_target = target_str };
         };
         return selectExplicitBuildTarget(config, target);
@@ -77,7 +77,7 @@ pub fn selectBuildTarget(config: TargetsConfig, target_arg: ?[]const u8) Selecti
     return selectDefaultBuildTarget(config);
 }
 
-fn selectRunTargetForParsed(config: TargetsConfig, target: RocTarget, source: SelectionSource) SelectionResult {
+fn selectRunTargetForParsed(config: TargetsConfig, target: ClawTarget, source: SelectionSource) SelectionResult {
     const link_spec = config.getLinkSpec(target) orelse {
         return .{ .unsupported_target = target };
     };
@@ -101,7 +101,7 @@ fn selectRunTargetForParsed(config: TargetsConfig, target: RocTarget, source: Se
 /// Select a host-runnable `output: Exe` target for the default `roc` command.
 pub fn selectRunTarget(config: TargetsConfig, target_arg: ?[]const u8) SelectionResult {
     if (target_arg) |target_str| {
-        const target = RocTarget.fromString(target_str) orelse {
+        const target = ClawTarget.fromString(target_str) orelse {
             return .{ .invalid_target = target_str };
         };
         return selectRunTargetForParsed(config, target, .explicit);
@@ -122,7 +122,7 @@ pub fn selectRunTarget(config: TargetsConfig, target_arg: ?[]const u8) Selection
 }
 
 /// Default file extension for the selected output kind and target.
-pub fn defaultBuildOutputExtension(output: OutputKind, target: RocTarget) []const u8 {
+pub fn defaultBuildOutputExtension(output: OutputKind, target: ClawTarget) []const u8 {
     return switch (output) {
         .exe => switch (target.toOsTag()) {
             .windows => ".exe",
@@ -158,7 +158,7 @@ test "explicit build target uses the target's declared output kind" {
     };
 
     const selected = try expectSelected(selectBuildTarget(config, "wasm32"));
-    try std.testing.expectEqual(RocTarget.wasm32, selected.target);
+    try std.testing.expectEqual(ClawTarget.wasm32, selected.target);
     try std.testing.expectEqual(OutputKind.shared, selected.output);
     try std.testing.expectEqual(SelectionSource.explicit, selected.source);
 }
@@ -172,7 +172,7 @@ test "default build target selects wasm shared module" {
     };
 
     const selected = try expectSelected(selectBuildTarget(config, null));
-    try std.testing.expectEqual(RocTarget.wasm32, selected.target);
+    try std.testing.expectEqual(ClawTarget.wasm32, selected.target);
     try std.testing.expectEqual(OutputKind.shared, selected.output);
     try std.testing.expectEqual(SelectionSource.default, selected.source);
 }
@@ -182,12 +182,12 @@ test "default build target uses platform order" {
         .inputs_dir = null,
         .targets = &.{
             .{ .target = .wasm32, .output = .exe, .items = &.{.app} },
-            .{ .target = RocTarget.detectNative(), .output = .exe, .items = &.{.app} },
+            .{ .target = ClawTarget.detectNative(), .output = .exe, .items = &.{.app} },
         },
     };
 
     const selected = try expectSelected(selectBuildTarget(config, null));
-    try std.testing.expectEqual(RocTarget.wasm32, selected.target);
+    try std.testing.expectEqual(ClawTarget.wasm32, selected.target);
     try std.testing.expectEqual(OutputKind.exe, selected.output);
 }
 
@@ -219,7 +219,7 @@ test "run target excludes non-exe outputs" {
     const config = TargetsConfig{
         .inputs_dir = null,
         .targets = &.{
-            .{ .target = RocTarget.detectNative(), .output = .shared, .items = &.{.app} },
+            .{ .target = ClawTarget.detectNative(), .output = .shared, .items = &.{.app} },
         },
     };
 
@@ -231,12 +231,12 @@ test "run target selects native exe target" {
         .inputs_dir = null,
         .targets = &.{
             .{ .target = .wasm32, .output = .exe, .items = &.{.app} },
-            .{ .target = RocTarget.detectNative(), .output = .exe, .items = &.{.app} },
+            .{ .target = ClawTarget.detectNative(), .output = .exe, .items = &.{.app} },
         },
     };
 
     const selected = try expectSelected(selectRunTarget(config, null));
-    try std.testing.expectEqual(RocTarget.detectNative(), selected.target);
+    try std.testing.expectEqual(ClawTarget.detectNative(), selected.target);
     try std.testing.expectEqual(OutputKind.exe, selected.output);
 }
 
@@ -246,5 +246,5 @@ test "wasm shared module output extension is wasm" {
 
 test "archive output extension follows target convention" {
     const expected: []const u8 = if (builtin.target.os.tag == .windows) ".lib" else ".a";
-    try std.testing.expectEqualStrings(expected, defaultBuildOutputExtension(.archive, RocTarget.detectNative()));
+    try std.testing.expectEqualStrings(expected, defaultBuildOutputExtension(.archive, ClawTarget.detectNative()));
 }

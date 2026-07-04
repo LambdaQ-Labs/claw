@@ -99,7 +99,7 @@ pub fn f64ToIntTryBits(value: f64, target_bits: u32, target_signed: bool) ?u128 
 
 /// Convert a Roc Dec payload to raw target integer bits after truncating.
 pub fn decToIntTryBits(dec_value: i128, target_bits: u32, target_signed: bool) ?u128 {
-    const whole_part = i128h.divTrunc_i128(dec_value, dec.RocDec.one_point_zero_i128);
+    const whole_part = i128h.divTrunc_i128(dec_value, dec.ClawDec.one_point_zero_i128);
     if (!i128FitsTarget(whole_part, target_bits, target_signed)) {
         return null;
     }

@@ -6,7 +6,7 @@
 const std = @import("std");
 const builtin = @import("builtin");
 const Allocator = std.mem.Allocator;
-const RocTarget = @import("roc_target").RocTarget;
+const ClawTarget = @import("roc_target").ClawTarget;
 
 const EmitMod = @import("Emit.zig");
 const Registers = @import("Registers.zig");
@@ -21,7 +21,7 @@ const RegisterWidth = Registers.RegisterWidth;
 
 /// Parameterized aarch64 code generator.
 /// All aarch64 targets use the AAPCS64 calling convention.
-pub fn CodeGen(comptime target: RocTarget) type {
+pub fn CodeGen(comptime target: ClawTarget) type {
     // Validate this is an aarch64 target
     const arch = target.toCpuArch();
     if (arch != .aarch64 and arch != .aarch64_be) {
@@ -806,7 +806,7 @@ test "CodeGen works for all aarch64 targets" {
     try std.testing.expectEqual(LinuxCodeGen.CALLEE_SAVED_GENERAL_MASK, MacCodeGen.CALLEE_SAVED_GENERAL_MASK);
 
     // Verify target is correctly set
-    try std.testing.expectEqual(RocTarget.arm64linux, LinuxCodeGen.roc_target);
-    try std.testing.expectEqual(RocTarget.arm64win, WinCodeGen.roc_target);
-    try std.testing.expectEqual(RocTarget.arm64mac, MacCodeGen.roc_target);
+    try std.testing.expectEqual(ClawTarget.arm64linux, LinuxCodeGen.roc_target);
+    try std.testing.expectEqual(ClawTarget.arm64win, WinCodeGen.roc_target);
+    try std.testing.expectEqual(ClawTarget.arm64mac, MacCodeGen.roc_target);
 }

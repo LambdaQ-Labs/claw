@@ -15,7 +15,7 @@ const base = @import("base");
 const target_mod = @import("target.zig");
 const reporting = @import("reporting");
 
-const RocTarget = target_mod.RocTarget;
+const ClawTarget = target_mod.ClawTarget;
 const TargetsConfig = target_mod.TargetsConfig;
 const TargetLinkSpec = target_mod.TargetLinkSpec;
 const OutputKind = target_mod.OutputKind;
@@ -52,7 +52,7 @@ pub const ValidationResult = union(enum) {
 
     /// A file declared in targets doesn't exist
     missing_target_file: struct {
-        target: RocTarget,
+        target: ClawTarget,
         output: OutputKind,
         file_path: []const u8,
         expected_full_path: []const u8,
@@ -60,7 +60,7 @@ pub const ValidationResult = union(enum) {
 
     /// Extra file found in targets directory that isn't declared
     extra_file: struct {
-        target: RocTarget,
+        target: ClawTarget,
         file_path: []const u8,
     },
 
@@ -73,21 +73,21 @@ pub const ValidationResult = union(enum) {
     /// Requested target is not supported by this platform
     unsupported_target: struct {
         platform_path: []const u8,
-        requested_target: RocTarget,
+        requested_target: ClawTarget,
         supported_targets: []const TargetLinkSpec,
     },
 
     /// Cross-compilation requested but platform doesn't have host library for target
     missing_cross_compile_host: struct {
         platform_path: []const u8,
-        target: RocTarget,
+        target: ClawTarget,
         expected_path: []const u8,
         files_dir: []const u8,
     },
 
     /// glibc cross-compilation is not supported on non-Linux hosts
     unsupported_glibc_cross: struct {
-        target: RocTarget,
+        target: ClawTarget,
         host_os: []const u8,
     },
 

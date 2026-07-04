@@ -35,9 +35,9 @@ pub const builtin_static = @import("can").BuiltinStatic;
 pub const BuiltinModules = @import("BuiltinModules.zig").BuiltinModules;
 /// Checked-artifact compile-time evaluation finalizer
 pub const CompileTimeFinalization = @import("compile_time_finalization.zig");
-/// Compiler-owned RocOps environment for compile-time evaluation
+/// Compiler-owned ClawOps environment for compile-time evaluation
 pub const CompilerHost = @import("compiler_host.zig");
-/// Dev-backend RocOps environment for native compile-time evaluation
+/// Dev-backend ClawOps environment for native compile-time evaluation
 pub const CompileTimeHost = @import("compile_time_host.zig");
 /// Stores compile-time interpreter results in ConstStore
 pub const ConstStoreWriter = @import("const_store_writer.zig");
@@ -71,7 +71,7 @@ pub const interpreter = if (builtin.target.os.tag == .freestanding) struct {
             _: std.mem.Allocator,
             _: *const @import("lir").LirStore,
             _: *const @import("layout").Store,
-            _: *const @import("builtins").host_abi.RocOps,
+            _: *const @import("builtins").host_abi.ClawOps,
         ) error{BackendUnavailable}!@This() {
             return error.BackendUnavailable;
         }
@@ -85,7 +85,7 @@ pub const interpreter = if (builtin.target.os.tag == .freestanding) struct {
 } else real_interpreter;
 pub const Interpreter = interpreter.Interpreter;
 pub const LirInterpreter = real_interpreter.Interpreter;
-/// Production-faithful RocOps recorder used by eval tests.
+/// Production-faithful ClawOps recorder used by eval tests.
 pub const RuntimeHostEnv = @import("test/RuntimeHostEnv.zig");
 /// Bytebox runner for wasm modules.
 pub const wasm_runner = if (builtin.target.os.tag == .freestanding) struct {

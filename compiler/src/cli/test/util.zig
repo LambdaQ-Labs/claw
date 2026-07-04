@@ -76,7 +76,7 @@ pub const ChildTimeoutError = std.mem.Allocator.Error || std.process.SpawnError 
 /// Errors that can occur while constructing test environment variables.
 pub const EnvMapError = TestDirError || std.mem.Allocator.Error;
 /// Errors that can occur while running a Roc CLI test command.
-pub const RocRunError = TestDirError || EnvMapError || ChildTimeoutError;
+pub const ClawRunError = TestDirError || EnvMapError || ChildTimeoutError;
 /// Errors that can occur while validating CLI test results.
 pub const ResultCheckError = error{
     MemoryError,
@@ -123,7 +123,7 @@ fn reserveUniqueTestDir(io: std.Io, allocator: std.mem.Allocator, namespace: []c
 
 /// Result of executing a Roc command during testing.
 /// Contains the captured output streams and process termination status.
-pub const RocResult = struct {
+pub const ClawResult = struct {
     stdout: []u8,
     stderr: []u8,
     term: std.process.Child.Term,
@@ -405,7 +405,7 @@ fn runChild(
     argv: []const []const u8,
     cwd_path: []const u8,
     extra_env: ?*const std.process.Environ.Map,
-) RocRunError!RocResult {
+) ClawRunError!ClawResult {
     var env_map = try buildIsolatedTestEnvMap(io, allocator, extra_env);
     defer env_map.deinit();
 
@@ -415,7 +415,7 @@ fn runChild(
         .max_output_bytes = 10 * 1024 * 1024, // 10MB
     });
 
-    return RocResult{
+    return ClawResult{
         .stdout = result.stdout,
         .stderr = result.stderr,
         .term = result.term,
@@ -423,7 +423,7 @@ fn runChild(
 }
 
 /// Helper to run roc with arguments that don't require a test file
-pub fn runRocCommand(io: std.Io, allocator: std.mem.Allocator, args: []const []const u8) RocRunError!RocResult {
+pub fn runRocCommand(io: std.Io, allocator: std.mem.Allocator, args: []const []const u8) ClawRunError!ClawResult {
     return runRocCommandWithEnv(io, allocator, args, null);
 }
 
@@ -433,7 +433,7 @@ pub fn runRocCommandWithEnv(
     allocator: std.mem.Allocator,
     args: []const []const u8,
     extra_env: ?*const std.process.Environ.Map,
-) RocRunError!RocResult {
+) ClawRunError!ClawResult {
     // Get absolute path to roc binary from current working directory
     const cwd_path = try std.Io.Dir.cwd().realPathFileAlloc(io, ".", allocator);
     defer allocator.free(cwd_path);
@@ -452,7 +452,7 @@ pub fn runRocCommandWithEnv(
 }
 
 /// Helper to set up and run roc with arbitrary arguments
-pub fn runRoc(io: std.Io, allocator: std.mem.Allocator, args: []const []const u8, test_file_path: []const u8) RocRunError!RocResult {
+pub fn runRoc(io: std.Io, allocator: std.mem.Allocator, args: []const []const u8, test_file_path: []const u8) ClawRunError!ClawResult {
     return runRocWithEnv(io, allocator, args, test_file_path, null);
 }
 
@@ -463,7 +463,7 @@ pub fn runRocWithEnv(
     args: []const []const u8,
     test_file_path: []const u8,
     extra_env: ?*const std.process.Environ.Map,
-) RocRunError!RocResult {
+) ClawRunError!ClawResult {
     // Get absolute path to roc binary from current working directory
     const cwd_path = try std.Io.Dir.cwd().realPathFileAlloc(io, ".", allocator);
     defer allocator.free(cwd_path);
@@ -491,13 +491,13 @@ pub fn runRocWithEnv(
 /// Runs a roc app with --test mode using the given IO spec.
 /// Spec format: "0<stdin|1>stdout|2>stderr" (pipe-separated)
 /// Returns success if the app's IO matches the spec exactly.
-pub fn runRocTest(io: std.Io, allocator: std.mem.Allocator, roc_file: []const u8, spec: []const u8) RocRunError!RocResult {
+pub fn runRocTest(io: std.Io, allocator: std.mem.Allocator, roc_file: []const u8, spec: []const u8) ClawRunError!ClawResult {
     return runRocCommand(io, allocator, &.{ roc_file, "--", "--test", spec });
 }
 
 /// Check if a run result indicates success (exit code 0).
 /// Also checks for GPA memory errors in stderr.
-pub fn checkSuccess(result: RocResult) ResultCheckError!void {
+pub fn checkSuccess(result: ClawResult) ResultCheckError!void {
     if (std.mem.find(u8, result.stderr, "error(gpa):") != null) {
         std.debug.print("Memory error detected (GPA)\n", .{});
         std.debug.print("STDOUT: {s}\n", .{result.stdout});
@@ -531,7 +531,7 @@ pub fn checkSuccess(result: RocResult) ResultCheckError!void {
 
 /// Check if a run result indicates failure (non-zero exit code).
 /// Verifies the process exited cleanly with a non-zero code, NOT that it crashed.
-pub fn checkFailure(result: RocResult) ResultCheckError!void {
+pub fn checkFailure(result: ClawResult) ResultCheckError!void {
     switch (result.term) {
         .exited => |code| {
             if (code == 0) {
@@ -556,7 +556,7 @@ pub fn checkFailure(result: RocResult) ResultCheckError!void {
 
 /// Check if a test mode run succeeded (exit code 0).
 /// Also checks for GPA memory errors.
-pub fn checkTestSuccess(result: RocResult) ResultCheckError!void {
+pub fn checkTestSuccess(result: ClawResult) ResultCheckError!void {
     if (std.mem.find(u8, result.stderr, "error(gpa):") != null) {
         std.debug.print("Memory error detected (GPA)\n", .{});
         std.debug.print("STDERR: {s}\n", .{result.stderr});
@@ -585,7 +585,7 @@ pub fn checkTestSuccess(result: RocResult) ResultCheckError!void {
 }
 
 /// Helper to run roc with stdin input (for REPL testing)
-pub fn runRocWithStdin(io: std.Io, allocator: std.mem.Allocator, args: []const []const u8, stdin_input: []const u8) RocRunError!RocResult {
+pub fn runRocWithStdin(io: std.Io, allocator: std.mem.Allocator, args: []const []const u8, stdin_input: []const u8) ClawRunError!ClawResult {
     // Get absolute path to roc binary from current working directory
     const cwd_path = try std.Io.Dir.cwd().realPathFileAlloc(io, ".", allocator);
     defer allocator.free(cwd_path);
@@ -609,7 +609,7 @@ pub fn runRocWithStdin(io: std.Io, allocator: std.mem.Allocator, args: []const [
         .stdin = stdin_input,
     });
 
-    return RocResult{
+    return ClawResult{
         .stdout = result.stdout,
         .stderr = result.stderr,
         .term = result.term,

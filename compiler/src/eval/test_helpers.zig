@@ -26,7 +26,7 @@ const Can = can.Can;
 const Check = check.Check;
 const CIR = can.CIR;
 const ModuleEnv = can.ModuleEnv;
-const RocStr = builtins.str.RocStr;
+const ClawStr = builtins.str.ClawStr;
 const HostLirCodeGen = backend.HostLirCodeGen;
 const ExecutableMemory = backend.ExecutableMemory;
 const LayoutStore = @import("layout").Store;
@@ -2029,7 +2029,7 @@ fn llvmCompileOptions(target_usize: base.target.TargetUsize, opt: LlvmTestOpt) @
 fn callLlvmBoolRoot(
     allocator: Allocator,
     layouts: *const LayoutStore,
-    entry: *const fn (*builtins.host_abi.RocOps, [*]u8, ?*anyopaque) callconv(.c) void,
+    entry: *const fn (*builtins.host_abi.ClawOps, [*]u8, ?*anyopaque) callconv(.c) void,
     root: BoolRoot,
     runtime_env: *RuntimeHostEnv,
     expect_err_region: ?*[3]u32,
@@ -2124,7 +2124,7 @@ pub fn llvmEvalBoolRoots(
         runtime_env.setLongjmpOnCrash(false);
     }
 
-    const EntryFn = *const fn (*builtins.host_abi.RocOps, [*]u8, ?*anyopaque) callconv(.c) void;
+    const EntryFn = *const fn (*builtins.host_abi.ClawOps, [*]u8, ?*anyopaque) callconv(.c) void;
     const results = try allocator.alloc(BoolRootEvalResult, roots.len);
     var result_len: usize = 0;
     errdefer deinitPartialBoolRootEvalResults(allocator, results, result_len);
@@ -2302,7 +2302,7 @@ pub fn llvmEvaluatorInspectedStr(allocator: Allocator, lowered: *const LoweredPr
     var lib = try EvalDynLib.open(allocator, std.mem.sliceTo(dylib_path, 0));
     defer lib.close();
 
-    const EntryFn = *const fn (*builtins.host_abi.RocOps, [*]u8, ?*anyopaque) callconv(.c) void;
+    const EntryFn = *const fn (*builtins.host_abi.ClawOps, [*]u8, ?*anyopaque) callconv(.c) void;
     const entry = lib.lookup(EntryFn, "roc_eval_test_main") orelse return error.LlvmBackendUnavailable;
 
     var runtime_env = RuntimeHostEnv.init(allocator);
@@ -2376,7 +2376,7 @@ fn copyReturnedRocStr(
     layout_store: *const LayoutStore,
     ret_layout: LayoutIdx,
     value_ptr: [*]u8,
-    roc_ops: ?*builtins.host_abi.RocOps,
+    roc_ops: ?*builtins.host_abi.ClawOps,
 ) TestHelperError![]u8 {
     const layout_val = layout_store.getLayout(ret_layout);
     const is_str =
@@ -2390,7 +2390,7 @@ fn copyReturnedRocStr(
         );
     }
 
-    const roc_str = @as(*align(1) const RocStr, @ptrCast(value_ptr)).*;
+    const roc_str = @as(*align(1) const ClawStr, @ptrCast(value_ptr)).*;
     const copied = try allocator.dupe(u8, roc_str.asSlice());
     if (roc_ops) |ops| roc_str.decref(ops);
     return copied;

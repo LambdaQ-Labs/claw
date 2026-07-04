@@ -1082,33 +1082,33 @@ pub const Store = struct {
             .scalar => switch (layout.getScalar().tag) {
                 .int => .{
                     .size = @intCast(layout.getScalar().getInt().size()),
-                    .alignment = layout_mod.RocAlignment.fromByteUnits(@intCast(layout.getScalar().getInt().alignment().toByteUnits())),
+                    .alignment = layout_mod.ClawAlignment.fromByteUnits(@intCast(layout.getScalar().getInt().alignment().toByteUnits())),
                 },
                 .frac => .{
                     .size = @intCast(layout.getScalar().getFrac().size()),
-                    .alignment = layout_mod.RocAlignment.fromByteUnits(@intCast(layout.getScalar().getFrac().alignment().toByteUnits())),
+                    .alignment = layout_mod.ClawAlignment.fromByteUnits(@intCast(layout.getScalar().getFrac().alignment().toByteUnits())),
                 },
                 .str => .{
                     .size = @intCast(3 * target_usize.size()), // ptr, encoded capacity, byte length
-                    .alignment = layout_mod.RocAlignment.fromByteUnits(@intCast(target_usize.size())),
+                    .alignment = layout_mod.ClawAlignment.fromByteUnits(@intCast(target_usize.size())),
                 },
                 .opaque_ptr => .{
                     .size = @intCast(target_usize.size()),
-                    .alignment = layout_mod.RocAlignment.fromByteUnits(@intCast(target_usize.size())),
+                    .alignment = layout_mod.ClawAlignment.fromByteUnits(@intCast(target_usize.size())),
                 },
             },
             .box, .box_of_zst, .erased_callable, .ptr => .{
                 .size = @intCast(target_usize.size()), // a Box is just a pointer to refcounted memory
-                .alignment = layout_mod.RocAlignment.fromByteUnits(@intCast(target_usize.size())),
+                .alignment = layout_mod.ClawAlignment.fromByteUnits(@intCast(target_usize.size())),
             },
             .list, .list_of_zst => .{
                 .size = @intCast(3 * target_usize.size()), // ptr, length, capacity
-                .alignment = layout_mod.RocAlignment.fromByteUnits(@intCast(target_usize.size())),
+                .alignment = layout_mod.ClawAlignment.fromByteUnits(@intCast(target_usize.size())),
             },
             .struct_ => .{
                 // Use pre-computed size from StructData to avoid infinite recursion on recursive types
                 .size = @intCast(self.struct_data.get(@enumFromInt(layout.getStruct().idx.int_idx)).size.get(target_usize)),
-                .alignment = layout_mod.RocAlignment.fromByteUnits(@intCast(layout.getStruct().sort_key.alignment(target_usize).toByteUnits())),
+                .alignment = layout_mod.ClawAlignment.fromByteUnits(@intCast(layout.getStruct().sort_key.alignment(target_usize).toByteUnits())),
             },
             .closure => blk: {
                 // Closure layout: header + aligned capture data
@@ -1118,13 +1118,13 @@ pub const Store = struct {
                 const aligned_captures_offset = std.mem.alignForward(u32, header_size, @as(u32, @intCast(captures_size_align.alignment.toByteUnits())));
                 break :blk .{
                     .size = @intCast(aligned_captures_offset + captures_size_align.size),
-                    .alignment = layout_mod.RocAlignment.fromByteUnits(@intCast(target_usize.size())),
+                    .alignment = layout_mod.ClawAlignment.fromByteUnits(@intCast(target_usize.size())),
                 };
             },
             .tag_union => .{
                 // Use pre-computed size from TagUnionData to avoid infinite recursion on recursive types
                 .size = @intCast(self.tag_union_data.get(@enumFromInt(layout.getTagUnion().idx.int_idx)).size.get(target_usize)),
-                .alignment = layout_mod.RocAlignment.fromByteUnits(@intCast(layout.getTagUnion().sort_key.alignment(target_usize).toByteUnits())),
+                .alignment = layout_mod.ClawAlignment.fromByteUnits(@intCast(layout.getTagUnion().sort_key.alignment(target_usize).toByteUnits())),
             },
             .zst => .{
                 .size = 0, // Zero-sized types have size 0
@@ -1906,7 +1906,7 @@ pub const Store = struct {
                     .structure => |flat_type| flat_type: switch (flat_type) {
                         .nominal_type => |nominal_type| {
                             // Special-case Builtin.Str: it has a tag union backing type, but
-                            // should have RocStr layout (3 pointers).
+                            // should have ClawStr layout (3 pointers).
                             // Check if this nominal type's identifier matches Builtin.Str
                             const is_builtin_str = blk: {
                                 if (self.builtin_str_ident) |builtin_str| {

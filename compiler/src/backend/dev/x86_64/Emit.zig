@@ -3,12 +3,12 @@
 //! This module provides low-level x86_64 instruction encoding for the dev backend.
 //! It generates machine code bytes that can be executed directly on x86_64 processors.
 //!
-//! The Emit function is parameterized by RocTarget to enable full cross-compilation.
+//! The Emit function is parameterized by ClawTarget to enable full cross-compilation.
 //! Each target variant is specialized at comptime with the correct calling convention.
 
 const std = @import("std");
 const Allocator = std.mem.Allocator;
-const RocTarget = @import("roc_target").RocTarget;
+const ClawTarget = @import("roc_target").ClawTarget;
 const Registers = @import("Registers.zig");
 const RegisterWidth = Registers.RegisterWidth;
 
@@ -16,7 +16,7 @@ const Relocation = @import("../Relocation.zig").Relocation;
 
 /// x86_64 instruction emitter for generating machine code.
 /// Parameterized by target for cross-compilation support.
-pub fn Emit(comptime target: RocTarget) type {
+pub fn Emit(comptime target: ClawTarget) type {
     // Validate this is an x86_64 target
     if (target.toCpuArch() != .x86_64) {
         @compileError("x86_64.Emit requires an x86_64 target");

@@ -3,13 +3,13 @@
 //! This module provides x86_64-specific code generation including
 //! function prologues/epilogues and instruction selection.
 //!
-//! CodeGen is parameterized by RocTarget to support cross-compilation.
+//! CodeGen is parameterized by ClawTarget to support cross-compilation.
 //! Use CodeGen(target) to get a specialized type for a specific target.
 
 const std = @import("std");
 const builtin = @import("builtin");
 const Allocator = std.mem.Allocator;
-const RocTarget = @import("roc_target").RocTarget;
+const ClawTarget = @import("roc_target").ClawTarget;
 
 const EmitMod = @import("Emit.zig");
 const Registers = @import("Registers.zig");
@@ -24,8 +24,8 @@ const FloatReg = Registers.FloatReg;
 const RegisterWidth = Registers.RegisterWidth;
 
 /// Parameterized x86_64 code generator.
-/// Use CodeGen(target) to get a specialized type for a specific RocTarget.
-pub fn CodeGen(comptime target: RocTarget) type {
+/// Use CodeGen(target) to get a specialized type for a specific ClawTarget.
+pub fn CodeGen(comptime target: ClawTarget) type {
     // Validate this is an x86_64 target
     if (target.toCpuArch() != .x86_64) {
         @compileError("x86_64.CodeGen requires an x86_64 target");

@@ -581,7 +581,7 @@ pub const PackageEnv = struct {
     root_dir: []const u8,
     mode: Mode,
     max_threads: usize,
-    target: roc_target.RocTarget,
+    target: roc_target.ClawTarget,
     sink: ReportSink,
     /// Optional resolver for cross-package imports; when null, all imports are treated as local
     resolver: ?ImportResolver = null,
@@ -637,7 +637,7 @@ pub const PackageEnv = struct {
         import_name: []const u8,
     };
 
-    pub fn init(gpa: Allocator, package_name: []const u8, root_dir: []const u8, mode: Mode, max_threads: usize, target: roc_target.RocTarget, sink: ReportSink, schedule_hook: ScheduleHook, compiler_version: []const u8, builtin_modules: *const BuiltinModules, roc_ctx: CoreCtx) PackageEnv {
+    pub fn init(gpa: Allocator, package_name: []const u8, root_dir: []const u8, mode: Mode, max_threads: usize, target: roc_target.ClawTarget, sink: ReportSink, schedule_hook: ScheduleHook, compiler_version: []const u8, builtin_modules: *const BuiltinModules, roc_ctx: CoreCtx) PackageEnv {
         // Pre-allocate module storage to avoid reallocation during multi-threaded processing
         var modules = std.ArrayList(ModuleState).empty;
         if (mode == .multi_threaded) {
@@ -674,7 +674,7 @@ pub const PackageEnv = struct {
         root_dir: []const u8,
         mode: Mode,
         max_threads: usize,
-        target: roc_target.RocTarget,
+        target: roc_target.ClawTarget,
         sink: ReportSink,
         resolver: ImportResolver,
         schedule_hook: ScheduleHook,

@@ -13,7 +13,7 @@ const stack_probe = embedded_lld.stack_probe;
 const CodeSignature = @import("vendor_macho").CodeSignature;
 const DwarfSplice = @import("macho/DwarfSplice.zig");
 const roc_target = @import("roc_target");
-const RocTarget = roc_target.RocTarget;
+const ClawTarget = roc_target.ClawTarget;
 const cli_ctx = @import("CliCtx.zig");
 const CliCtx = cli_ctx.CliCtx;
 const Io = cli_ctx.Io;
@@ -35,8 +35,8 @@ pub const TargetAbi = enum {
     musl,
     gnu,
 
-    /// Convert from RocTarget to TargetAbi
-    pub fn fromRocTarget(target: RocTarget) TargetAbi {
+    /// Convert from ClawTarget to TargetAbi
+    pub fn fromRocTarget(target: ClawTarget) TargetAbi {
         return if (target.isStatic()) .musl else .gnu;
     }
 };

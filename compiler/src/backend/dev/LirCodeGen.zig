@@ -33,7 +33,7 @@ const x86_64 = @import("x86_64/mod.zig");
 const aarch64 = @import("aarch64/mod.zig");
 const CallingConventionMod = @import("CallingConvention.zig");
 const CallingConvention = CallingConventionMod.CallingConvention;
-const RocTarget = @import("roc_target").RocTarget;
+const ClawTarget = @import("roc_target").ClawTarget;
 
 // Num builtin functions for 128-bit integer operations
 
@@ -46,8 +46,8 @@ const decrefDataPtrSingleThreadC = builtins.utils.decrefDataPtrSingleThreadC;
 const freeDataPtrC = builtins.utils.freeDataPtrC;
 
 // List builtin functions - using C-compatible wrappers to avoid ABI issues
-// with 24-byte RocList struct returns on aarch64
-const RocList = builtins.list.RocList;
+// with 24-byte ClawList struct returns on aarch64
+const ClawList = builtins.list.ClawList;
 
 // String builtins
 const strToUtf8C = builtins.str.strToUtf8C;
@@ -139,7 +139,7 @@ fn builtinInternalListAbi(ls: *const LayoutStore, comptime _: []const u8, list_l
         .elem_layout = abi.elem_layout,
         .elem_size_align = .{
             .size = @intCast(abi.elem_size),
-            .alignment = layout.RocAlignment.fromByteUnits(@intCast(abi.elem_alignment)),
+            .alignment = layout.ClawAlignment.fromByteUnits(@intCast(abi.elem_alignment)),
         },
         .alignment_bytes = abi.elem_alignment,
         .elements_refcounted = abi.contains_refcounted,
@@ -164,7 +164,7 @@ pub const GenerationMode = enum {
     /// The compiled code calls builtins via absolute addresses embedded in the code.
     native_execution,
     /// Code runs in the linked shim child process from bytes produced by the
-    /// parent compiler. Internal Roc procs receive RocOps, while builtin and
+    /// parent compiler. Internal Roc procs receive ClawOps, while builtin and
     /// readonly-data references are explicit relocation records.
     shim_execution,
     /// Generating relocatable object files for linking.
@@ -178,11 +178,11 @@ pub const GenerationMode = enum {
 
 /// Compiler-internal callbacks emitted only for native compile-time evaluation.
 pub const ComptimeHooks = struct {
-    branch_taken: *const fn (*RocOps, u32, u32) callconv(.c) void,
-    exhaustiveness_failed: *const fn (*RocOps, u32) callconv(.c) void,
-    failure_region: *const fn (*RocOps, u32, u32) callconv(.c) void,
-    call_enter: *const fn (*RocOps, u32, u32) callconv(.c) void,
-    call_exit: *const fn (*RocOps) callconv(.c) void,
+    branch_taken: *const fn (*ClawOps, u32, u32) callconv(.c) void,
+    exhaustiveness_failed: *const fn (*ClawOps, u32) callconv(.c) void,
+    failure_region: *const fn (*ClawOps, u32, u32) callconv(.c) void,
+    call_enter: *const fn (*ClawOps, u32, u32) callconv(.c) void,
+    call_exit: *const fn (*ClawOps) callconv(.c) void,
 };
 
 /// Builtin function identifiers for the dev backend.
@@ -494,39 +494,39 @@ pub const BuiltinFn = enum {
 /// Lists are (ptr, len, capacity) = 24 bytes and need special handling when returning results.
 
 // Number-to-string C wrapper functions (explicit output pointer to avoid struct return ABI issues)
-const RocStr = builtins.str.RocStr;
-const RocOps = builtins.host_abi.RocOps;
+const ClawStr = builtins.str.ClawStr;
+const ClawOps = builtins.host_abi.ClawOps;
 const HostedFunctions = builtins.host_abi.HostedFunctions;
 
 // ── C wrapper functions for string/list builtins ──
-// These decompose 24-byte RocStr/RocList structs into individual 8-byte fields
+// These decompose 24-byte ClawStr/ClawList structs into individual 8-byte fields
 // so all args fit in registers and we avoid platform-specific struct-passing ABI issues.
 
-/// Wrapper: strToUtf8C(RocStr, *RocOps) -> RocList
+/// Wrapper: strToUtf8C(ClawStr, *ClawOps) -> ClawList
 /// Decomposed: (out, str_bytes, str_len, str_cap, roc_ops) -> void
-fn wrapStrToUtf8(out: *RocList, str_bytes: ?[*]u8, str_len: usize, str_cap: usize, roc_ops: *RocOps) callconv(.c) void {
-    const arg = RocStr{ .bytes = str_bytes, .length = str_len, .capacity_or_alloc_ptr = str_cap };
+fn wrapStrToUtf8(out: *ClawList, str_bytes: ?[*]u8, str_len: usize, str_cap: usize, roc_ops: *ClawOps) callconv(.c) void {
+    const arg = ClawStr{ .bytes = str_bytes, .length = str_len, .capacity_or_alloc_ptr = str_cap };
     out.* = strToUtf8C(arg, roc_ops);
 }
 
-/// Wrapper: strConcatC(RocStr, RocStr, UpdateMode, *RocOps) -> RocStr
+/// Wrapper: strConcatC(ClawStr, ClawStr, UpdateMode, *ClawOps) -> ClawStr
 /// Decomposed: (out, a_bytes, a_len, a_cap, b_bytes, b_len, b_cap, update_mode, roc_ops) -> void
-fn wrapStrConcat(out: *RocStr, a_bytes: ?[*]u8, a_len: usize, a_cap: usize, b_bytes: ?[*]u8, b_len: usize, b_cap: usize, update_mode: builtins.utils.UpdateMode, roc_ops: *RocOps) callconv(.c) void {
-    const a = RocStr{ .bytes = a_bytes, .length = a_len, .capacity_or_alloc_ptr = a_cap };
-    const b = RocStr{ .bytes = b_bytes, .length = b_len, .capacity_or_alloc_ptr = b_cap };
+fn wrapStrConcat(out: *ClawStr, a_bytes: ?[*]u8, a_len: usize, a_cap: usize, b_bytes: ?[*]u8, b_len: usize, b_cap: usize, update_mode: builtins.utils.UpdateMode, roc_ops: *ClawOps) callconv(.c) void {
+    const a = ClawStr{ .bytes = a_bytes, .length = a_len, .capacity_or_alloc_ptr = a_cap };
+    const b = ClawStr{ .bytes = b_bytes, .length = b_len, .capacity_or_alloc_ptr = b_cap };
 
     if (builtin.mode == .Debug) {
         const debugAssertValidStr = struct {
-            fn check(label: []const u8, s: RocStr) void {
+            fn check(label: []const u8, s: ClawStr) void {
                 if (s.isSmallStr()) return;
                 if (s.bytes != null) return;
 
                 std.debug.print(
-                    "wrapStrConcat invalid RocStr {s}: len={d} cap=0x{x} raw_bytes=0x{x}\n",
+                    "wrapStrConcat invalid ClawStr {s}: len={d} cap=0x{x} raw_bytes=0x{x}\n",
                     .{ label, s.len(), s.capacity_or_alloc_ptr, @intFromPtr(s.bytes) },
                 );
                 std.debug.panic(
-                    "LIR/codegen invariant violated: wrapStrConcat received invalid RocStr {s} (len={d}, cap=0x{x})",
+                    "LIR/codegen invariant violated: wrapStrConcat received invalid ClawStr {s} (len={d}, cap=0x{x})",
                     .{ label, s.len(), s.capacity_or_alloc_ptr },
                 );
             }
@@ -539,171 +539,171 @@ fn wrapStrConcat(out: *RocStr, a_bytes: ?[*]u8, a_len: usize, a_cap: usize, b_by
     out.* = strConcatC(a, b, update_mode, roc_ops);
 }
 
-/// Wrapper: strContains(RocStr, RocStr) -> bool
+/// Wrapper: strContains(ClawStr, ClawStr) -> bool
 /// Decomposed: (a_bytes, a_len, a_cap, b_bytes, b_len, b_cap) -> bool
 fn wrapStrContains(a_bytes: ?[*]u8, a_len: usize, a_cap: usize, b_bytes: ?[*]u8, b_len: usize, b_cap: usize) callconv(.c) bool {
-    const a = RocStr{ .bytes = a_bytes, .length = a_len, .capacity_or_alloc_ptr = a_cap };
-    const b = RocStr{ .bytes = b_bytes, .length = b_len, .capacity_or_alloc_ptr = b_cap };
+    const a = ClawStr{ .bytes = a_bytes, .length = a_len, .capacity_or_alloc_ptr = a_cap };
+    const b = ClawStr{ .bytes = b_bytes, .length = b_len, .capacity_or_alloc_ptr = b_cap };
     return strContains(a, b);
 }
 
-/// Wrapper: startsWith(RocStr, RocStr) -> bool
+/// Wrapper: startsWith(ClawStr, ClawStr) -> bool
 fn wrapStrStartsWith(a_bytes: ?[*]u8, a_len: usize, a_cap: usize, b_bytes: ?[*]u8, b_len: usize, b_cap: usize) callconv(.c) bool {
-    const a = RocStr{ .bytes = a_bytes, .length = a_len, .capacity_or_alloc_ptr = a_cap };
-    const b = RocStr{ .bytes = b_bytes, .length = b_len, .capacity_or_alloc_ptr = b_cap };
+    const a = ClawStr{ .bytes = a_bytes, .length = a_len, .capacity_or_alloc_ptr = a_cap };
+    const b = ClawStr{ .bytes = b_bytes, .length = b_len, .capacity_or_alloc_ptr = b_cap };
     return strStartsWith(a, b);
 }
 
-/// Wrapper: endsWith(RocStr, RocStr) -> bool
+/// Wrapper: endsWith(ClawStr, ClawStr) -> bool
 fn wrapStrEndsWith(a_bytes: ?[*]u8, a_len: usize, a_cap: usize, b_bytes: ?[*]u8, b_len: usize, b_cap: usize) callconv(.c) bool {
-    const a = RocStr{ .bytes = a_bytes, .length = a_len, .capacity_or_alloc_ptr = a_cap };
-    const b = RocStr{ .bytes = b_bytes, .length = b_len, .capacity_or_alloc_ptr = b_cap };
+    const a = ClawStr{ .bytes = a_bytes, .length = a_len, .capacity_or_alloc_ptr = a_cap };
+    const b = ClawStr{ .bytes = b_bytes, .length = b_len, .capacity_or_alloc_ptr = b_cap };
     return strEndsWith(a, b);
 }
 
-/// Wrapper: strEqual(RocStr, RocStr) -> bool
+/// Wrapper: strEqual(ClawStr, ClawStr) -> bool
 fn wrapStrEqual(a_bytes: ?[*]u8, a_len: usize, a_cap: usize, b_bytes: ?[*]u8, b_len: usize, b_cap: usize) callconv(.c) bool {
-    const a = RocStr{ .bytes = a_bytes, .length = a_len, .capacity_or_alloc_ptr = a_cap };
-    const b = RocStr{ .bytes = b_bytes, .length = b_len, .capacity_or_alloc_ptr = b_cap };
+    const a = ClawStr{ .bytes = a_bytes, .length = a_len, .capacity_or_alloc_ptr = a_cap };
+    const b = ClawStr{ .bytes = b_bytes, .length = b_len, .capacity_or_alloc_ptr = b_cap };
     return strEqual(a, b);
 }
 
-/// Wrapper: strEqualStaticSmall(RocStr, u64, u64, u64, u64) -> bool
+/// Wrapper: strEqualStaticSmall(ClawStr, u64, u64, u64, u64) -> bool
 fn wrapStrEqualStaticSmall(a_bytes: ?[*]u8, a_len: usize, a_cap: usize, static_len: u64, word0: u64, word1: u64, word2: u64) callconv(.c) bool {
-    const a = RocStr{ .bytes = a_bytes, .length = a_len, .capacity_or_alloc_ptr = a_cap };
+    const a = ClawStr{ .bytes = a_bytes, .length = a_len, .capacity_or_alloc_ptr = a_cap };
     return strEqualStaticSmall(a, static_len, word0, word1, word2);
 }
 
-/// Wrapper: strStaticSmallWordEq(RocStr, u64, u64, u64) -> bool
+/// Wrapper: strStaticSmallWordEq(ClawStr, u64, u64, u64) -> bool
 fn wrapStrStaticSmallWordEq(a_bytes: ?[*]u8, a_len: usize, a_cap: usize, offset: u64, active_len: u64, word: u64) callconv(.c) bool {
-    const a = RocStr{ .bytes = a_bytes, .length = a_len, .capacity_or_alloc_ptr = a_cap };
+    const a = ClawStr{ .bytes = a_bytes, .length = a_len, .capacity_or_alloc_ptr = a_cap };
     return strStaticSmallWordEq(a, offset, active_len, word);
 }
 
-/// Wrapper: strStaticSmallWordCaselessEq(RocStr, u64, u64, u64) -> bool
+/// Wrapper: strStaticSmallWordCaselessEq(ClawStr, u64, u64, u64) -> bool
 fn wrapStrStaticSmallWordCaselessEq(a_bytes: ?[*]u8, a_len: usize, a_cap: usize, offset: u64, active_len: u64, word: u64) callconv(.c) bool {
-    const a = RocStr{ .bytes = a_bytes, .length = a_len, .capacity_or_alloc_ptr = a_cap };
+    const a = ClawStr{ .bytes = a_bytes, .length = a_len, .capacity_or_alloc_ptr = a_cap };
     return strStaticSmallWordCaselessEq(a, offset, active_len, word);
 }
 
-/// Wrapper: countUtf8Bytes(RocStr) -> u64
+/// Wrapper: countUtf8Bytes(ClawStr) -> u64
 fn wrapStrCountUtf8Bytes(str_bytes: ?[*]u8, str_len: usize, str_cap: usize) callconv(.c) u64 {
-    const s = RocStr{ .bytes = str_bytes, .length = str_len, .capacity_or_alloc_ptr = str_cap };
+    const s = ClawStr{ .bytes = str_bytes, .length = str_len, .capacity_or_alloc_ptr = str_cap };
     return strCountUtf8Bytes(s);
 }
 
-fn wrapStrFindFirst(out: *anyopaque, a_bytes: ?[*]u8, a_len: usize, a_cap: usize, b_bytes: ?[*]u8, b_len: usize, b_cap: usize, find_layout: *const dev_wrappers.StrFindFirstLayout, roc_ops: *RocOps) callconv(.c) void {
-    const a = RocStr{ .bytes = a_bytes, .length = a_len, .capacity_or_alloc_ptr = a_cap };
-    const b = RocStr{ .bytes = b_bytes, .length = b_len, .capacity_or_alloc_ptr = b_cap };
+fn wrapStrFindFirst(out: *anyopaque, a_bytes: ?[*]u8, a_len: usize, a_cap: usize, b_bytes: ?[*]u8, b_len: usize, b_cap: usize, find_layout: *const dev_wrappers.StrFindFirstLayout, roc_ops: *ClawOps) callconv(.c) void {
+    const a = ClawStr{ .bytes = a_bytes, .length = a_len, .capacity_or_alloc_ptr = a_cap };
+    const b = ClawStr{ .bytes = b_bytes, .length = b_len, .capacity_or_alloc_ptr = b_cap };
     const result = strFindFirst(a, b, roc_ops);
     const out_bytes: [*]u8 = @ptrCast(out);
 
-    @as(*RocStr, @ptrCast(@alignCast(out_bytes + find_layout.after_offset))).* = result.after;
-    @as(*RocStr, @ptrCast(@alignCast(out_bytes + find_layout.before_offset))).* = result.before;
+    @as(*ClawStr, @ptrCast(@alignCast(out_bytes + find_layout.after_offset))).* = result.after;
+    @as(*ClawStr, @ptrCast(@alignCast(out_bytes + find_layout.before_offset))).* = result.before;
     @as(*u8, @ptrCast(@alignCast(out_bytes + find_layout.found_offset))).* = if (result.found) 1 else 0;
 }
 
-fn wrapStrDropPrefixCaselessAscii(out: *anyopaque, a_bytes: ?[*]u8, a_len: usize, a_cap: usize, b_bytes: ?[*]u8, b_len: usize, b_cap: usize, prefix_layout: *const dev_wrappers.StrDropPrefixCaselessAsciiLayout, roc_ops: *RocOps) callconv(.c) void {
-    const a = RocStr{ .bytes = a_bytes, .length = a_len, .capacity_or_alloc_ptr = a_cap };
-    const b = RocStr{ .bytes = b_bytes, .length = b_len, .capacity_or_alloc_ptr = b_cap };
+fn wrapStrDropPrefixCaselessAscii(out: *anyopaque, a_bytes: ?[*]u8, a_len: usize, a_cap: usize, b_bytes: ?[*]u8, b_len: usize, b_cap: usize, prefix_layout: *const dev_wrappers.StrDropPrefixCaselessAsciiLayout, roc_ops: *ClawOps) callconv(.c) void {
+    const a = ClawStr{ .bytes = a_bytes, .length = a_len, .capacity_or_alloc_ptr = a_cap };
+    const b = ClawStr{ .bytes = b_bytes, .length = b_len, .capacity_or_alloc_ptr = b_cap };
     const result = strDropPrefixCaselessAscii(a, b, roc_ops);
     const out_bytes: [*]u8 = @ptrCast(out);
 
-    @as(*RocStr, @ptrCast(@alignCast(out_bytes + prefix_layout.after_offset))).* = result.after;
+    @as(*ClawStr, @ptrCast(@alignCast(out_bytes + prefix_layout.after_offset))).* = result.after;
     @as(*u8, @ptrCast(@alignCast(out_bytes + prefix_layout.found_offset))).* = if (result.found) 1 else 0;
 }
 
-/// Wrapper: strCaselessAsciiEquals(RocStr, RocStr) -> bool
+/// Wrapper: strCaselessAsciiEquals(ClawStr, ClawStr) -> bool
 fn wrapStrCaselessAsciiEquals(a_bytes: ?[*]u8, a_len: usize, a_cap: usize, b_bytes: ?[*]u8, b_len: usize, b_cap: usize) callconv(.c) bool {
-    const a = RocStr{ .bytes = a_bytes, .length = a_len, .capacity_or_alloc_ptr = a_cap };
-    const b = RocStr{ .bytes = b_bytes, .length = b_len, .capacity_or_alloc_ptr = b_cap };
+    const a = ClawStr{ .bytes = a_bytes, .length = a_len, .capacity_or_alloc_ptr = a_cap };
+    const b = ClawStr{ .bytes = b_bytes, .length = b_len, .capacity_or_alloc_ptr = b_cap };
     return strCaselessAsciiEquals(a, b);
 }
 
-/// Wrapper: repeatC(RocStr, u64, *RocOps) -> RocStr
-fn wrapStrRepeat(out: *RocStr, str_bytes: ?[*]u8, str_len: usize, str_cap: usize, count: u64, roc_ops: *RocOps) callconv(.c) void {
-    const s = RocStr{ .bytes = str_bytes, .length = str_len, .capacity_or_alloc_ptr = str_cap };
+/// Wrapper: repeatC(ClawStr, u64, *ClawOps) -> ClawStr
+fn wrapStrRepeat(out: *ClawStr, str_bytes: ?[*]u8, str_len: usize, str_cap: usize, count: u64, roc_ops: *ClawOps) callconv(.c) void {
+    const s = ClawStr{ .bytes = str_bytes, .length = str_len, .capacity_or_alloc_ptr = str_cap };
     out.* = strRepeatC(s, count, roc_ops);
 }
 
-/// Wrapper: strTrim(RocStr, UpdateMode, *RocOps) -> RocStr
-fn wrapStrTrim(out: *RocStr, str_bytes: ?[*]u8, str_len: usize, str_cap: usize, update_mode: builtins.utils.UpdateMode, roc_ops: *RocOps) callconv(.c) void {
-    const s = RocStr{ .bytes = str_bytes, .length = str_len, .capacity_or_alloc_ptr = str_cap };
+/// Wrapper: strTrim(ClawStr, UpdateMode, *ClawOps) -> ClawStr
+fn wrapStrTrim(out: *ClawStr, str_bytes: ?[*]u8, str_len: usize, str_cap: usize, update_mode: builtins.utils.UpdateMode, roc_ops: *ClawOps) callconv(.c) void {
+    const s = ClawStr{ .bytes = str_bytes, .length = str_len, .capacity_or_alloc_ptr = str_cap };
     out.* = strTrim(s, update_mode, roc_ops);
 }
 
-/// Wrapper: strTrimStart(RocStr, UpdateMode, *RocOps) -> RocStr
-fn wrapStrTrimStart(out: *RocStr, str_bytes: ?[*]u8, str_len: usize, str_cap: usize, update_mode: builtins.utils.UpdateMode, roc_ops: *RocOps) callconv(.c) void {
-    const s = RocStr{ .bytes = str_bytes, .length = str_len, .capacity_or_alloc_ptr = str_cap };
+/// Wrapper: strTrimStart(ClawStr, UpdateMode, *ClawOps) -> ClawStr
+fn wrapStrTrimStart(out: *ClawStr, str_bytes: ?[*]u8, str_len: usize, str_cap: usize, update_mode: builtins.utils.UpdateMode, roc_ops: *ClawOps) callconv(.c) void {
+    const s = ClawStr{ .bytes = str_bytes, .length = str_len, .capacity_or_alloc_ptr = str_cap };
     out.* = strTrimStart(s, update_mode, roc_ops);
 }
 
-/// Wrapper: strTrimEnd(RocStr, UpdateMode, *RocOps) -> RocStr
-fn wrapStrTrimEnd(out: *RocStr, str_bytes: ?[*]u8, str_len: usize, str_cap: usize, update_mode: builtins.utils.UpdateMode, roc_ops: *RocOps) callconv(.c) void {
-    const s = RocStr{ .bytes = str_bytes, .length = str_len, .capacity_or_alloc_ptr = str_cap };
+/// Wrapper: strTrimEnd(ClawStr, UpdateMode, *ClawOps) -> ClawStr
+fn wrapStrTrimEnd(out: *ClawStr, str_bytes: ?[*]u8, str_len: usize, str_cap: usize, update_mode: builtins.utils.UpdateMode, roc_ops: *ClawOps) callconv(.c) void {
+    const s = ClawStr{ .bytes = str_bytes, .length = str_len, .capacity_or_alloc_ptr = str_cap };
     out.* = strTrimEnd(s, update_mode, roc_ops);
 }
 
-/// Wrapper: strSplitOn(RocStr, RocStr, *RocOps) -> RocList
-fn wrapStrSplit(out: *RocList, a_bytes: ?[*]u8, a_len: usize, a_cap: usize, b_bytes: ?[*]u8, b_len: usize, b_cap: usize, roc_ops: *RocOps) callconv(.c) void {
-    const a = RocStr{ .bytes = a_bytes, .length = a_len, .capacity_or_alloc_ptr = a_cap };
-    const b = RocStr{ .bytes = b_bytes, .length = b_len, .capacity_or_alloc_ptr = b_cap };
+/// Wrapper: strSplitOn(ClawStr, ClawStr, *ClawOps) -> ClawList
+fn wrapStrSplit(out: *ClawList, a_bytes: ?[*]u8, a_len: usize, a_cap: usize, b_bytes: ?[*]u8, b_len: usize, b_cap: usize, roc_ops: *ClawOps) callconv(.c) void {
+    const a = ClawStr{ .bytes = a_bytes, .length = a_len, .capacity_or_alloc_ptr = a_cap };
+    const b = ClawStr{ .bytes = b_bytes, .length = b_len, .capacity_or_alloc_ptr = b_cap };
     out.* = strSplitOn(a, b, roc_ops);
 }
 
-/// Wrapper: strJoinWithC(RocList, RocStr, *RocOps) -> RocStr
-fn wrapStrJoinWith(out: *RocStr, list_bytes: ?[*]u8, list_len: usize, list_cap: usize, sep_bytes: ?[*]u8, sep_len: usize, sep_cap: usize, roc_ops: *RocOps) callconv(.c) void {
-    const list = RocList{ .bytes = list_bytes, .length = list_len, .capacity_or_alloc_ptr = list_cap };
-    const sep = RocStr{ .bytes = sep_bytes, .length = sep_len, .capacity_or_alloc_ptr = sep_cap };
+/// Wrapper: strJoinWithC(ClawList, ClawStr, *ClawOps) -> ClawStr
+fn wrapStrJoinWith(out: *ClawStr, list_bytes: ?[*]u8, list_len: usize, list_cap: usize, sep_bytes: ?[*]u8, sep_len: usize, sep_cap: usize, roc_ops: *ClawOps) callconv(.c) void {
+    const list = ClawList{ .bytes = list_bytes, .length = list_len, .capacity_or_alloc_ptr = list_cap };
+    const sep = ClawStr{ .bytes = sep_bytes, .length = sep_len, .capacity_or_alloc_ptr = sep_cap };
     out.* = strJoinWithC(list, sep, roc_ops);
 }
 
-/// Wrapper: reserveC(RocStr, u64, UpdateMode, *RocOps) -> RocStr
-fn wrapStrReserve(out: *RocStr, str_bytes: ?[*]u8, str_len: usize, str_cap: usize, spare: u64, update_mode: builtins.utils.UpdateMode, roc_ops: *RocOps) callconv(.c) void {
-    const s = RocStr{ .bytes = str_bytes, .length = str_len, .capacity_or_alloc_ptr = str_cap };
+/// Wrapper: reserveC(ClawStr, u64, UpdateMode, *ClawOps) -> ClawStr
+fn wrapStrReserve(out: *ClawStr, str_bytes: ?[*]u8, str_len: usize, str_cap: usize, spare: u64, update_mode: builtins.utils.UpdateMode, roc_ops: *ClawOps) callconv(.c) void {
+    const s = ClawStr{ .bytes = str_bytes, .length = str_len, .capacity_or_alloc_ptr = str_cap };
     out.* = strReserveC(s, spare, update_mode, roc_ops);
 }
 
-/// Wrapper: strReleaseExcessCapacity(RocStr, UpdateMode, *RocOps) -> RocStr
-fn wrapStrReleaseExcessCapacity(out: *RocStr, str_bytes: ?[*]u8, str_len: usize, str_cap: usize, update_mode: builtins.utils.UpdateMode, roc_ops: *RocOps) callconv(.c) void {
-    const s = RocStr{ .bytes = str_bytes, .length = str_len, .capacity_or_alloc_ptr = str_cap };
+/// Wrapper: strReleaseExcessCapacity(ClawStr, UpdateMode, *ClawOps) -> ClawStr
+fn wrapStrReleaseExcessCapacity(out: *ClawStr, str_bytes: ?[*]u8, str_len: usize, str_cap: usize, update_mode: builtins.utils.UpdateMode, roc_ops: *ClawOps) callconv(.c) void {
+    const s = ClawStr{ .bytes = str_bytes, .length = str_len, .capacity_or_alloc_ptr = str_cap };
     out.* = strReleaseExcessCapacity(s, update_mode, roc_ops);
 }
 
-/// Wrapper: withCapacityC(u64, *RocOps) -> RocStr
-fn wrapStrWithCapacity(out: *RocStr, capacity: u64, roc_ops: *RocOps) callconv(.c) void {
+/// Wrapper: withCapacityC(u64, *ClawOps) -> ClawStr
+fn wrapStrWithCapacity(out: *ClawStr, capacity: u64, roc_ops: *ClawOps) callconv(.c) void {
     out.* = strWithCapacityC(capacity, roc_ops);
 }
 
-/// Wrapper: strDropPrefix(RocStr, RocStr, *RocOps) -> RocStr
-fn wrapStrDropPrefix(out: *RocStr, a_bytes: ?[*]u8, a_len: usize, a_cap: usize, b_bytes: ?[*]u8, b_len: usize, b_cap: usize, roc_ops: *RocOps) callconv(.c) void {
-    const a = RocStr{ .bytes = a_bytes, .length = a_len, .capacity_or_alloc_ptr = a_cap };
-    const b = RocStr{ .bytes = b_bytes, .length = b_len, .capacity_or_alloc_ptr = b_cap };
+/// Wrapper: strDropPrefix(ClawStr, ClawStr, *ClawOps) -> ClawStr
+fn wrapStrDropPrefix(out: *ClawStr, a_bytes: ?[*]u8, a_len: usize, a_cap: usize, b_bytes: ?[*]u8, b_len: usize, b_cap: usize, roc_ops: *ClawOps) callconv(.c) void {
+    const a = ClawStr{ .bytes = a_bytes, .length = a_len, .capacity_or_alloc_ptr = a_cap };
+    const b = ClawStr{ .bytes = b_bytes, .length = b_len, .capacity_or_alloc_ptr = b_cap };
     out.* = strDropPrefix(a, b, roc_ops);
 }
 
-/// Wrapper: strDropSuffix(RocStr, RocStr, *RocOps) -> RocStr
-fn wrapStrDropSuffix(out: *RocStr, a_bytes: ?[*]u8, a_len: usize, a_cap: usize, b_bytes: ?[*]u8, b_len: usize, b_cap: usize, roc_ops: *RocOps) callconv(.c) void {
-    const a = RocStr{ .bytes = a_bytes, .length = a_len, .capacity_or_alloc_ptr = a_cap };
-    const b = RocStr{ .bytes = b_bytes, .length = b_len, .capacity_or_alloc_ptr = b_cap };
+/// Wrapper: strDropSuffix(ClawStr, ClawStr, *ClawOps) -> ClawStr
+fn wrapStrDropSuffix(out: *ClawStr, a_bytes: ?[*]u8, a_len: usize, a_cap: usize, b_bytes: ?[*]u8, b_len: usize, b_cap: usize, roc_ops: *ClawOps) callconv(.c) void {
+    const a = ClawStr{ .bytes = a_bytes, .length = a_len, .capacity_or_alloc_ptr = a_cap };
+    const b = ClawStr{ .bytes = b_bytes, .length = b_len, .capacity_or_alloc_ptr = b_cap };
     out.* = strDropSuffix(a, b, roc_ops);
 }
 
-/// Wrapper: strWithAsciiLowercased(RocStr, UpdateMode, *RocOps) -> RocStr
-fn wrapStrWithAsciiLowercased(out: *RocStr, str_bytes: ?[*]u8, str_len: usize, str_cap: usize, update_mode: builtins.utils.UpdateMode, roc_ops: *RocOps) callconv(.c) void {
-    const s = RocStr{ .bytes = str_bytes, .length = str_len, .capacity_or_alloc_ptr = str_cap };
+/// Wrapper: strWithAsciiLowercased(ClawStr, UpdateMode, *ClawOps) -> ClawStr
+fn wrapStrWithAsciiLowercased(out: *ClawStr, str_bytes: ?[*]u8, str_len: usize, str_cap: usize, update_mode: builtins.utils.UpdateMode, roc_ops: *ClawOps) callconv(.c) void {
+    const s = ClawStr{ .bytes = str_bytes, .length = str_len, .capacity_or_alloc_ptr = str_cap };
     out.* = strWithAsciiLowercased(s, update_mode, roc_ops);
 }
 
-/// Wrapper: strWithAsciiUppercased(RocStr, UpdateMode, *RocOps) -> RocStr
-fn wrapStrWithAsciiUppercased(out: *RocStr, str_bytes: ?[*]u8, str_len: usize, str_cap: usize, update_mode: builtins.utils.UpdateMode, roc_ops: *RocOps) callconv(.c) void {
-    const s = RocStr{ .bytes = str_bytes, .length = str_len, .capacity_or_alloc_ptr = str_cap };
+/// Wrapper: strWithAsciiUppercased(ClawStr, UpdateMode, *ClawOps) -> ClawStr
+fn wrapStrWithAsciiUppercased(out: *ClawStr, str_bytes: ?[*]u8, str_len: usize, str_cap: usize, update_mode: builtins.utils.UpdateMode, roc_ops: *ClawOps) callconv(.c) void {
+    const s = ClawStr{ .bytes = str_bytes, .length = str_len, .capacity_or_alloc_ptr = str_cap };
     out.* = strWithAsciiUppercased(s, update_mode, roc_ops);
 }
 
-/// Wrapper: fromUtf8Lossy(RocList, *RocOps) -> RocStr
-fn wrapStrFromUtf8Lossy(out: *RocStr, list_bytes: ?[*]u8, list_len: usize, list_cap: usize, roc_ops: *RocOps) callconv(.c) void {
-    const list = RocList{ .bytes = list_bytes, .length = list_len, .capacity_or_alloc_ptr = list_cap };
+/// Wrapper: fromUtf8Lossy(ClawList, *ClawOps) -> ClawStr
+fn wrapStrFromUtf8Lossy(out: *ClawStr, list_bytes: ?[*]u8, list_len: usize, list_cap: usize, roc_ops: *ClawOps) callconv(.c) void {
+    const list = ClawList{ .bytes = list_bytes, .length = list_len, .capacity_or_alloc_ptr = list_cap };
     out.* = strFromUtf8Lossy(list, roc_ops);
 }
 
@@ -713,8 +713,8 @@ const LirProcSpec = lir.LirProcSpec;
 const Allocator = std.mem.Allocator;
 
 /// Code generator for statement-only LIR procs
-/// Parameterized by RocTarget for cross-compilation support
-pub fn LirCodeGen(comptime target: RocTarget) type {
+/// Parameterized by ClawTarget for cross-compilation support
+pub fn LirCodeGen(comptime target: ClawTarget) type {
     // Validate target architecture is supported
     const arch = target.toCpuArch();
     if (arch != .x86_64 and arch != .aarch64 and arch != .aarch64_be) {
@@ -723,16 +723,16 @@ pub fn LirCodeGen(comptime target: RocTarget) type {
 
     // ── Target-specific size constants ──
     // These are derived from the target pointer size for the 64-bit architectures we support.
-    // RocStr and RocList are both three target words. RocStr stores bytes, encoded capacity, then length.
+    // ClawStr and ClawList are both three target words. ClawStr stores bytes, encoded capacity, then length.
 
     // Size of a pointer on the target architecture (8 bytes for x86_64/aarch64)
     const target_ptr_size: u32 = 8;
 
-    // Size of a RocStr struct: ptr + encoded capacity + length = 3 × pointer size (24 bytes on 64-bit)
+    // Size of a ClawStr struct: ptr + encoded capacity + length = 3 × pointer size (24 bytes on 64-bit)
     const roc_str_size: u32 = 3 * target_ptr_size;
     const small_str_max_len: u32 = roc_str_size - 1;
 
-    // Size of a RocList struct: ptr + length + capacity = 3 × pointer size (24 bytes on 64-bit)
+    // Size of a ClawList struct: ptr + length + capacity = 3 × pointer size (24 bytes on 64-bit)
     const roc_list_size: u32 = 3 * target_ptr_size;
 
     // Select architecture-specific types based on target
@@ -903,7 +903,7 @@ pub fn LirCodeGen(comptime target: RocTarget) type {
         /// Layout for early return result (to know how to move to return register)
         early_return_ret_layout: ?layout.Idx = null,
 
-        /// Register where RocOps pointer is saved (for calling builtins that need it)
+        /// Register where ClawOps pointer is saved (for calling builtins that need it)
         roc_ops_reg: ?GeneralReg = null,
 
         /// Proc currently being compiled, for debug-time invariant reporting.
@@ -1111,7 +1111,7 @@ pub fn LirCodeGen(comptime target: RocTarget) type {
             },
             /// 128-bit value on the stack (16 bytes: low at offset, high at offset+8)
             stack_i128: i32,
-            /// 24-byte string value on the stack (for RocStr: ptr/data, encoded capacity, length)
+            /// 24-byte string value on the stack (for ClawStr: ptr/data, encoded capacity, length)
             stack_str: i32,
             /// List value on the stack - tracks both struct and element locations
             /// for proper copying when returning lists
@@ -1355,7 +1355,7 @@ pub fn LirCodeGen(comptime target: RocTarget) type {
         ///
         /// The generated code follows the calling convention:
         /// - First arg (RDI/X0) contains the pointer to the result buffer
-        /// - Second arg (RSI/X1) contains the pointer to RocOps
+        /// - Second arg (RSI/X1) contains the pointer to ClawOps
         /// - The function writes the result to the result buffer and returns
         ///
         /// For tuples, pass tuple_len > 1 to copy all elements to the result buffer.
@@ -1386,10 +1386,10 @@ pub fn LirCodeGen(comptime target: RocTarget) type {
             const relocs_before = self.codegen.relocations.items.len;
 
             // Reserve argument registers so they don't get allocated for temporaries
-            // X0/RDI = result pointer, X1/RSI = RocOps pointer
+            // X0/RDI = result pointer, X1/RSI = ClawOps pointer
             self.reserveArgumentRegisters();
 
-            // Save the result pointer and RocOps pointer to callee-saved registers
+            // Save the result pointer and ClawOps pointer to callee-saved registers
             // before generating code that might call procedures (which would clobber them).
             const result_ptr_save_reg = if (comptime target.toCpuArch() == .aarch64)
                 aarch64.GeneralReg.X19
@@ -1523,7 +1523,7 @@ pub fn LirCodeGen(comptime target: RocTarget) type {
                 // Clear X0 and X1 from the free register mask
                 // X0 = bit 0, X1 = bit 1
                 self.codegen.free_general &= ~@as(u32, 0b11);
-                // Reserve X19 (result pointer) and X20 (RocOps pointer) - both callee-saved
+                // Reserve X19 (result pointer) and X20 (ClawOps pointer) - both callee-saved
                 // Must mark as used so they get saved/restored in prologue/epilogue
                 const x19_bit = @as(u32, 1) << @intFromEnum(aarch64.GeneralReg.X19);
                 const x20_bit = @as(u32, 1) << @intFromEnum(aarch64.GeneralReg.X20);
@@ -1535,7 +1535,7 @@ pub fn LirCodeGen(comptime target: RocTarget) type {
                 const rcx_bit = @as(u32, 1) << @intFromEnum(x86_64.GeneralReg.RCX);
                 const rdx_bit = @as(u32, 1) << @intFromEnum(x86_64.GeneralReg.RDX);
                 self.codegen.free_general &= ~(rcx_bit | rdx_bit);
-                // Reserve RBX (result pointer) and R12 (RocOps pointer) - both callee-saved
+                // Reserve RBX (result pointer) and R12 (ClawOps pointer) - both callee-saved
                 // Must mark as used so they get saved/restored in prologue/epilogue
                 const rbx_bit = @as(u32, 1) << @intFromEnum(x86_64.GeneralReg.RBX);
                 const r12_bit = @as(u32, 1) << @intFromEnum(x86_64.GeneralReg.R12);
@@ -1547,7 +1547,7 @@ pub fn LirCodeGen(comptime target: RocTarget) type {
                 const rdi_bit = @as(u32, 1) << @intFromEnum(x86_64.GeneralReg.RDI);
                 const rsi_bit = @as(u32, 1) << @intFromEnum(x86_64.GeneralReg.RSI);
                 self.codegen.free_general &= ~(rdi_bit | rsi_bit);
-                // Reserve RBX (result pointer) and R12 (RocOps pointer) - both callee-saved
+                // Reserve RBX (result pointer) and R12 (ClawOps pointer) - both callee-saved
                 // Must mark as used so they get saved/restored in prologue/epilogue
                 const rbx_bit = @as(u32, 1) << @intFromEnum(x86_64.GeneralReg.RBX);
                 const r12_bit = @as(u32, 1) << @intFromEnum(x86_64.GeneralReg.R12);
@@ -1634,7 +1634,7 @@ pub fn LirCodeGen(comptime target: RocTarget) type {
                 },
                 .list_with_capacity => {
                     // listWithCapacity(capacity, alignment, elem_width, elements_refcounted,
-                    //                  inc_context, inc, roc_ops) -> RocList
+                    //                  inc_context, inc, roc_ops) -> ClawList
                     if (args.len < 1) {
                         unreachable;
                     }
@@ -1650,7 +1650,7 @@ pub fn LirCodeGen(comptime target: RocTarget) type {
 
                     const fn_addr: usize = @intFromPtr(&dev_wrappers.roc_builtins_list_with_capacity);
 
-                    // Allocate stack space for result (RocList = 24 bytes)
+                    // Allocate stack space for result (ClawList = 24 bytes)
                     const result_offset = self.codegen.allocStackSlot(roc_str_size);
 
                     const cap_reg = try self.ensureInGeneralReg(capacity_loc);
@@ -1756,7 +1756,7 @@ pub fn LirCodeGen(comptime target: RocTarget) type {
                     else
                         try self.ensureOnStack(elem_loc, elem_size_align.size);
 
-                    // Allocate result slot (24 bytes for RocList)
+                    // Allocate result slot (24 bytes for ClawList)
                     const result_offset = self.codegen.allocStackSlot(roc_str_size);
 
                     const base_reg = frame_ptr;
@@ -4496,7 +4496,7 @@ pub fn LirCodeGen(comptime target: RocTarget) type {
                     return .{ .general_reg = dst_reg };
                 },
                 .crash => {
-                    // Runtime crash: call roc_crashed via RocOps.
+                    // Runtime crash: call roc_crashed via ClawOps.
                     // TODO: Implement forwarding the user's crash message string from args.
                     // DO NOT replace this with anything hardcoded. either implement it fully
                     // or LEAVE IT AS A PANIC.
@@ -5837,13 +5837,13 @@ pub fn LirCodeGen(comptime target: RocTarget) type {
             try self.emitLoad(.w64, cap_reg, frame_ptr, slot_offset + 8);
             try self.emitLoad(.w64, len_reg, frame_ptr, slot_offset + 16);
 
-            // Small RocStrs are stored inline and identified by the sign bit of length.
+            // Small ClawStrs are stored inline and identified by the sign bit of length.
             try self.codegen.emitLoadImm(tmp_reg, std.math.minInt(i64));
             try self.emitAndRegs(.w64, tmp_reg, tmp_reg, len_reg);
             try self.emitCmpImm(tmp_reg, 0);
             const small_patch = try self.emitJumpIfNotEqual();
 
-            // Non-small RocStrs must have a non-null bytes pointer.
+            // Non-small ClawStrs must have a non-null bytes pointer.
             try self.emitCmpImm(ptr_reg, 0);
             const ptr_non_null_patch = try self.emitJumpIfNotEqual();
             try self.emitDebugCrashInvalidStrLocal(local, "null bytes pointer");
@@ -5879,7 +5879,7 @@ pub fn LirCodeGen(comptime target: RocTarget) type {
             const after_seamless = self.codegen.currentOffset();
             self.codegen.patchJump(non_seamless_patch, after_seamless);
 
-            // Non-slice RocStrs must satisfy len <= decoded capacity.
+            // Non-slice ClawStrs must satisfy len <= decoded capacity.
             try self.codegen.emitLoadImm(tmp_reg, @alignOf(usize) - 1);
             try self.emitAndRegs(.w64, tmp_reg, tmp_reg, ptr_reg);
             try self.emitCmpImm(tmp_reg, 0);
@@ -5901,7 +5901,7 @@ pub fn LirCodeGen(comptime target: RocTarget) type {
         fn emitDebugCrashInvalidStrLocal(self: *Self, local: LocalId, reason: []const u8) Allocator.Error!void {
             const msg = try std.fmt.allocPrint(
                 self.allocator,
-                "LIR/codegen invariant violated: str local {d} received an invalid RocStr ({s}) at proc {d} stmt {d}",
+                "LIR/codegen invariant violated: str local {d} received an invalid ClawStr ({s}) at proc {d} stmt {d}",
                 .{
                     @intFromEnum(local),
                     reason,
@@ -6808,8 +6808,8 @@ pub fn LirCodeGen(comptime target: RocTarget) type {
                 .num_times => {
                     if (operand_layout == .dec) {
                         // Dec multiplication: call builtin function
-                        // mulSaturatedC(RocDec, RocDec) -> RocDec
-                        // RocDec is extern struct { num: i128 }
+                        // mulSaturatedC(ClawDec, ClawDec) -> ClawDec
+                        // ClawDec is extern struct { num: i128 }
                         try self.callDecMul(lhs_parts, rhs_parts, result_low, result_high);
                     } else {
                         // 128-bit multiply: (a_lo, a_hi) * (b_lo, b_hi)
@@ -6903,7 +6903,7 @@ pub fn LirCodeGen(comptime target: RocTarget) type {
                 .num_div_by => {
                     if (operand_layout == .dec) {
                         // Dec division: call builtin function
-                        // divC(RocDec, RocDec, *RocOps) -> i128
+                        // divC(ClawDec, ClawDec, *ClawOps) -> i128
                         try self.callDecDiv(lhs_parts, rhs_parts, result_low, result_high);
                     } else {
                         // 128-bit integer division: call builtin function
@@ -6913,7 +6913,7 @@ pub fn LirCodeGen(comptime target: RocTarget) type {
                 .num_div_trunc_by => {
                     if (operand_layout == .dec) {
                         // Dec truncating division: divide and truncate to whole number
-                        // divTruncC(RocDec, RocDec, *RocOps) -> i128
+                        // divTruncC(ClawDec, ClawDec, *ClawOps) -> i128
                         try self.callDecDivTrunc(lhs_parts, rhs_parts, result_low, result_high);
                     } else {
                         // 128-bit integer truncating division: same as regular i128 div
@@ -7630,7 +7630,7 @@ pub fn LirCodeGen(comptime target: RocTarget) type {
         }
 
         /// Call Dec multiplication builtin via decomposed wrapper.
-        /// Wrapper signature: (out_low: *u64, out_high: *u64, a_low: u64, a_high: u64, b_low: u64, b_high: u64, roc_ops: *RocOps) -> void
+        /// Wrapper signature: (out_low: *u64, out_high: *u64, a_low: u64, a_high: u64, b_low: u64, b_high: u64, roc_ops: *ClawOps) -> void
         fn callDecMul(self: *Self, lhs_parts: I128Parts, rhs_parts: I128Parts, result_low: GeneralReg, result_high: GeneralReg) Allocator.Error!void {
             const fn_addr = @intFromPtr(&dev_wrappers.roc_builtins_dec_mul);
             const roc_ops_reg = self.roc_ops_reg orelse unreachable;
@@ -7698,7 +7698,7 @@ pub fn LirCodeGen(comptime target: RocTarget) type {
         }
 
         /// Call Dec division builtin via decomposed wrapper.
-        /// Wrapper signature: (out_low: *u64, out_high: *u64, a_low: u64, a_high: u64, b_low: u64, b_high: u64, roc_ops: *RocOps) -> void
+        /// Wrapper signature: (out_low: *u64, out_high: *u64, a_low: u64, a_high: u64, b_low: u64, b_high: u64, roc_ops: *ClawOps) -> void
         fn callDecDiv(self: *Self, lhs_parts: I128Parts, rhs_parts: I128Parts, result_low: GeneralReg, result_high: GeneralReg) Allocator.Error!void {
             const fn_addr = @intFromPtr(&dev_wrappers.roc_builtins_dec_div);
             const roc_ops_reg = self.roc_ops_reg orelse unreachable;
@@ -7721,7 +7721,7 @@ pub fn LirCodeGen(comptime target: RocTarget) type {
         }
 
         /// Call Dec truncating division builtin via decomposed wrapper.
-        /// Wrapper signature: (out_low: *u64, out_high: *u64, a_low: u64, a_high: u64, b_low: u64, b_high: u64, roc_ops: *RocOps) -> void
+        /// Wrapper signature: (out_low: *u64, out_high: *u64, a_low: u64, a_high: u64, b_low: u64, b_high: u64, roc_ops: *ClawOps) -> void
         fn callDecDivTrunc(self: *Self, lhs_parts: I128Parts, rhs_parts: I128Parts, result_low: GeneralReg, result_high: GeneralReg) Allocator.Error!void {
             const fn_addr = @intFromPtr(&dev_wrappers.roc_builtins_dec_div_trunc);
             const roc_ops_reg = self.roc_ops_reg orelse unreachable;
@@ -7744,7 +7744,7 @@ pub fn LirCodeGen(comptime target: RocTarget) type {
         }
 
         /// Call i128/u128 division or remainder builtin via decomposed wrapper.
-        /// Wrapper signature: (out_low: *u64, out_high: *u64, a_low: u64, a_high: u64, b_low: u64, b_high: u64, roc_ops: *RocOps) -> void
+        /// Wrapper signature: (out_low: *u64, out_high: *u64, a_low: u64, a_high: u64, b_low: u64, b_high: u64, roc_ops: *ClawOps) -> void
         fn callI128DivRem(
             self: *Self,
             lhs_parts: I128Parts,
@@ -11400,9 +11400,9 @@ pub fn LirCodeGen(comptime target: RocTarget) type {
                 false;
 
             // Object-file output calls the host's linker symbol directly;
-            // RocOps-threaded modes dispatch through the hosted table.
+            // ClawOps-threaded modes dispatch through the hosted table.
             if (self.generation_mode.threadsRocOps()) {
-                const hosted_fns_offset: i32 = @intCast(@offsetOf(RocOps, "hosted_fns"));
+                const hosted_fns_offset: i32 = @intCast(@offsetOf(ClawOps, "hosted_fns"));
                 const hosted_fns_count_offset: i32 = hosted_fns_offset + @as(i32, @intCast(@offsetOf(HostedFunctions, "count")));
                 const hosted_fns_ptr_offset: i32 = hosted_fns_offset + @as(i32, @intCast(@offsetOf(HostedFunctions, "fns")));
                 const hosted_entry_offset: i32 = @intCast(@as(usize, hosted.dispatch_index) * @sizeOf(builtins.host_abi.HostedFn));
@@ -11720,7 +11720,7 @@ pub fn LirCodeGen(comptime target: RocTarget) type {
             const arg_infos = self.scratch_arg_infos.sliceFromStart(arg_infos_start);
             // Pass 2: Place arguments and emit call
             const initial_arg_reg_idx: u8 = if (needs_ret_ptr) 1 else 0;
-            // RocOps-threaded modes pass RocOps to procs; symbol-ABI output
+            // ClawOps-threaded modes pass ClawOps to procs; symbol-ABI output
             // carries none.
             const emit_roc_ops = self.generation_mode.threadsRocOps();
             const pbp_plan = try self.computePassByPtrPlan(arg_infos, initial_arg_reg_idx, emit_roc_ops);
@@ -12220,7 +12220,7 @@ pub fn LirCodeGen(comptime target: RocTarget) type {
                 .str => switch (loc) {
                     .immediate_i64, .immediate_i128 => if (builtin.mode == .Debug) {
                         std.debug.panic(
-                            "LIR/codegen invariant violated: scalar immediate cannot stand in for RocStr layout",
+                            "LIR/codegen invariant violated: scalar immediate cannot stand in for ClawStr layout",
                             .{},
                         );
                     } else unreachable,
@@ -12530,7 +12530,7 @@ pub fn LirCodeGen(comptime target: RocTarget) type {
                     // Strings are 24 bytes.
                     switch (loc) {
                         .stack_str => |stack_offset| {
-                            // Copy 24-byte RocStr struct from stack to result buffer
+                            // Copy 24-byte ClawStr struct from stack to result buffer
                             const temp_reg = try self.allocTempGeneral();
 
                             // Copy all 24 bytes (3 x 8-byte words)
@@ -12545,7 +12545,7 @@ pub fn LirCodeGen(comptime target: RocTarget) type {
                         },
                         .stack => |s| {
                             const stack_offset = s.offset;
-                            // Copy 24-byte RocStr struct from stack to result buffer
+                            // Copy 24-byte ClawStr struct from stack to result buffer
                             const temp_reg = try self.allocTempGeneral();
 
                             // Copy all 24 bytes (3 x 8-byte words)
@@ -14632,7 +14632,7 @@ pub fn LirCodeGen(comptime target: RocTarget) type {
                 }
             }
 
-            // RocOps-threaded modes append RocOps as the final argument, so
+            // ClawOps-threaded modes append ClawOps as the final argument, so
             // their plan reserves one extra register slot; the symbol ABI
             // appends nothing. This must mirror the caller-side plan in
             // computePassByPtrPlan exactly.
@@ -14741,7 +14741,7 @@ pub fn LirCodeGen(comptime target: RocTarget) type {
                 .R12;
 
             if (self.generation_mode.threadsRocOps()) {
-                // RocOps-threaded modes append a real RocOps as the final
+                // ClawOps-threaded modes append a real ClawOps as the final
                 // argument.
                 if (reg_idx < max_arg_regs) {
                     const arg_reg = self.getArgumentRegister(reg_idx);
@@ -14753,7 +14753,7 @@ pub fn LirCodeGen(comptime target: RocTarget) type {
                     try self.emitLoad(.w64, roc_ops_save_reg, caller_base, stack_arg_offset);
                 }
             } else {
-                // Symbol-ABI procs receive no RocOps. Builtins helper
+                // Symbol-ABI procs receive no ClawOps. Builtins helper
                 // signatures still carry an ops slot, which their extern
                 // flavor ignores; feed those calls a null.
                 try self.codegen.emitLoadImm(roc_ops_save_reg, 0);
@@ -15231,7 +15231,7 @@ pub fn LirCodeGen(comptime target: RocTarget) type {
                             const msg_offset = switch (msg_loc) {
                                 .stack_str => |offset| offset,
                                 else => std.debug.panic(
-                                    "Dev/codegen invariant violated: debug message local {d} did not lower to a RocStr stack value",
+                                    "Dev/codegen invariant violated: debug message local {d} did not lower to a ClawStr stack value",
                                     .{@intFromEnum(debug_stmt.message)},
                                 ),
                             };
@@ -15254,7 +15254,7 @@ pub fn LirCodeGen(comptime target: RocTarget) type {
                             const msg_offset = switch (msg_loc) {
                                 .stack_str => |offset| offset,
                                 else => std.debug.panic(
-                                    "Dev/codegen invariant violated: expect_err message local {d} did not lower to a RocStr stack value",
+                                    "Dev/codegen invariant violated: expect_err message local {d} did not lower to a ClawStr stack value",
                                     .{@intFromEnum(expect_err_stmt.message)},
                                 ),
                             };
@@ -15695,7 +15695,7 @@ pub fn LirCodeGen(comptime target: RocTarget) type {
             const source_offset = switch (source_loc) {
                 .stack_str => |offset| offset,
                 else => std.debug.panic(
-                    "LIR/codegen invariant violated: str_match source local {d} did not lower to a RocStr stack value",
+                    "LIR/codegen invariant violated: str_match source local {d} did not lower to a ClawStr stack value",
                     .{@intFromEnum(source)},
                 ),
             };
@@ -16301,8 +16301,8 @@ pub fn LirCodeGen(comptime target: RocTarget) type {
             const msg_len_val: i64 = @bitCast(@as(u64, msg.len));
 
             if (self.generation_mode.threadsRocOps()) {
-                // RocOps-threaded modes reach host callbacks through RocOps:
-                // callback(ops: *RocOps, bytes: [*]const u8, len: usize).
+                // ClawOps-threaded modes reach host callbacks through ClawOps:
+                // callback(ops: *ClawOps, bytes: [*]const u8, len: usize).
                 const fn_ptr_reg: GeneralReg = if (comptime target.toCpuArch() == .aarch64) .X10 else .RAX;
                 try self.emitLoad(.w64, fn_ptr_reg, roc_ops_reg, field_offset);
 
@@ -16314,9 +16314,9 @@ pub fn LirCodeGen(comptime target: RocTarget) type {
             } else {
                 // Object files call the host's fixed runtime symbol directly:
                 // symbol(bytes: [*]const u8, len: usize).
-                const symbol_name: []const u8 = if (field_offset == @offsetOf(RocOps, "roc_crashed"))
+                const symbol_name: []const u8 = if (field_offset == @offsetOf(ClawOps, "roc_crashed"))
                     "roc_crashed"
-                else if (field_offset == @offsetOf(RocOps, "roc_expect_failed"))
+                else if (field_offset == @offsetOf(ClawOps, "roc_expect_failed"))
                     "roc_expect_failed"
                 else
                     "roc_dbg";
@@ -16345,7 +16345,7 @@ pub fn LirCodeGen(comptime target: RocTarget) type {
         }
 
         fn emitRocExpectFailed(self: *Self) Allocator.Error!void {
-            try self.emitRocStaticMessageCall(@offsetOf(RocOps, "roc_expect_failed"), "expect failed");
+            try self.emitRocStaticMessageCall(@offsetOf(ClawOps, "roc_expect_failed"), "expect failed");
         }
 
         fn emitComptimeBranchTaken(
@@ -16413,10 +16413,10 @@ pub fn LirCodeGen(comptime target: RocTarget) type {
             try builder.call(@intFromPtr(hooks.call_exit));
         }
 
-        /// Emit a roc_crashed call via RocOps with a static message.
+        /// Emit a roc_crashed call via ClawOps with a static message.
         fn emitRocCrash(self: *Self, msg: []const u8) Allocator.Error!void {
             if (self.comptime_hooks) |hooks| try self.emitComptimeFailureRegion(hooks);
-            try self.emitRocStaticMessageCall(@offsetOf(RocOps, "roc_crashed"), msg);
+            try self.emitRocStaticMessageCall(@offsetOf(ClawOps, "roc_crashed"), msg);
         }
 
         /// Same as `emitRocCrash`, but reuses a per-proc shared msg/args slot.
@@ -16424,7 +16424,7 @@ pub fn LirCodeGen(comptime target: RocTarget) type {
         /// run (the program exits immediately after).
         fn emitRocCrashShared(self: *Self, msg: []const u8) Allocator.Error!void {
             if (self.comptime_hooks) |hooks| try self.emitComptimeFailureRegion(hooks);
-            try self.emitRocStaticDebugMessageCall(@offsetOf(RocOps, "roc_crashed"), msg);
+            try self.emitRocStaticDebugMessageCall(@offsetOf(ClawOps, "roc_crashed"), msg);
         }
 
         fn emitTrap(self: *Self) Allocator.Error!void {
@@ -16486,7 +16486,7 @@ pub fn LirCodeGen(comptime target: RocTarget) type {
                 const relocs_before = self.codegen.relocations.items.len;
 
                 if (self.generation_mode.threadsRocOps()) {
-                    // RocOps-threaded modes call the wrapper with the
+                    // ClawOps-threaded modes call the wrapper with the
                     // (ops, ret_ptr, args_ptr) convention.
                     try self.codegen.emit.movRegReg(.w64, .X19, .X0);
                     try self.codegen.emit.movRegReg(.w64, .X20, .X1);
@@ -16495,7 +16495,7 @@ pub fn LirCodeGen(comptime target: RocTarget) type {
                     try self.generateEntrypointProcCall(entry_proc, arg_layouts, ret_layout, .X20, .X21);
                 } else {
                     // Object files export natural C-ABI entrypoints; the
-                    // internal convention's RocOps is null under the symbol
+                    // internal convention's ClawOps is null under the symbol
                     // ABI. The incoming sret pointer (if any) is captured into
                     // X20 inside generateEntrypointBodyCAbi before X19 is
                     // written.
@@ -16577,7 +16577,7 @@ pub fn LirCodeGen(comptime target: RocTarget) type {
                 const relocs_before = self.codegen.relocations.items.len;
 
                 if (self.generation_mode.threadsRocOps()) {
-                    // RocOps-threaded modes call the wrapper with the
+                    // ClawOps-threaded modes call the wrapper with the
                     // (ops, ret_ptr, args_ptr) convention.
                     if (target.isWindows()) {
                         try self.codegen.emit.movRegReg(.w64, .R12, .RCX);
@@ -16592,7 +16592,7 @@ pub fn LirCodeGen(comptime target: RocTarget) type {
                     try self.generateEntrypointProcCall(entry_proc, arg_layouts, ret_layout, .RBX, .R13);
                 } else {
                     // Object files export natural C-ABI entrypoints; the
-                    // internal convention's RocOps is null under the symbol
+                    // internal convention's ClawOps is null under the symbol
                     // ABI. The incoming sret pointer (if any) is captured into
                     // RBX inside generateEntrypointBodyCAbi before R12 is
                     // written.
@@ -16914,7 +16914,7 @@ pub fn LirCodeGen(comptime target: RocTarget) type {
 
         /// Generate the body of a natural C-ABI entrypoint wrapper: capture
         /// the incoming C-ABI arguments into stack slots, call the compiled
-        /// proc through the internal convention with a null RocOps, and
+        /// proc through the internal convention with a null ClawOps, and
         /// marshal the result back out per the C ABI.
         fn generateEntrypointBodyCAbi(
             self: *Self,
@@ -17117,7 +17117,7 @@ pub fn LirCodeGen(comptime target: RocTarget) type {
                 }
             }
 
-            // With every argument register captured, the RocOps register can
+            // With every argument register captured, the ClawOps register can
             // be claimed; the symbol ABI has no host vtable, so it is null.
             const null_ops_reg: GeneralReg = if (comptime target.toCpuArch() == .aarch64) .X19 else .R12;
             try self.codegen.emitLoadImm(null_ops_reg, 0);
@@ -17335,7 +17335,7 @@ pub const X64LinuxLirCodeGen = LirCodeGen(.x64linux);
 /// x86_64 ELF (generic)
 pub const X64ElfLirCodeGen = LirCodeGen(.x64elf);
 
-const host_lir_codegen_target = RocTarget.detectNative();
+const host_lir_codegen_target = ClawTarget.detectNative();
 
 /// Whether this compiler build has a fast native dev backend for the target it
 /// is being compiled to run on.
@@ -17380,7 +17380,7 @@ const TestLayoutState = struct {
 
 const TestRocOps = struct {
     allocator: Allocator,
-    roc_ops: RocOps,
+    roc_ops: ClawOps,
 
     fn init(allocator: Allocator) TestRocOps {
         return .{
@@ -17398,7 +17398,7 @@ const TestRocOps = struct {
         };
     }
 
-    fn getOps(self: *TestRocOps) *RocOps {
+    fn getOps(self: *TestRocOps) *ClawOps {
         self.roc_ops.env = @ptrCast(self);
         return &self.roc_ops;
     }
@@ -17407,7 +17407,7 @@ const TestRocOps = struct {
         return @max(alignment, @alignOf(usize));
     }
 
-    fn rocAlloc(ops: *RocOps, length: usize, alignment: usize) callconv(.c) ?*anyopaque {
+    fn rocAlloc(ops: *ClawOps, length: usize, alignment: usize) callconv(.c) ?*anyopaque {
         const self: *TestRocOps = @ptrCast(@alignCast(ops.env));
         const align_enum = std.mem.Alignment.fromByteUnits(alignment);
         const meta = metaBytes(alignment);
@@ -17419,7 +17419,7 @@ const TestRocOps = struct {
         return @ptrFromInt(@intFromPtr(alloc_base) + meta);
     }
 
-    fn rocDealloc(ops: *RocOps, ptr: *anyopaque, alignment: usize) callconv(.c) void {
+    fn rocDealloc(ops: *ClawOps, ptr: *anyopaque, alignment: usize) callconv(.c) void {
         const self: *TestRocOps = @ptrCast(@alignCast(ops.env));
         const meta = metaBytes(alignment);
         const total_ptr: *const usize = @ptrFromInt(@intFromPtr(ptr) - @sizeOf(usize));
@@ -17429,7 +17429,7 @@ const TestRocOps = struct {
         self.allocator.rawFree(alloc_base[0..total], align_enum, @returnAddress());
     }
 
-    fn rocRealloc(ops: *RocOps, ptr: *anyopaque, new_length: usize, alignment: usize) callconv(.c) ?*anyopaque {
+    fn rocRealloc(ops: *ClawOps, ptr: *anyopaque, new_length: usize, alignment: usize) callconv(.c) ?*anyopaque {
         const self: *TestRocOps = @ptrCast(@alignCast(ops.env));
         const meta = metaBytes(alignment);
         const old_total_ptr: *const usize = @ptrFromInt(@intFromPtr(ptr) - @sizeOf(usize));
@@ -17446,15 +17446,15 @@ const TestRocOps = struct {
         return @ptrFromInt(@intFromPtr(new_base) + meta);
     }
 
-    fn rocDbg(_: *RocOps, _: [*]const u8, _: usize) callconv(.c) void {
+    fn rocDbg(_: *ClawOps, _: [*]const u8, _: usize) callconv(.c) void {
         @panic("unexpected dbg in TestRocOps");
     }
 
-    fn rocExpectFailed(_: *RocOps, _: [*]const u8, _: usize) callconv(.c) void {
+    fn rocExpectFailed(_: *ClawOps, _: [*]const u8, _: usize) callconv(.c) void {
         @panic("unexpected expect failure in TestRocOps");
     }
 
-    fn rocCrashed(_: *RocOps, bytes: [*]const u8, len: usize) callconv(.c) void {
+    fn rocCrashed(_: *ClawOps, bytes: [*]const u8, len: usize) callconv(.c) void {
         std.debug.panic("roc crashed: {s}", .{bytes[0..len]});
     }
 };

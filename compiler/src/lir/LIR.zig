@@ -149,7 +149,7 @@ pub const StrPatternEnd = enum {
 pub const StrMatchCapture = union(enum) {
     discard,
     /// A borrowed `Str` view into the `str_match.source` bytes on the match
-    /// edge. This is not an eagerly materialized RocStr; consumers that need an
+    /// edge. This is not an eagerly materialized ClawStr; consumers that need an
     /// owned string must materialize the view at the use site.
     view: LocalId,
 };

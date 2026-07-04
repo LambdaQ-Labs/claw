@@ -60,7 +60,7 @@ pub const Error = error{ TooManyRegisters, TooManyStackBytes, UnsupportedArch };
 
 /// Call hosted function `target` with the platform C ABI. `args_buf` holds the arguments
 /// packed in Roc layout order (the interpreter's existing buffer); `ret_buf` receives the
-/// return value. Hosted functions take their natural C ABI: no RocOps is passed.
+/// return value. Hosted functions take their natural C ABI: no ClawOps is passed.
 pub fn call(
     store: *const Store,
     arena: std.mem.Allocator,
@@ -80,7 +80,7 @@ pub fn call(
     };
 
     // Hosted functions take their natural C ABI under the symbol ABI: the host
-    // reaches its own runtime operations directly, so no leading *RocOps.
+    // reaches its own runtime operations directly, so no leading *ClawOps.
     const lowered = layout.abi.lower(arena, store, target_abi, arg_layouts, ret_layout, false) catch return Error.TooManyRegisters;
 
     var gp: [max_gp]u64 = @splat(0);

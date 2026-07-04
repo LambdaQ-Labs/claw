@@ -18,7 +18,7 @@
 
 const std = @import("std");
 const Allocator = std.mem.Allocator;
-const RocTarget = @import("roc_target").RocTarget;
+const ClawTarget = @import("roc_target").ClawTarget;
 
 const x86_64 = @import("x86_64/mod.zig");
 const aarch64 = @import("aarch64/mod.zig");
@@ -59,7 +59,7 @@ pub const CallingConvention = struct {
     const AAPCS64_PARAM_REGS = [_]aarch64.GeneralReg{ .X0, .X1, .X2, .X3, .X4, .X5, .X6, .X7 };
 
     /// Create calling convention for a given target
-    pub fn forTarget(target: RocTarget) CallingConvention {
+    pub fn forTarget(target: ClawTarget) CallingConvention {
         return switch (target.toCpuArch()) {
             .x86_64 => if (target.isWindows())
                 CallingConvention{
@@ -91,7 +91,7 @@ pub const CallingConvention = struct {
         };
     }
 
-    fn unsupportedArchCallingConvention(target: RocTarget) CallingConvention {
+    fn unsupportedArchCallingConvention(target: ClawTarget) CallingConvention {
         if (std.debug.runtime_safety) {
             std.debug.panic("CallingConvention.forTarget called for unsupported arch: {s}", .{@tagName(target.toCpuArch())});
         }
@@ -234,7 +234,7 @@ pub fn CallBuilder(comptime EmitType: type) type {
             var self = Self{ .emit = emit, .stack_offset = stack_offset };
             if (comptime is_x86_64 and is_windows) {
                 // Allocate 16-byte slot for R12 save to maintain 16-byte alignment
-                // for subsequent allocations (important for i128/RocDec which need
+                // for subsequent allocations (important for i128/ClawDec which need
                 // 16-byte aligned addresses when passed by pointer)
                 stack_offset.* -= 16;
                 self.r12_save_offset = stack_offset.*;
@@ -1264,7 +1264,7 @@ test "CallBuilder with automatic R12 save/restore on Windows x64" {
     const builder = try Builder.init(&emit, &stack_offset);
 
     // On Windows, should have emitted: mov [rbp-32], r12 and allocated 16 bytes
-    // (16 bytes to maintain 16-byte alignment for i128/RocDec arguments)
+    // (16 bytes to maintain 16-byte alignment for i128/ClawDec arguments)
     try std.testing.expect(emit.buf.items.len > 0);
     try std.testing.expectEqual(@as(i32, -32), stack_offset); // 16 bytes allocated
     try std.testing.expectEqual(@as(?i32, -32), builder.r12_save_offset);

@@ -27,13 +27,13 @@ pub const Target = call.Target;
 pub const lower = call.lower;
 
 /// Whether a hosted function with these argument and return layouts must be passed a leading
-/// `*RocOps` — i.e. whether it could allocate or free Roc-managed memory. True exactly when
+/// `*ClawOps` — i.e. whether it could allocate or free Roc-managed memory. True exactly when
 /// its return type or any argument type transitively contains a heap-allocated (refcounted)
 /// Roc value (List, Str, Box, recursive union), which is when the host needs the allocator
-/// vtable. A function over only flat scalars/structs is a bare C call with no `*RocOps`.
+/// vtable. A function over only flat scalars/structs is a bare C call with no `*ClawOps`.
 ///
 /// Both the backends (deciding whether to thread `roc_ops` at a hosted call site) and glue
-/// (deciding whether to emit the `*RocOps` parameter) call this, so the two sides agree by
+/// (deciding whether to emit the `*ClawOps` parameter) call this, so the two sides agree by
 /// construction.
 pub fn needsRocOps(store: *const Store, arg_idxs: []const Idx, ret_idx: Idx) bool {
     if (store.layoutContainsRefcounted(store.getLayout(ret_idx))) return true;

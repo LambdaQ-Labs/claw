@@ -369,7 +369,7 @@ pub const ModuleType = enum {
 };
 
 /// Manages all Roc compiler modules and their dependencies
-pub const RocModules = struct {
+pub const ClawModules = struct {
     collections: *Module,
     base: *Module,
     roc_src: *Module,
@@ -420,8 +420,8 @@ pub const RocModules = struct {
     vendor_llvm_ir: *Module,
     vendor_llvm_compile_bindings: *Module,
 
-    pub fn create(b: *Build, build_options_step: *Step.Options, zstd: ?*Dependency) RocModules {
-        const self = RocModules{
+    pub fn create(b: *Build, build_options_step: *Step.Options, zstd: ?*Dependency) ClawModules {
+        const self = ClawModules{
             .collections = b.addModule(
                 "collections",
                 .{ .root_source_file = b.path("src/collections/mod.zig") },
@@ -508,7 +508,7 @@ pub const RocModules = struct {
         return self;
     }
 
-    fn setupModuleDependencies(self: RocModules) void {
+    fn setupModuleDependencies(self: ClawModules) void {
         const all_modules = [_]ModuleType{
             .collections,
             .base,
@@ -566,7 +566,7 @@ pub const RocModules = struct {
     /// them. Called for both the persistent modules and the per-module test
     /// builds, so a `@import("vendor_x")` resolves in both. Vendored modules
     /// are deliberately not part of the `ModuleType` dependency graph.
-    fn applyVendorImports(self: RocModules, module: *Module, module_type: ModuleType) void {
+    fn applyVendorImports(self: ClawModules, module: *Module, module_type: ModuleType) void {
         switch (module_type) {
             .builtins => {
                 module.addImport("vendor_parse_float", self.vendor_parse_float);
@@ -579,7 +579,7 @@ pub const RocModules = struct {
         }
     }
 
-    pub fn addAll(self: RocModules, step: *Step.Compile) void {
+    pub fn addAll(self: ClawModules, step: *Step.Compile) void {
         const is_wasm = step.rootModuleTarget().cpu.arch == .wasm32;
 
         step.root_module.addImport("base", self.base);
@@ -626,12 +626,12 @@ pub const RocModules = struct {
         }
     }
 
-    pub fn addAllToTest(self: RocModules, step: *Step.Compile) void {
+    pub fn addAllToTest(self: ClawModules, step: *Step.Compile) void {
         self.addAll(step);
     }
 
     /// Get a module by its type
-    pub fn getModule(self: RocModules, module_type: ModuleType) *Module {
+    pub fn getModule(self: ClawModules, module_type: ModuleType) *Module {
         return switch (module_type) {
             .collections => self.collections,
             .base => self.base,
@@ -674,7 +674,7 @@ pub const RocModules = struct {
     }
 
     /// Add dependencies for a specific module type to a compile step
-    pub fn addModuleDependencies(self: RocModules, step: *Step.Compile, module_type: ModuleType) void {
+    pub fn addModuleDependencies(self: ClawModules, step: *Step.Compile, module_type: ModuleType) void {
         const dependencies = module_type.getDependencies();
         for (dependencies) |dep_type| {
             const dep_module = self.getModule(dep_type);
@@ -684,7 +684,7 @@ pub const RocModules = struct {
     }
 
     pub fn createModuleTests(
-        self: RocModules,
+        self: ClawModules,
         b: *Build,
         target: ResolvedTarget,
         optimize: OptimizeMode,

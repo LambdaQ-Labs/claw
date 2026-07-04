@@ -66,13 +66,13 @@ const LocalSpan = LIR.LocalSpan;
 const Layout = layout_mod.Layout;
 const Value = lir_value.Value;
 const LayoutHelper = lir_value.LayoutHelper;
-const RocDec = builtins.dec.RocDec;
+const ClawDec = builtins.dec.ClawDec;
 const dev_wrappers = builtins.dev_wrappers;
 
 // Builtin types for direct dispatch
-const RocStr = builtins.str.RocStr;
-const RocList = builtins.list.RocList;
-const RocOps = builtins.host_abi.RocOps;
+const ClawStr = builtins.str.ClawStr;
+const ClawList = builtins.list.ClawList;
+const ClawOps = builtins.host_abi.ClawOps;
 const UpdateMode = builtins.utils.UpdateMode;
 const JmpBuf = sljmp.JmpBuf;
 const setjmp = sljmp.setjmp;
@@ -84,9 +84,9 @@ pub const ExpectFailure = struct {
     loc: base.SourceLoc,
 };
 
-/// Environment for interpreter-managed RocOps forwarding.
+/// Environment for interpreter-managed ClawOps forwarding.
 ///
-/// The interpreter always evaluates with the RocOps it was initialized with.
+/// The interpreter always evaluates with the ClawOps it was initialized with.
 /// These callbacks forward the caller's alloc/dealloc/realloc/dbg/expect/crash
 /// hooks while retaining local bookkeeping for crash and expect messages so
 /// hosts that care can inspect the last message after evaluation.
@@ -101,9 +101,9 @@ const InterpreterRocEnv = struct {
     expect_err_region: ?base.Region = null,
     jmp_buf: JmpBuf = undefined,
     active_jmp_buf: ?*JmpBuf = null,
-    caller_roc_ops: *RocOps,
+    caller_roc_ops: *ClawOps,
 
-    fn init(allocator: Allocator, caller_roc_ops: *RocOps) InterpreterRocEnv {
+    fn init(allocator: Allocator, caller_roc_ops: *ClawOps) InterpreterRocEnv {
         return .{
             .allocator = allocator,
             .caller_roc_ops = caller_roc_ops,
@@ -147,7 +147,7 @@ const InterpreterRocEnv = struct {
         self.active_jmp_buf = prev;
     }
 
-    fn currentRocOps(self: *InterpreterRocEnv) *RocOps {
+    fn currentRocOps(self: *InterpreterRocEnv) *ClawOps {
         return self.caller_roc_ops;
     }
 
@@ -180,7 +180,7 @@ const InterpreterRocEnv = struct {
     }
 
     /// The host allocators signal OOM by returning a null pointer (see
-    /// `host_abi.RocOps.roc_alloc`). Turn that into a Roc crash that unwinds to
+    /// `host_abi.ClawOps.roc_alloc`). Turn that into a Roc crash that unwinds to
     /// the eval boundary via the active jump buffer, instead of letting it abort.
     fn crashAllocationFailed(self: *InterpreterRocEnv) noreturn {
         self.reportCrash("ran out of memory");
@@ -199,7 +199,7 @@ const InterpreterRocEnv = struct {
         longjmp(active_jmp_buf, 1);
     }
 
-    fn rocAllocFn(ops: *RocOps, length: usize, alignment: usize) callconv(.c) ?*anyopaque {
+    fn rocAllocFn(ops: *ClawOps, length: usize, alignment: usize) callconv(.c) ?*anyopaque {
         const self: *InterpreterRocEnv = @ptrCast(@alignCast(ops.env));
         const caller_roc_ops = self.currentRocOps();
         const ptr = caller_roc_ops.roc_alloc(caller_roc_ops, length, alignment) orelse self.crashAllocationFailed();
@@ -207,14 +207,14 @@ const InterpreterRocEnv = struct {
         return ptr;
     }
 
-    fn rocDeallocFn(ops: *RocOps, ptr: *anyopaque, alignment: usize) callconv(.c) void {
+    fn rocDeallocFn(ops: *ClawOps, ptr: *anyopaque, alignment: usize) callconv(.c) void {
         const self: *InterpreterRocEnv = @ptrCast(@alignCast(ops.env));
         trace_rc.log("dealloc: ptr=0x{x} align={d}", .{ @intFromPtr(ptr), alignment });
         const caller_roc_ops = self.currentRocOps();
         caller_roc_ops.roc_dealloc(caller_roc_ops, ptr, alignment);
     }
 
-    fn rocReallocFn(ops: *RocOps, ptr: *anyopaque, new_length: usize, alignment: usize) callconv(.c) ?*anyopaque {
+    fn rocReallocFn(ops: *ClawOps, ptr: *anyopaque, new_length: usize, alignment: usize) callconv(.c) ?*anyopaque {
         const self: *InterpreterRocEnv = @ptrCast(@alignCast(ops.env));
         const caller_roc_ops = self.currentRocOps();
         const old_ptr = ptr;
@@ -223,13 +223,13 @@ const InterpreterRocEnv = struct {
         return new_ptr;
     }
 
-    fn rocDbgFn(ops: *RocOps, bytes: [*]const u8, len: usize) callconv(.c) void {
+    fn rocDbgFn(ops: *ClawOps, bytes: [*]const u8, len: usize) callconv(.c) void {
         const self: *InterpreterRocEnv = @ptrCast(@alignCast(ops.env));
         const caller_roc_ops = self.currentRocOps();
         caller_roc_ops.roc_dbg(caller_roc_ops, bytes, len);
     }
 
-    fn rocExpectFailedFn(ops: *RocOps, bytes: [*]const u8, len: usize) callconv(.c) void {
+    fn rocExpectFailedFn(ops: *ClawOps, bytes: [*]const u8, len: usize) callconv(.c) void {
         const self: *InterpreterRocEnv = @ptrCast(@alignCast(ops.env));
         const caller_roc_ops = self.currentRocOps();
         caller_roc_ops.roc_expect_failed(caller_roc_ops, bytes, len);
@@ -239,7 +239,7 @@ const InterpreterRocEnv = struct {
         }
     }
 
-    fn rocCrashedFn(ops: *RocOps, bytes: [*]const u8, len: usize) callconv(.c) void {
+    fn rocCrashedFn(ops: *ClawOps, bytes: [*]const u8, len: usize) callconv(.c) void {
         const self: *InterpreterRocEnv = @ptrCast(@alignCast(ops.env));
         const msg = bytes[0..len];
         self.reportCrash(msg);
@@ -292,9 +292,9 @@ pub const Interpreter = struct {
     helper: LayoutHelper,
     /// Arena for interpreter-allocated memory (temporaries, copies).
     arena: base.SingleThreadArena,
-    /// RocOps environment for builtin dispatch.
+    /// ClawOps environment for builtin dispatch.
     roc_env: *InterpreterRocEnv,
-    roc_ops: RocOps,
+    roc_ops: ClawOps,
     frame_plans: []FramePlan,
     rc_presence: []RcPresence,
     rc_plans: std.AutoHashMapUnmanaged(u64, layout_mod.RcHelperPlan) = .{},
@@ -488,7 +488,7 @@ pub const Interpreter = struct {
         allocator: Allocator,
         store: *const LirStore,
         layout_store: *const layout_mod.Store,
-        caller_roc_ops: *RocOps,
+        caller_roc_ops: *ClawOps,
     ) Allocator.Error!LirInterpreter {
         const frame_plans = try buildFramePlans(allocator, store);
         errdefer deinitFramePlans(allocator, frame_plans);
@@ -515,7 +515,7 @@ pub const Interpreter = struct {
             .helper = LayoutHelper.init(layout_store),
             .arena = base.SingleThreadArena.init(allocator),
             .roc_env = roc_env,
-            .roc_ops = RocOps{
+            .roc_ops = ClawOps{
                 .env = @ptrCast(roc_env),
                 .roc_alloc = &InterpreterRocEnv.rocAllocFn,
                 .roc_dealloc = &InterpreterRocEnv.rocDeallocFn,
@@ -779,7 +779,7 @@ pub const Interpreter = struct {
         self.invariantFailed(fmt, args);
     }
 
-    fn currentRocOps(self: *LirInterpreter) *RocOps {
+    fn currentRocOps(self: *LirInterpreter) *ClawOps {
         return self.roc_env.currentRocOps();
     }
 
@@ -791,12 +791,12 @@ pub const Interpreter = struct {
         return Value.fromSlice(slice);
     }
 
-    fn allocAlignedBytes(self: *LirInterpreter, size: usize, alignment: layout_mod.RocAlignment) Error!Value {
+    fn allocAlignedBytes(self: *LirInterpreter, size: usize, alignment: layout_mod.ClawAlignment) Error!Value {
         if (size == 0) return Value.zst;
         return Value.fromSlice(try self.allocAlignedByteSlice(size, alignment));
     }
 
-    fn allocAlignedByteSlice(self: *LirInterpreter, size: usize, alignment: layout_mod.RocAlignment) Error![]u8 {
+    fn allocAlignedByteSlice(self: *LirInterpreter, size: usize, alignment: layout_mod.ClawAlignment) Error![]u8 {
         const slice = switch (alignment) {
             .@"1" => self.arena.allocator().alignedAlloc(u8, .@"1", size),
             .@"2" => self.arena.allocator().alignedAlloc(u8, .@"2", size),
@@ -817,12 +817,12 @@ pub const Interpreter = struct {
         return Value.fromSlice(slice);
     }
 
-    fn maxRocAlignment(a: layout_mod.RocAlignment, b: layout_mod.RocAlignment) layout_mod.RocAlignment {
+    fn maxRocAlignment(a: layout_mod.ClawAlignment, b: layout_mod.ClawAlignment) layout_mod.ClawAlignment {
         return if (@intFromEnum(a) >= @intFromEnum(b)) a else b;
     }
 
     /// Allocate heap data through roc_ops with a refcount header.
-    /// Use this for data that RocList.bytes or RocStr.bytes will point to,
+    /// Use this for data that ClawList.bytes or ClawStr.bytes will point to,
     /// so builtins can safely call isUnique()/decref() on it.
     fn allocRocDataWithRc(self: *LirInterpreter, data_bytes: usize, element_alignment: u32, elements_refcounted: bool) Error![*]u8 {
         var crash_boundary = self.enterCrashBoundary();
@@ -888,7 +888,7 @@ pub const Interpreter = struct {
     }
 
     /// Look up the platform entrypoint by ordinal, build its argument layout
-    /// list from the proc spec, and run it with the RocOps bound at init.
+    /// list from the proc spec, and run it with the ClawOps bound at init.
     ///
     /// Returns `error.EntrypointNotFound` if no entrypoint matches `ordinal`.
     /// Other errors come from `eval`.
@@ -925,7 +925,7 @@ pub const Interpreter = struct {
         });
     }
 
-    /// Evaluate a proc-root LIR program using the RocOps bound at initialization time.
+    /// Evaluate a proc-root LIR program using the ClawOps bound at initialization time.
     pub fn eval(self: *LirInterpreter, request: EvalRequest) Error!EvalResult {
         self.roc_env.resetForEval();
         self.call_stack.clearRetainingCapacity();
@@ -1093,7 +1093,7 @@ pub const Interpreter = struct {
                             local_id,
                             layout_idx,
                             path_buf[0..path_len],
-                            "non-small RocStr had null bytes pointer",
+                            "non-small ClawStr had null bytes pointer",
                         );
                     }
                 }
@@ -1163,7 +1163,7 @@ pub const Interpreter = struct {
                         local_id,
                         layout_idx,
                         path_buf[0..path_len],
-                        "list value used ZST sentinel instead of RocList bytes",
+                        "list value used ZST sentinel instead of ClawList bytes",
                     );
                 }
                 const list = valueToRocList(value);
@@ -1212,7 +1212,7 @@ pub const Interpreter = struct {
                         local_id,
                         layout_idx,
                         path_buf[0..path_len],
-                        "list_of_zst value used ZST sentinel instead of RocList bytes",
+                        "list_of_zst value used ZST sentinel instead of ClawList bytes",
                     );
                 }
             },
@@ -2746,7 +2746,7 @@ pub const Interpreter = struct {
             size += size_align.size;
             max_align = @max(max_align, size_align.alignment.toByteUnits());
         }
-        return .{ .size = @intCast(size), .alignment = layout_mod.RocAlignment.fromByteUnits(@intCast(max_align)) };
+        return .{ .size = @intCast(size), .alignment = layout_mod.ClawAlignment.fromByteUnits(@intCast(max_align)) };
     }
 
     fn argsStructOffset(self: *LirInterpreter, arg_layouts: []const layout_mod.Idx, index: usize) u32 {
@@ -2762,7 +2762,7 @@ pub const Interpreter = struct {
     }
 
     fn interpreterErasedCallableTrampoline(
-        ops: *RocOps,
+        ops: *ClawOps,
         ret: ?[*]u8,
         args: ?[*]const u8,
         capture: ?[*]u8,
@@ -2780,7 +2780,7 @@ pub const Interpreter = struct {
         };
     }
 
-    fn interpreterErasedCallableOnDrop(capture: ?[*]u8, _: *RocOps) callconv(.c) void {
+    fn interpreterErasedCallableOnDrop(capture: ?[*]u8, _: *ClawOps) callconv(.c) void {
         const context = erasedCallableInterpreterContextFromCapture(capture);
         const capture_layout: layout_mod.Idx = if (context.capture_layout_plus_one == 0)
             return
@@ -2794,7 +2794,7 @@ pub const Interpreter = struct {
     fn callInterpreterErasedCallable(
         self: *LirInterpreter,
         context: *ErasedCallableInterpreterContext,
-        _: *RocOps,
+        _: *ClawOps,
         ret: ?[*]u8,
         args: ?[*]const u8,
     ) Error!void {
@@ -3254,7 +3254,7 @@ pub const Interpreter = struct {
         return self.rocListToValue(.{
             .bytes = elem_data,
             .length = elem_locals.len,
-            .capacity_or_alloc_ptr = builtins.list.RocList.encodeCapacity(elem_locals.len),
+            .capacity_or_alloc_ptr = builtins.list.ClawList.encodeCapacity(elem_locals.len),
         }, list_layout);
     }
 
@@ -3269,7 +3269,7 @@ pub const Interpreter = struct {
         // Pack arguments into a buffer in Roc layout order, recording each argument's offset
         // so the C-ABI trampoline can scatter them into registers.
         var total_args_size: usize = 0;
-        var args_alignment: layout_mod.RocAlignment = .@"1";
+        var args_alignment: layout_mod.ClawAlignment = .@"1";
         const arg_offsets = try self.allocator.alloc(u32, arg_layouts.len);
         defer self.allocator.free(arg_offsets);
         for (arg_layouts, arg_offsets) |arg_layout, *arg_offset| {
@@ -3411,7 +3411,7 @@ pub const Interpreter = struct {
         );
     }
 
-    // String helpers (RocStr construction)
+    // String helpers (ClawStr construction)
 
     fn makeStaticRocStrLiteralView(self: *LirInterpreter, backing: []const u8, offset: u32, len: u32) Error!Value {
         const offset_usize: usize = offset;
@@ -3422,8 +3422,8 @@ pub const Interpreter = struct {
 
         const bytes = backing[offset_usize..][0..len_usize];
         const whole_backing = offset_usize == 0 and len_usize == backing.len;
-        if (backing.len < @sizeOf(RocStr) and RocStr.fitsInSmallStr(bytes.len)) {
-            const small = RocStr.fromSliceSmall(bytes);
+        if (backing.len < @sizeOf(ClawStr) and ClawStr.fitsInSmallStr(bytes.len)) {
+            const small = ClawStr.fromSliceSmall(bytes);
             return self.rocStrToValue(small, .str);
         }
 
@@ -3444,12 +3444,12 @@ pub const Interpreter = struct {
             }
         }
 
-        const rs = RocStr{
+        const rs = ClawStr{
             .bytes = @ptrCast(@constCast(bytes.ptr)),
             .capacity_or_alloc_ptr = if (whole_backing)
-                RocStr.encodeCapacity(bytes.len)
+                ClawStr.encodeCapacity(bytes.len)
             else
-                RocStr.encodeSliceAllocationPtr(@ptrCast(@constCast(backing.ptr))),
+                ClawStr.encodeSliceAllocationPtr(@ptrCast(@constCast(backing.ptr))),
             .length = bytes.len,
         };
         return self.rocStrToValue(rs, .str);
@@ -3463,7 +3463,7 @@ pub const Interpreter = struct {
         }
 
         if (len_usize == 0) {
-            return self.rocListToValue(RocList.empty(), target_layout);
+            return self.rocListToValue(ClawList.empty(), target_layout);
         }
 
         if (builtin.mode == .Debug) {
@@ -3485,25 +3485,25 @@ pub const Interpreter = struct {
 
         const bytes = backing[offset_usize..][0..len_usize];
         const whole_backing = offset_usize == 0 and len_usize == backing.len;
-        const rl = RocList{
+        const rl = ClawList{
             .bytes = @ptrCast(@constCast(bytes.ptr)),
             .length = bytes.len,
             .capacity_or_alloc_ptr = if (whole_backing)
-                RocList.encodeCapacity(bytes.len)
+                ClawList.encodeCapacity(bytes.len)
             else
-                RocList.encodeSliceAllocationPtr(@ptrCast(@constCast(backing.ptr))),
+                ClawList.encodeSliceAllocationPtr(@ptrCast(@constCast(backing.ptr))),
         };
         return self.rocListToValue(rl, target_layout);
     }
 
     fn makeRocStr(self: *LirInterpreter, bytes: []const u8) Error!Value {
-        const rs = builtins.str.RocStr.fromSlice(bytes, &self.roc_ops);
+        const rs = builtins.str.ClawStr.fromSlice(bytes, &self.roc_ops);
         return self.rocStrToValue(rs, .str);
     }
 
-    /// Read the bytes from a RocStr value.
+    /// Read the bytes from a ClawStr value.
     /// Note: we cannot simply do `valueToRocStr(val).asSlice()` because for
-    /// small strings `asSlice` returns a pointer into the RocStr struct itself,
+    /// small strings `asSlice` returns a pointer into the ClawStr struct itself,
     /// which would be a dangling stack reference. Instead, for small strings we
     /// return a slice of `val.ptr` (the arena-backed Value buffer where the
     /// inline data actually lives).
@@ -3551,7 +3551,7 @@ pub const Interpreter = struct {
         self: *LirInterpreter,
         frame: *Frame,
         stmt_id: CFStmtId,
-        source_rs: RocStr,
+        source_rs: ClawStr,
         source_bytes: []const u8,
         arm: anytype,
     ) Error!bool {
@@ -3584,7 +3584,7 @@ pub const Interpreter = struct {
 
     fn makeStrCaptureValue(
         self: *LirInterpreter,
-        source_rs: RocStr,
+        source_rs: ClawStr,
         source_bytes: []const u8,
         start: usize,
         end: usize,
@@ -3597,7 +3597,7 @@ pub const Interpreter = struct {
         }
 
         if (source_rs.isSmallStr()) {
-            return self.rocStrToValue(RocStr.fromSliceSmall(source_bytes[start..end]), .str);
+            return self.rocStrToValue(ClawStr.fromSliceSmall(source_bytes[start..end]), .str);
         }
 
         const source_ptr = source_rs.bytes orelse self.invariantFailed(
@@ -3607,7 +3607,7 @@ pub const Interpreter = struct {
         const alloc_ptr = if (source_rs.isSeamlessSlice())
             source_rs.capacity_or_alloc_ptr
         else
-            RocStr.encodeSliceAllocationPtr(source_ptr);
+            ClawStr.encodeSliceAllocationPtr(source_ptr);
         return self.rocStrToValue(.{
             .bytes = source_ptr + start,
             .capacity_or_alloc_ptr = alloc_ptr,
@@ -3948,7 +3948,7 @@ pub const Interpreter = struct {
                     @intFromPtr(rl.bytes),  rl.len(),  rl.capacity_or_alloc_ptr,
                     @intFromPtr(alloc_ptr), has_child, list_plan.elem_alignment,
                 });
-                // Before freeing the list, decref all child elements (mirrors RocList.decref logic)
+                // Before freeing the list, decref all child elements (mirrors ClawList.decref logic)
                 if (list_plan.child) |child_key| {
                     if (rl.isUnique(&self.roc_ops)) {
                         self.decrefListElements(rl, list_plan, child_key, count, atomicity);
@@ -3971,7 +3971,7 @@ pub const Interpreter = struct {
                     @intFromPtr(rl.bytes),  rl.len(),  rl.capacity_or_alloc_ptr,
                     @intFromPtr(alloc_ptr), has_child,
                 });
-                // Before freeing the list, decref all child elements (mirrors RocList.decref logic)
+                // Before freeing the list, decref all child elements (mirrors ClawList.decref logic)
                 if (list_plan.child) |child_key| {
                     if (rl.isUnique(&self.roc_ops)) {
                         self.decrefListElements(rl, list_plan, child_key, count, atomicity);
@@ -4084,10 +4084,10 @@ pub const Interpreter = struct {
     }
 
     /// Iterate through list elements and recursively decref each child.
-    /// This mirrors the element cleanup logic in RocList.decref.
+    /// This mirrors the element cleanup logic in ClawList.decref.
     fn decrefListElements(
         self: *LirInterpreter,
-        rl: builtins.list.RocList,
+        rl: builtins.list.ClawList,
         list_plan: layout_mod.RcListPlan,
         child_key: layout_mod.RcHelperKey,
         count: u16,
@@ -4134,23 +4134,23 @@ pub const Interpreter = struct {
         }
     }
 
-    // ── Value ↔ RocStr/RocList marshaling ──
+    // ── Value ↔ ClawStr/ClawList marshaling ──
 
-    fn valueToRocStr(val: Value) RocStr {
-        var rs: RocStr = undefined;
-        @memcpy(std.mem.asBytes(&rs), val.ptr[0..@sizeOf(RocStr)]);
+    fn valueToRocStr(val: Value) ClawStr {
+        var rs: ClawStr = undefined;
+        @memcpy(std.mem.asBytes(&rs), val.ptr[0..@sizeOf(ClawStr)]);
         return rs;
     }
 
-    fn rocStrToValue(self: *LirInterpreter, rs: RocStr, ret_layout: layout_mod.Idx) Error!Value {
+    fn rocStrToValue(self: *LirInterpreter, rs: ClawStr, ret_layout: layout_mod.Idx) Error!Value {
         const val = try self.alloc(ret_layout);
-        @memcpy(val.ptr[0..@sizeOf(RocStr)], std.mem.asBytes(&rs));
+        @memcpy(val.ptr[0..@sizeOf(ClawStr)], std.mem.asBytes(&rs));
         return val;
     }
 
-    fn valueToRocList(val: Value) RocList {
-        var rl: RocList = undefined;
-        @memcpy(std.mem.asBytes(&rl), val.ptr[0..@sizeOf(RocList)]);
+    fn valueToRocList(val: Value) ClawList {
+        var rl: ClawList = undefined;
+        @memcpy(std.mem.asBytes(&rl), val.ptr[0..@sizeOf(ClawList)]);
         return rl;
     }
 
@@ -4178,11 +4178,11 @@ pub const Interpreter = struct {
         self: *LirInterpreter,
         list_val: Value,
         list_layout: layout_mod.Idx,
-    ) RocList {
+    ) ClawList {
         return valueToRocList(self.resolveListBaseValue(list_val, list_layout).value);
     }
 
-    fn rocListToValue(self: *LirInterpreter, rl: RocList, ret_layout: layout_mod.Idx) Error!Value {
+    fn rocListToValue(self: *LirInterpreter, rl: ClawList, ret_layout: layout_mod.Idx) Error!Value {
         const ret_layout_val = self.layout_store.getLayout(ret_layout);
         switch (ret_layout_val.tag) {
             .box => {
@@ -4192,7 +4192,7 @@ pub const Interpreter = struct {
                     box_info.elem_alignment,
                     box_info.contains_rc,
                 );
-                @memcpy(data_ptr[0..@sizeOf(RocList)], std.mem.asBytes(&rl));
+                @memcpy(data_ptr[0..@sizeOf(ClawList)], std.mem.asBytes(&rl));
 
                 const boxed = try self.alloc(ret_layout);
                 const target_usize = self.layout_store.targetUsize();
@@ -4206,7 +4206,7 @@ pub const Interpreter = struct {
             .box_of_zst => return try self.allocBoxOfZstValue(ret_layout),
             else => {
                 const val = try self.alloc(ret_layout);
-                @memcpy(val.ptr[0..@sizeOf(RocList)], std.mem.asBytes(&rl));
+                @memcpy(val.ptr[0..@sizeOf(ClawList)], std.mem.asBytes(&rl));
                 return val;
             },
         }
@@ -4257,7 +4257,7 @@ pub const Interpreter = struct {
         return .zst;
     }
 
-    fn canonicalZstList(len: usize) RocList {
+    fn canonicalZstList(len: usize) ClawList {
         return .{
             .bytes = null,
             .length = len,
@@ -4289,7 +4289,7 @@ pub const Interpreter = struct {
 
     /// Call a unary string builtin whose first argument carries the op's
     /// runtime uniqueness check; `.InPlace` skips it.
-    fn callBuiltinStr1(self: *LirInterpreter, comptime func: anytype, a: RocStr, update_mode: UpdateMode, ret_layout: layout_mod.Idx) Error!Value {
+    fn callBuiltinStr1(self: *LirInterpreter, comptime func: anytype, a: ClawStr, update_mode: UpdateMode, ret_layout: layout_mod.Idx) Error!Value {
         var crash_boundary = self.enterCrashBoundary();
         defer crash_boundary.deinit();
         const sj = crash_boundary.set();
@@ -4298,7 +4298,7 @@ pub const Interpreter = struct {
         return self.rocStrToValue(result, ret_layout);
     }
 
-    fn callBuiltinStr2(self: *LirInterpreter, comptime func: anytype, a: RocStr, b: RocStr, ret_layout: layout_mod.Idx) Error!Value {
+    fn callBuiltinStr2(self: *LirInterpreter, comptime func: anytype, a: ClawStr, b: ClawStr, ret_layout: layout_mod.Idx) Error!Value {
         var crash_boundary = self.enterCrashBoundary();
         defer crash_boundary.deinit();
         const sj = crash_boundary.set();
@@ -4309,7 +4309,7 @@ pub const Interpreter = struct {
 
     /// Call a binary string builtin whose first argument carries the op's
     /// runtime uniqueness check; `.InPlace` skips it.
-    fn callBuiltinStr2Mode(self: *LirInterpreter, comptime func: anytype, a: RocStr, b: RocStr, update_mode: UpdateMode, ret_layout: layout_mod.Idx) Error!Value {
+    fn callBuiltinStr2Mode(self: *LirInterpreter, comptime func: anytype, a: ClawStr, b: ClawStr, update_mode: UpdateMode, ret_layout: layout_mod.Idx) Error!Value {
         var crash_boundary = self.enterCrashBoundary();
         defer crash_boundary.deinit();
         const sj = crash_boundary.set();
@@ -4581,8 +4581,8 @@ pub const Interpreter = struct {
                 }
 
                 const val = try self.alloc(ll.ret_layout);
-                @memcpy(val.offset(self.layout_store.getStructFieldOffsetByOriginalIndex(record_idx, 0)).ptr[0..@sizeOf(RocStr)], std.mem.asBytes(&result.after));
-                @memcpy(val.offset(self.layout_store.getStructFieldOffsetByOriginalIndex(record_idx, 1)).ptr[0..@sizeOf(RocStr)], std.mem.asBytes(&result.before));
+                @memcpy(val.offset(self.layout_store.getStructFieldOffsetByOriginalIndex(record_idx, 0)).ptr[0..@sizeOf(ClawStr)], std.mem.asBytes(&result.after));
+                @memcpy(val.offset(self.layout_store.getStructFieldOffsetByOriginalIndex(record_idx, 1)).ptr[0..@sizeOf(ClawStr)], std.mem.asBytes(&result.before));
                 val.offset(self.layout_store.getStructFieldOffsetByOriginalIndex(record_idx, 2)).write(u8, if (result.found) 1 else 0);
                 break :blk val;
             },
@@ -4607,7 +4607,7 @@ pub const Interpreter = struct {
                 }
 
                 const val = try self.alloc(ll.ret_layout);
-                @memcpy(val.offset(self.layout_store.getStructFieldOffsetByOriginalIndex(record_idx, 0)).ptr[0..@sizeOf(RocStr)], std.mem.asBytes(&result.after));
+                @memcpy(val.offset(self.layout_store.getStructFieldOffsetByOriginalIndex(record_idx, 0)).ptr[0..@sizeOf(ClawStr)], std.mem.asBytes(&result.after));
                 val.offset(self.layout_store.getStructFieldOffsetByOriginalIndex(record_idx, 1)).write(u8, if (result.found) 1 else 0);
                 break :blk val;
             },
@@ -4684,7 +4684,7 @@ pub const Interpreter = struct {
                 const rec_idx = err_record_idx orelse return self.runtimeError("str_from_utf8: could not resolve error record layout");
 
                 if (result.is_ok) {
-                    @memcpy(val.ptr[0..@sizeOf(RocStr)], std.mem.asBytes(&result.string));
+                    @memcpy(val.ptr[0..@sizeOf(ClawStr)], std.mem.asBytes(&result.string));
                     self.helper.writeTagDiscriminant(val, ll.ret_layout, resolved_ok);
                 } else {
                     const index_off = self.layout_store.getStructFieldOffsetByOriginalIndex(rec_idx, 0);
@@ -4746,7 +4746,7 @@ pub const Interpreter = struct {
                 defer crash_boundary.deinit();
                 const sj = crash_boundary.set();
                 if (sj != 0) return error.Crash;
-                var result: RocStr = undefined;
+                var result: ClawStr = undefined;
                 const roc_str = valueToRocStr(args[0]);
                 dev_wrappers.roc_builtins_str_escape_and_quote(
                     &result,
@@ -4773,7 +4773,7 @@ pub const Interpreter = struct {
             .u128_to_str => self.numToStr(u128, args[0], ll.ret_layout),
             .i128_to_str => self.numToStr(i128, args[0], ll.ret_layout),
             .dec_to_str => blk: {
-                const dec = RocDec{ .num = args[0].read(i128) };
+                const dec = ClawDec{ .num = args[0].read(i128) };
                 var crash_boundary = self.enterCrashBoundary();
                 defer crash_boundary.deinit();
                 const sj = crash_boundary.set();
@@ -4817,7 +4817,7 @@ pub const Interpreter = struct {
                 const l = self.layout_store.getLayout(arg_layout);
                 const is_float = l.tag == .scalar and l.getScalar().tag == .frac;
                 if (isDec(arg_layout)) {
-                    const dec = RocDec{ .num = args[0].read(i128) };
+                    const dec = ClawDec{ .num = args[0].read(i128) };
                     var crash_boundary = self.enterCrashBoundary();
                     defer crash_boundary.deinit();
                     const sj = crash_boundary.set();
@@ -5107,7 +5107,7 @@ pub const Interpreter = struct {
                     // ZST element: list is unchanged, value field is zero-sized so we don't write to it.
                     const source_list = self.valueToRocListForLayout(args[0], arg_layout);
                     const list_val_inner = try self.rocListToValue(canonicalZstList(source_list.len()), list_field_layout);
-                    @memcpy(val.offset(list_field_off).ptr[0..@sizeOf(RocList)], list_val_inner.ptr[0..@sizeOf(RocList)]);
+                    @memcpy(val.offset(list_field_off).ptr[0..@sizeOf(ClawList)], list_val_inner.ptr[0..@sizeOf(ClawList)]);
                     break :blk val;
                 }
 
@@ -5152,7 +5152,7 @@ pub const Interpreter = struct {
 
                 // Write the resulting list into the list field of the record.
                 const list_val_inner = try self.rocListToValue(result_list, list_field_layout);
-                @memcpy(val.offset(list_field_off).ptr[0..@sizeOf(RocList)], list_val_inner.ptr[0..@sizeOf(RocList)]);
+                @memcpy(val.offset(list_field_off).ptr[0..@sizeOf(ClawList)], list_val_inner.ptr[0..@sizeOf(ClawList)]);
 
                 break :blk val;
             },
@@ -5173,7 +5173,7 @@ pub const Interpreter = struct {
                 };
                 // listReplace requires a scratch slot for the old element; we discard it here
                 // because list_set returns only the new list (replace semantics return a pair).
-                const old_elem = try self.allocAlignedBytes(info.width, layout_mod.RocAlignment.fromByteUnits(@intCast(info.alignment)));
+                const old_elem = try self.allocAlignedBytes(info.width, layout_mod.ClawAlignment.fromByteUnits(@intCast(info.alignment)));
                 const result = if (updateModeForArg0(ll.unique_args) == .InPlace)
                     builtins.list.listReplaceInPlace(
                         self.valueToRocListForLayout(args[0], arg_layout),
@@ -5769,13 +5769,13 @@ pub const Interpreter = struct {
             .dec_to_u64_try_unsafe => self.decToIntTry(u64, args[0], ll.ret_layout),
             .dec_to_u128_try_unsafe => self.decToIntTry(u128, args[0], ll.ret_layout),
             .dec_to_f32_wrap => blk: {
-                const dec = RocDec{ .num = args[0].read(i128) };
+                const dec = ClawDec{ .num = args[0].read(i128) };
                 const val = try self.alloc(ll.ret_layout);
                 val.write(f32, @floatCast(dec.toF64()));
                 break :blk val;
             },
             .dec_to_f32_try_unsafe => blk: {
-                const dec = RocDec{ .num = args[0].read(i128) };
+                const dec = ClawDec{ .num = args[0].read(i128) };
                 if (builtins.dec.toF32Try(dec)) |f| {
                     break :blk try self.writeLowLevelTryRecord(f32, ll.ret_layout, f);
                 } else {
@@ -5783,7 +5783,7 @@ pub const Interpreter = struct {
                 }
             },
             .dec_to_f64 => blk: {
-                const dec = RocDec{ .num = args[0].read(i128) };
+                const dec = ClawDec{ .num = args[0].read(i128) };
                 const val = try self.alloc(ll.ret_layout);
                 val.write(f64, dec.toF64());
                 break :blk val;
@@ -6250,7 +6250,7 @@ pub const Interpreter = struct {
                 defer crash_boundary.deinit();
                 const sj = crash_boundary.set();
                 if (sj != 0) return error.Crash;
-                val.write(i128, builtins.dec.powC(RocDec{ .num = a.read(i128) }, RocDec{ .num = b.read(i128) }, &self.roc_ops));
+                val.write(i128, builtins.dec.powC(ClawDec{ .num = a.read(i128) }, ClawDec{ .num = b.read(i128) }, &self.roc_ops));
             },
             .float => |bits| switch (bits) {
                 32 => val.write(f32, std.math.pow(f32, a.read(f32), b.read(f32))),
@@ -6273,7 +6273,7 @@ pub const Interpreter = struct {
                 defer crash_boundary.deinit();
                 const sj = crash_boundary.set();
                 if (sj != 0) return error.Crash;
-                val.write(i128, builtins.dec.sqrtC(RocDec{ .num = a.read(i128) }, &self.roc_ops));
+                val.write(i128, builtins.dec.sqrtC(ClawDec{ .num = a.read(i128) }, &self.roc_ops));
             },
             .float => |bits| switch (bits) {
                 32 => val.write(f32, @sqrt(a.read(f32))),
@@ -6296,7 +6296,7 @@ pub const Interpreter = struct {
                 defer crash_boundary.deinit();
                 const sj = crash_boundary.set();
                 if (sj != 0) return error.Crash;
-                val.write(i128, builtins.dec.logC(RocDec{ .num = a.read(i128) }, &self.roc_ops));
+                val.write(i128, builtins.dec.logC(ClawDec{ .num = a.read(i128) }, &self.roc_ops));
             },
             .float => |bits| switch (bits) {
                 32 => val.write(f32, @log(a.read(f32))),
@@ -6344,7 +6344,7 @@ pub const Interpreter = struct {
                 defer crash_boundary.deinit();
                 const sj = crash_boundary.set();
                 if (sj != 0) return error.Crash;
-                const dec = RocDec{ .num = a.read(i128) };
+                const dec = ClawDec{ .num = a.read(i128) };
                 const result = switch (op) {
                     .sin => builtins.dec.sinC(dec, &self.roc_ops),
                     .cos => builtins.dec.cosC(dec, &self.roc_ops),
@@ -6367,8 +6367,8 @@ pub const Interpreter = struct {
         const val = try self.alloc(ret_layout);
         switch (try self.numericOperandKind(arg_layout)) {
             .dec => {
-                const dec = RocDec{ .num = a.read(i128) };
-                val.write(i128, RocDec.round(dec, &self.roc_ops).num);
+                const dec = ClawDec{ .num = a.read(i128) };
+                val.write(i128, ClawDec.round(dec, &self.roc_ops).num);
             },
             .float => |bits| switch (bits) {
                 32 => val.write(f32, @round(a.read(f32))),
@@ -6798,7 +6798,7 @@ pub const Interpreter = struct {
     }
 
     fn parseNumeralDecPayload(self: *LirInterpreter, text: []const u8, payload_layout: layout_mod.Idx) Error!?Value {
-        const parsed = RocDec.fromNonemptySlice(text) orelse return null;
+        const parsed = ClawDec.fromNonemptySlice(text) orelse return null;
         const value = try self.alloc(payload_layout);
         value.write(i128, parsed.num);
         return value;
@@ -7000,13 +7000,13 @@ pub const Interpreter = struct {
 
     fn decToInt(self: *LirInterpreter, comptime Dst: type, arg: Value, ret_layout: layout_mod.Idx) Error!Value {
         const val = try self.alloc(ret_layout);
-        const dec = RocDec{ .num = arg.read(i128) };
+        const dec = ClawDec{ .num = arg.read(i128) };
         val.write(Dst, builtins.dec.toIntWrap(Dst, dec));
         return val;
     }
 
     fn decToIntTry(self: *LirInterpreter, comptime Dst: type, arg: Value, ret_layout: layout_mod.Idx) Error!Value {
-        const dec = RocDec{ .num = arg.read(i128) };
+        const dec = ClawDec{ .num = arg.read(i128) };
         if (builtins.dec.toIntTry(Dst, dec)) |dv| {
             return self.writeLowLevelTryRecord(Dst, ret_layout, dv);
         } else {
@@ -7017,10 +7017,10 @@ pub const Interpreter = struct {
     fn intToDecTry(self: *LirInterpreter, comptime Src: type, arg: Value, ret_layout: layout_mod.Idx) Error!Value {
         const sv = arg.read(Src);
         const maybe_dec = switch (@typeInfo(Src).int.signedness) {
-            .signed => RocDec.fromWholeInt(@intCast(sv)),
+            .signed => ClawDec.fromWholeInt(@intCast(sv)),
             .unsigned => blk: {
                 if (sv > @as(Src, @intCast(std.math.maxInt(i128)))) break :blk null;
-                break :blk RocDec.fromWholeInt(@intCast(sv));
+                break :blk ClawDec.fromWholeInt(@intCast(sv));
             },
         };
         if (maybe_dec) |dec| {
@@ -7387,7 +7387,7 @@ pub const Interpreter = struct {
             .abs => if (av < 0) -%av else av,
             .abs_diff => if (av > bv) av -% bv else bv -% av,
             .mul => blk: {
-                const result = RocDec.mulWithOverflow(RocDec{ .num = av }, RocDec{ .num = bv });
+                const result = ClawDec.mulWithOverflow(ClawDec{ .num = av }, ClawDec{ .num = bv });
                 if (result.has_overflowed) return self.triggerCrash("Decimal multiplication overflowed!");
                 break :blk result.value.num;
             },
@@ -7396,14 +7396,14 @@ pub const Interpreter = struct {
                 defer crash_boundary.deinit();
                 const sj = crash_boundary.set();
                 if (sj != 0) break :blk @as(i128, 0);
-                break :blk builtins.dec.divC(RocDec{ .num = av }, RocDec{ .num = bv }, &self.roc_ops);
+                break :blk builtins.dec.divC(ClawDec{ .num = av }, ClawDec{ .num = bv }, &self.roc_ops);
             },
             .div_trunc => blk: {
                 var crash_boundary = self.enterCrashBoundary();
                 defer crash_boundary.deinit();
                 const sj = crash_boundary.set();
                 if (sj != 0) break :blk @as(i128, 0);
-                break :blk builtins.dec.divTruncC(RocDec{ .num = av }, RocDec{ .num = bv }, &self.roc_ops);
+                break :blk builtins.dec.divTruncC(ClawDec{ .num = av }, ClawDec{ .num = bv }, &self.roc_ops);
             },
             .rem => blk: {
                 // Dec rem: a - trunc(a/b) * b
@@ -7412,8 +7412,8 @@ pub const Interpreter = struct {
                 defer crash_boundary.deinit();
                 const sj = crash_boundary.set();
                 if (sj != 0) break :blk @as(i128, 0);
-                const div_result = builtins.dec.divTruncC(RocDec{ .num = av }, RocDec{ .num = bv }, &self.roc_ops);
-                const mul_result = RocDec.mulWithOverflow(RocDec{ .num = div_result }, RocDec{ .num = bv });
+                const div_result = builtins.dec.divTruncC(ClawDec{ .num = av }, ClawDec{ .num = bv }, &self.roc_ops);
+                const mul_result = ClawDec.mulWithOverflow(ClawDec{ .num = div_result }, ClawDec{ .num = bv });
                 break :blk av -% mul_result.value.num;
             },
             .mod => blk: {
@@ -7422,8 +7422,8 @@ pub const Interpreter = struct {
                 defer crash_boundary.deinit();
                 const sj = crash_boundary.set();
                 if (sj != 0) break :blk @as(i128, 0);
-                const div_result = builtins.dec.divTruncC(RocDec{ .num = av }, RocDec{ .num = bv }, &self.roc_ops);
-                const mul_result = RocDec.mulWithOverflow(RocDec{ .num = div_result }, RocDec{ .num = bv });
+                const div_result = builtins.dec.divTruncC(ClawDec{ .num = av }, ClawDec{ .num = bv }, &self.roc_ops);
+                const mul_result = ClawDec.mulWithOverflow(ClawDec{ .num = div_result }, ClawDec{ .num = bv });
                 const remainder = av -% mul_result.value.num;
                 // Mod adjusts sign to match divisor
                 if (remainder == 0) break :blk @as(i128, 0);

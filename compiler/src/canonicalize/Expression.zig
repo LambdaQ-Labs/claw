@@ -34,7 +34,7 @@ const DataSpan = base.DataSpan;
 const CalledVia = base.CalledVia;
 const Ident = base.Ident;
 const SExprTree = base.SExprTree;
-const RocDec = builtins.dec.RocDec;
+const ClawDec = builtins.dec.ClawDec;
 const TypeVar = types.Var;
 
 const Self = Expr;
@@ -81,7 +81,7 @@ pub const Expr = union(enum) {
     /// 0.1 + 0.2                 # Equals exactly 0.3 (not 0.30000000000000004)
     /// ```
     e_dec: struct {
-        value: RocDec,
+        value: ClawDec,
         has_suffix: bool, // If the value had a `dec` suffix
     },
     /// A small decimal literal stored as a rational number (numerator/10^denominator).
@@ -553,7 +553,7 @@ pub const Expr = union(enum) {
 
     /// A hosted function that will be provided by the platform at runtime.
     /// This represents a lambda/function whose implementation is provided by the host application
-    /// via the RocOps.hosted_fns array.
+    /// via the ClawOps.hosted_fns array.
     ///
     /// ```roc
     /// # Stdout.line! is a hosted function provided by the platform

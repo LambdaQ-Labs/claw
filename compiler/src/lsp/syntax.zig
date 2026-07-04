@@ -411,7 +411,7 @@ pub const SyntaxChecker = struct {
             self.allocator,
             .single_threaded,
             1,
-            roc_target.RocTarget.detectNative(),
+            roc_target.ClawTarget.detectNative(),
             cwd,
             self.std_io,
             builtin_modules,

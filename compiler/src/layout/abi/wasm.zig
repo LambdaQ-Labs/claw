@@ -37,7 +37,7 @@ pub fn classifyType(store: *const Store, idx: Idx) Class {
             const scalar = lay.getScalar();
             switch (scalar.tag) {
                 .int, .frac, .opaque_ptr => return .{ .direct = idx },
-                // RocStr is a multi-field aggregate.
+                // ClawStr is a multi-field aggregate.
                 .str => return .indirect,
             }
         },
@@ -107,7 +107,7 @@ test "wasm classify: aggregates are indirect, single-field structs unwrap" {
     var store = try Store.init(testing.allocator, .u32);
     defer store.deinit();
 
-    // RocStr / RocList are aggregates -> indirect.
+    // ClawStr / ClawList are aggregates -> indirect.
     try testing.expectEqual(Class.indirect, classifyType(&store, .str));
     const list_idx = try store.insertLayout(Layout.list(.u8));
     try testing.expectEqual(Class.indirect, classifyType(&store, list_idx));

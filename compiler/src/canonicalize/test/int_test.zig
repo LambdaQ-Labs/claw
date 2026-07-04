@@ -16,7 +16,7 @@ const TestEnv = @import("TestEnv.zig").TestEnv;
 const BuiltinTestContext = @import("./BuiltinTestContext.zig").BuiltinTestContext;
 const ModuleEnv = @import("../ModuleEnv.zig");
 const CoreCtx = @import("ctx").CoreCtx;
-const RocDec = builtins.dec.RocDec;
+const ClawDec = builtins.dec.ClawDec;
 
 fn getIntValue(module_env: *ModuleEnv, expr_idx: CIR.Expr.Idx) error{NotAnInteger}!i128 {
     const expr = module_env.store.getExpr(expr_idx);
@@ -826,7 +826,7 @@ test "numeric literal patterns use pattern idx as type var" {
         // Create a dec literal pattern directly
         const dec_pattern = CIR.Pattern{
             .dec_literal = .{
-                .value = RocDec.fromF64(3.14) orelse unreachable,
+                .value = ClawDec.fromF64(3.14) orelse unreachable,
                 .has_suffix = false,
             },
         };
@@ -836,7 +836,7 @@ test "numeric literal patterns use pattern idx as type var" {
         // Verify the stored pattern
         const stored_pattern = env.store.getPattern(pattern_idx);
         try std.testing.expect(stored_pattern == .dec_literal);
-        const expected_dec = RocDec.fromF64(3.14) orelse unreachable;
+        const expected_dec = ClawDec.fromF64(3.14) orelse unreachable;
         try std.testing.expectEqual(expected_dec.num, stored_pattern.dec_literal.value.num);
     }
 }
@@ -910,7 +910,7 @@ test "pattern numeric literal value edge cases" {
 
         const dec_pattern = CIR.Pattern{
             .dec_literal = .{
-                .value = RocDec{ .num = 314159265358979323 }, // π * 10^17
+                .value = ClawDec{ .num = 314159265358979323 }, // π * 10^17
                 .has_suffix = false,
             },
         };
@@ -929,10 +929,10 @@ test "pattern numeric literal value edge cases" {
 
         try env.initCIRFields("test");
 
-        // Test negative zero (RocDec doesn't distinguish between +0 and -0)
+        // Test negative zero (ClawDec doesn't distinguish between +0 and -0)
         const neg_zero_pattern = CIR.Pattern{
             .dec_literal = .{
-                .value = RocDec.fromF64(-0.0) orelse unreachable,
+                .value = ClawDec.fromF64(-0.0) orelse unreachable,
                 .has_suffix = false,
             },
         };

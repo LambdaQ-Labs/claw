@@ -4711,7 +4711,7 @@ const Lowerer = struct {
 
     const LiteralPattern = union(enum) {
         int_lit: can.CIR.IntValue,
-        dec_lit: builtins.dec.RocDec,
+        dec_lit: builtins.dec.ClawDec,
         frac_f32_lit: f32,
         frac_f64_lit: f64,
         str_lit: Lifted.StringLiteralId,

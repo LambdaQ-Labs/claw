@@ -13,8 +13,8 @@ const Allocator = std.mem.Allocator;
 const checked = check.CheckedArtifact;
 const const_store = check.ConstStore;
 const LirProgram = lir.Program;
-const RocList = builtins.list.RocList;
-const RocStr = builtins.str.RocStr;
+const ClawList = builtins.list.ClawList;
+const ClawStr = builtins.str.ClawStr;
 
 const RuntimeValueAddress = struct {
     ptr: usize,
@@ -172,14 +172,14 @@ pub const Writer = struct {
             .frac => switch (scalar.getFrac()) {
                 .f32 => .{ .f32_bits = @bitCast(value.read(f32)) },
                 .f64 => .{ .f64_bits = @bitCast(value.read(f64)) },
-                .dec => .{ .dec_bits = value.read(builtins.dec.RocDec).num },
+                .dec => .{ .dec_bits = value.read(builtins.dec.ClawDec).num },
             },
             .opaque_ptr => writerInvariant("opaque pointer scalar layout reached scalar const plan"),
         };
     }
 
     fn storeStr(self: *Writer, value: Value) Allocator.Error!checked.ConstNodeId {
-        const roc_str: *const RocStr = @ptrCast(@alignCast(value.ptr));
+        const roc_str: *const ClawStr = @ptrCast(@alignCast(value.ptr));
         const slice = roc_str.asSlice();
         const len = checkedU32(slice.len, "string length exceeds ConstStore limit");
 
@@ -232,7 +232,7 @@ pub const Writer = struct {
         if (layout_value.tag != .list and layout_value.tag != .list_of_zst) {
             writerInvariant("list const plan had non-list layout");
         }
-        const roc_list: *const RocList = @ptrCast(@alignCast(value.ptr));
+        const roc_list: *const ClawList = @ptrCast(@alignCast(value.ptr));
         const nodes = try self.module.const_store.allocator.alloc(checked.ConstNodeId, roc_list.len());
         // `nodes` is owned here for its whole lifetime: the store copies from it (it
         // never frees inputs), so free on every path — build failure, append failure,
@@ -497,7 +497,7 @@ pub const Writer = struct {
     }
 
     fn collectStrValue(self: *Writer, value: Value) Allocator.Error!void {
-        const roc_str: *const RocStr = @ptrCast(@alignCast(value.ptr));
+        const roc_str: *const ClawStr = @ptrCast(@alignCast(value.ptr));
         if (roc_str.isSmallStr() or roc_str.isSeamlessSlice()) return;
         const bytes = roc_str.bytes orelse {
             if (roc_str.len() == 0) return;
@@ -528,7 +528,7 @@ pub const Writer = struct {
         if (layout_value.tag != .list and layout_value.tag != .list_of_zst) {
             writerInvariant("list const plan had non-list layout");
         }
-        const roc_list: *const RocList = @ptrCast(@alignCast(value.ptr));
+        const roc_list: *const ClawList = @ptrCast(@alignCast(value.ptr));
         if (layout_value.tag == .list_of_zst) {
             for (0..roc_list.len()) |_| try self.collectStrBackings(elem_plan, .zst, Value.zst);
             return;
@@ -768,11 +768,11 @@ pub const Writer = struct {
         const ptr: ?usize = switch (layout_value.tag) {
             .box => if (self.readBoxDataPointer(value)) |payload| @intFromPtr(payload) else null,
             .list => blk: {
-                const roc_list: *const RocList = @ptrCast(@alignCast(value.ptr));
+                const roc_list: *const ClawList = @ptrCast(@alignCast(value.ptr));
                 break :blk if (roc_list.bytes) |bytes| @intFromPtr(bytes) else null;
             },
             .scalar => if (layout_value.getScalar().tag == .str) blk: {
-                const roc_str: *const RocStr = @ptrCast(@alignCast(value.ptr));
+                const roc_str: *const ClawStr = @ptrCast(@alignCast(value.ptr));
                 break :blk @intFromPtr(roc_str.asSlice().ptr);
             } else null,
             else => null,
@@ -781,11 +781,11 @@ pub const Writer = struct {
             .ptr = raw,
             .len = switch (layout_value.tag) {
                 .list => blk: {
-                    const roc_list: *const RocList = @ptrCast(@alignCast(value.ptr));
+                    const roc_list: *const ClawList = @ptrCast(@alignCast(value.ptr));
                     break :blk roc_list.len();
                 },
                 .scalar => if (layout_value.getScalar().tag == .str) blk: {
-                    const roc_str: *const RocStr = @ptrCast(@alignCast(value.ptr));
+                    const roc_str: *const ClawStr = @ptrCast(@alignCast(value.ptr));
                     break :blk roc_str.len();
                 } else 0,
                 else => 0,
@@ -902,9 +902,9 @@ test "const store writer pointer memoization is scoped to one root" {
     const bytes = try testing.allocator.dupe(u8, first_bytes);
     defer testing.allocator.free(bytes);
 
-    var roc_str = RocStr{
+    var roc_str = ClawStr{
         .bytes = bytes.ptr,
-        .capacity_or_alloc_ptr = RocStr.encodeCapacity(bytes.len),
+        .capacity_or_alloc_ptr = ClawStr.encodeCapacity(bytes.len),
         .length = bytes.len,
     };
 

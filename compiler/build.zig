@@ -140,14 +140,14 @@ fn nativeSharedArchiveTarget(b: *std.Build, target: ResolvedTarget) NativeShared
             },
             else => .{
                 .resolved = target,
-                .roc_name = roc_target.RocTarget.fromStdTarget(target.result).toName(),
+                .roc_name = roc_target.ClawTarget.fromStdTarget(target.result).toName(),
             },
         };
     }
 
     return .{
         .resolved = target,
-        .roc_name = roc_target.RocTarget.fromStdTarget(target.result).toName(),
+        .roc_name = roc_target.ClawTarget.fromStdTarget(target.result).toName(),
     };
 }
 
@@ -1118,7 +1118,7 @@ const CheckPanicStep = struct {
 
             return step.fail(
                 "Found {d} uses of @panic or std.debug.panic in runtime code. " ++
-                    "Use roc_ops.crash() to report errors through the proper RocOps crash handler. " ++
+                    "Use roc_ops.crash() to report errors through the proper ClawOps crash handler. " ++
                     "See above for details.",
                 .{violations.items.len},
             );
@@ -1620,7 +1620,7 @@ const BuiltinCompilerRun = struct {
 
 fn createAndRunBuiltinCompiler(
     b: *std.Build,
-    roc_modules: modules.RocModules,
+    roc_modules: modules.ClawModules,
     flag_enable_tracy: ?[]const u8,
     roc_files: []const []const u8,
 ) BuiltinCompilerRun {
@@ -1714,7 +1714,7 @@ fn createTestPlatformHostLib(
     host_path: []const u8,
     target: ResolvedTarget,
     optimize: OptimizeMode,
-    roc_modules: modules.RocModules,
+    roc_modules: modules.ClawModules,
     strip: bool,
     omit_frame_pointer: ?bool,
     options: TestHostOptions,
@@ -1775,7 +1775,7 @@ fn buildAndCopyTestPlatformHostLib(
     target: ResolvedTarget,
     target_name: []const u8,
     optimize: OptimizeMode,
-    roc_modules: modules.RocModules,
+    roc_modules: modules.ClawModules,
     strip: bool,
     omit_frame_pointer: ?bool,
 ) *Step {
@@ -1863,7 +1863,7 @@ fn buildAndCopyWasmHostObject(
     b: *std.Build,
     target: ResolvedTarget,
     optimize: OptimizeMode,
-    roc_modules: modules.RocModules,
+    roc_modules: modules.ClawModules,
     strip: bool,
     omit_frame_pointer: ?bool,
 ) *Step {
@@ -2089,7 +2089,7 @@ fn setupTestPlatforms(
     b: *std.Build,
     target: ResolvedTarget,
     optimize: OptimizeMode,
-    roc_modules: modules.RocModules,
+    roc_modules: modules.ClawModules,
     build_test_hosts_step: *Step,
     strip: bool,
     omit_frame_pointer: ?bool,
@@ -2097,7 +2097,7 @@ fn setupTestPlatforms(
 ) *Step {
     // Clear the Roc cache when test platforms are rebuilt to ensure stale cached hosts aren't used
     const clear_cache_step = createClearCacheStep(b);
-    const native_target_name = roc_target.RocTarget.fromStdTarget(target.result).toName();
+    const native_target_name = roc_target.ClawTarget.fromStdTarget(target.result).toName();
 
     // Build all test platforms for native target
     for (all_test_platform_dirs) |platform_dir| {
@@ -2452,7 +2452,7 @@ pub fn build(b: *std.Build) void {
         .optimize = optimize,
     });
 
-    const roc_modules = modules.RocModules.create(b, build_options, zstd);
+    const roc_modules = modules.ClawModules.create(b, build_options, zstd);
 
     // Build-time compiler for builtin .roc modules
     //
@@ -4595,7 +4595,7 @@ pub fn build(b: *std.Build) void {
         // Determine the appropriate target for the fx platform host library.
         // On Linux, we need to use musl explicitly because the CLI's findHostLibrary
         // looks for targets/x64musl/libhost.a first, and musl produces proper static binaries.
-        const native_fx_target_dir = roc_target.RocTarget.fromStdTarget(target.result).toName();
+        const native_fx_target_dir = roc_target.ClawTarget.fromStdTarget(target.result).toName();
         const fx_host_target, const fx_host_target_dir: ?[]const u8 = switch (target.result.os.tag) {
             .linux => switch (target.result.cpu.arch) {
                 .x86_64 => .{ b.resolveTargetQuery(.{ .cpu_arch = .x86_64, .os_tag = .linux, .abi = .musl }), "x64musl" },
@@ -5021,7 +5021,7 @@ fn add_fuzz_target(
     run_args: []const []const u8,
     target: ResolvedTarget,
     optimize: OptimizeMode,
-    roc_modules: modules.RocModules,
+    roc_modules: modules.ClawModules,
     compiled_builtins_module: *std.Build.Module,
     write_compiled_builtins: *Step.WriteFile,
     tracy: ?[]const u8,
@@ -5180,7 +5180,7 @@ fn addMacosAflFuzzExe(
 
 fn addMainExe(
     b: *std.Build,
-    roc_modules: modules.RocModules,
+    roc_modules: modules.ClawModules,
     target: ResolvedTarget,
     optimize: OptimizeMode,
     strip: bool,
@@ -5219,7 +5219,7 @@ fn addMainExe(
     // Build str and int test platform host libraries for native target
     // (fx and fx-open are only built by build-test-hosts for CLI platform tests)
     const main_build_platforms = [_][]const u8{ "str", "int" };
-    const native_target_name = roc_target.RocTarget.fromStdTarget(target.result).toName();
+    const native_target_name = roc_target.ClawTarget.fromStdTarget(target.result).toName();
 
     for (main_build_platforms) |platform_dir| {
         const copy_step = buildAndCopyTestPlatformHostLib(
@@ -5287,14 +5287,14 @@ fn addMainExe(
     builtins_obj.root_module.addImport("shim_io", b.addModule("shim_io", .{
         .root_source_file = b.path("src/shim_io.zig"),
     }));
-    // This RocOps-ABI object is not linked into built executables (the dev
+    // This ClawOps-ABI object is not linked into built executables (the dev
     // backend links the extern-ABI object below, the LLVM backend merges
     // builtins into the app object), so it does not need compiler-rt.
     builtins_obj.bundle_compiler_rt = false;
     configureBackend(builtins_obj, target);
 
     // Extern-symbol-mode builtins object: same builtins, but host operations
-    // go through linker-resolved symbols (the symbol ABI) instead of RocOps.
+    // go through linker-resolved symbols (the symbol ABI) instead of ClawOps.
     const builtins_extern_obj = b.addObject(.{
         .name = "roc_builtins_extern",
         .root_module = b.createModule(.{
@@ -5514,7 +5514,7 @@ fn addMainExe(
             b.fmt("shim_io_{s}", .{cross_target.name}),
             .{ .root_source_file = b.path("src/shim_io.zig") },
         ));
-        // Non-extern (RocOps-ABI) object is not linked into executables; only
+        // Non-extern (ClawOps-ABI) object is not linked into executables; only
         // wasm32 merges compiler-rt below for the eval/REPL pipeline.
         cross_builtins_obj.bundle_compiler_rt = false;
         configureBackend(cross_builtins_obj, cross_resolved_target);
@@ -5670,7 +5670,7 @@ fn install_and_run(
     }
 }
 
-fn createTestHarnessModule(b: *std.Build, roc_modules: modules.RocModules) *std.Build.Module {
+fn createTestHarnessModule(b: *std.Build, roc_modules: modules.ClawModules) *std.Build.Module {
     return b.createModule(.{
         .root_source_file = b.path("src/build/test_harness.zig"),
         .imports = &.{

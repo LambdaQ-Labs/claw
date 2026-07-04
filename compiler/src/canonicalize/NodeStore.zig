@@ -14,7 +14,7 @@ const CIR = @import("CIR.zig");
 const Allocator = std.mem.Allocator;
 const CompactWriter = collections.CompactWriter;
 const SafeList = collections.SafeList;
-const RocDec = builtins.dec.RocDec;
+const ClawDec = builtins.dec.ClawDec;
 const DataSpan = base.DataSpan;
 const Region = base.Region;
 const Ident = base.Ident;
@@ -865,7 +865,7 @@ pub fn getExpr(store: *const NodeStore, expr: CIR.Expr.Idx) CIR.Expr {
 
             return CIR.Expr{
                 .e_dec = .{
-                    .value = RocDec{ .num = value },
+                    .value = ClawDec{ .num = value },
                     .has_suffix = p.has_suffix,
                 },
             };
@@ -1819,7 +1819,7 @@ pub fn getPattern(store: *const NodeStore, pattern_idx: CIR.Pattern.Idx) CIR.Pat
 
             return CIR.Pattern{
                 .dec_literal = .{
-                    .value = RocDec{ .num = value },
+                    .value = ClawDec{ .num = value },
                     .has_suffix = p.has_suffix,
                 },
             };

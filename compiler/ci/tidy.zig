@@ -438,7 +438,7 @@ fn tidyBannedBuiltinStdFormat(file: SourceFile, errors: *Errors) void {
 
     const banned_patterns: []const struct { []const u8, []const u8 } = &.{
         .{ "std.fmt.", "builtin-local parsing/formatting helpers" },
-        .{ "std.Io.", "RocOps or shim_io outside runtime builtins" },
+        .{ "std.Io.", "ClawOps or shim_io outside runtime builtins" },
     };
 
     var line_start: usize = 0;

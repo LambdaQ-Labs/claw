@@ -33,28 +33,28 @@ const AllocationHeader = extern struct {
     len: usize,
 };
 
-const RocStr = extern struct {
+const ClawStr = extern struct {
     bytes: ?[*]u8,
     capacity_or_alloc_ptr: usize,
     length: usize,
 
-    fn isSmallStr(self: RocStr) bool {
+    fn isSmallStr(self: ClawStr) bool {
         return @as(isize, @bitCast(self.length)) < 0;
     }
 
-    fn isSeamlessSlice(self: RocStr) bool {
+    fn isSeamlessSlice(self: ClawStr) bool {
         return !self.isSmallStr() and (self.capacity_or_alloc_ptr & seamless_slice_tag) == seamless_slice_tag;
     }
 
-    fn len(self: RocStr) usize {
+    fn len(self: ClawStr) usize {
         if (self.isSmallStr()) {
-            const raw: *const [@sizeOf(RocStr)]u8 = @ptrCast(&self);
-            return raw.*[@sizeOf(RocStr) - 1] ^ 0b1000_0000;
+            const raw: *const [@sizeOf(ClawStr)]u8 = @ptrCast(&self);
+            return raw.*[@sizeOf(ClawStr) - 1] ^ 0b1000_0000;
         }
         return self.length;
     }
 
-    fn allocationPtr(self: RocStr) ?[*]u8 {
+    fn allocationPtr(self: ClawStr) ?[*]u8 {
         if (self.isSmallStr()) return null;
         if (self.isSeamlessSlice()) {
             return @ptrFromInt(self.capacity_or_alloc_ptr & ~seamless_slice_tag);
@@ -62,7 +62,7 @@ const RocStr = extern struct {
         return self.bytes;
     }
 
-    fn asSlice(self: *const RocStr) []const u8 {
+    fn asSlice(self: *const ClawStr) []const u8 {
         const ptr: [*]const u8 = if (self.isSmallStr())
             @ptrCast(self)
         else
@@ -70,7 +70,7 @@ const RocStr = extern struct {
         return ptr[0..self.len()];
     }
 
-    fn decref(self: *RocStr) void {
+    fn decref(self: *ClawStr) void {
         const data = self.allocationPtr() orelse return;
         const refcount_ptr: *isize = @ptrCast(@alignCast(data - @sizeOf(usize)));
         const refcount = refcount_ptr.*;
@@ -89,7 +89,7 @@ export fn roc_default_exit(code: u8) callconv(.c) noreturn {
     c.exit(code);
 }
 
-export fn roc_default_echo_line(str: RocStr) callconv(.c) void {
+export fn roc_default_echo_line(str: ClawStr) callconv(.c) void {
     var owned = str;
     const message = owned.asSlice();
     writeAll(1, message);

@@ -22,7 +22,7 @@ const CIR = @import("CIR.zig");
 const Scope = @import("Scope.zig");
 
 const tokenize = parse.tokenize;
-const RocDec = builtins.dec.RocDec;
+const ClawDec = builtins.dec.ClawDec;
 const AST = parse.AST;
 const Token = tokenize.Token;
 const DataSpan = base.DataSpan;
@@ -9424,7 +9424,7 @@ fn runExprKernel(
                             .has_suffix = false,
                         } },
                         .dec => |value| CIR.Expr{ .e_dec = .{
-                            .value = builtins.dec.RocDec{ .num = value },
+                            .value = builtins.dec.ClawDec{ .num = value },
                             .has_suffix = false,
                         } },
                         .exact => CIR.Expr{ .e_num_from_numeral = .{} },
@@ -16447,7 +16447,7 @@ pub fn canonicalizePattern(
                         },
                         .dec => |value| blk: {
                             const pat_idx = try self.env.addPattern(Pattern{ .dec_literal = .{
-                                .value = builtins.dec.RocDec{ .num = value },
+                                .value = builtins.dec.ClawDec{ .num = value },
                                 .has_suffix = false,
                             } }, region);
                             try self.recordNumeralLiteralForPattern(pat_idx, literal);
@@ -20326,7 +20326,7 @@ fn createUnknownIdent(self: *Self) std.mem.Allocator.Error!Ident.Idx {
 /// This generates names like "#1_addX", "#2_addX" when a hint is provided,
 /// or "#1", "#2" when no hint is available. The `#` prefix is used because
 /// it's reserved for comments in Roc source code, so these names cannot
-/// collide with user-defined tags. RocEmitter transforms `#` to `C` when
+/// collide with user-defined tags. ClawEmitter transforms `#` to `C` when
 /// printing, so `#1_foo` becomes `C1_foo` in emitted code.
 fn generateClosureTagName(self: *Self, hint: ?Ident.Idx) std.mem.Allocator.Error!Ident.Idx {
     self.closure_counter += 1;

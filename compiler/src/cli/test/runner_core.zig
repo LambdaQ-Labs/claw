@@ -11,7 +11,7 @@ const builtin = @import("builtin");
 const Allocator = std.mem.Allocator;
 const util = @import("util.zig");
 
-pub const RunnerError = util.RocRunError || std.mem.Allocator.Error;
+pub const RunnerError = util.ClawRunError || std.mem.Allocator.Error;
 
 /// Result of a test execution
 pub const TestResult = enum {

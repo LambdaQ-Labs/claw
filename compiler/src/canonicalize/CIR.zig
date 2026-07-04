@@ -579,9 +579,9 @@ pub const SmallDecValue = struct {
         };
     }
 
-    /// Convert to RocDec representation (i128 scaled by 10^18)
-    pub fn toRocDec(self: SmallDecValue) RocDec {
-        return RocDec.fromFraction(self.numerator, self.denominator_power_of_ten);
+    /// Convert to ClawDec representation (i128 scaled by 10^18)
+    pub fn toRocDec(self: SmallDecValue) ClawDec {
+        return ClawDec.fromFraction(self.numerator, self.denominator_power_of_ten);
     }
 
     test "SmallDecValue.toF64 - basic cases" {
@@ -651,9 +651,9 @@ pub fn fitsInF32(f64_val: f64) bool {
     return abs_val == 0.0 or (abs_val >= std.math.floatTrueMin(f32) and abs_val <= std.math.floatMax(f32));
 }
 
-/// Check if a float value can be represented accurately in RocDec
+/// Check if a float value can be represented accurately in ClawDec
 pub fn fitsInDec(value: f64) bool {
-    // RocDec uses i128 with 18 decimal places
+    // ClawDec uses i128 with 18 decimal places
     const max_dec_value = 170141183460469231731.0;
     const min_dec_value = -170141183460469231731.0;
 
@@ -843,20 +843,20 @@ pub const NumeralDigits = struct {
     }
 };
 
-// RocDec type definition (for missing export)
-// Must match the structure of builtins.RocDec
-pub const RocDec = builtins.dec.RocDec;
+// ClawDec type definition (for missing export)
+// Must match the structure of builtins.ClawDec
+pub const ClawDec = builtins.dec.ClawDec;
 
-/// Converts a RocDec to an i128 integer
-pub fn toI128(self: RocDec) i128 {
+/// Converts a ClawDec to an i128 integer
+pub fn toI128(self: ClawDec) i128 {
     return self.num;
 }
 
-/// Creates a RocDec from an f64 value, returns null if conversion fails
-pub fn fromF64(f: f64) ?RocDec {
+/// Creates a ClawDec from an f64 value, returns null if conversion fails
+pub fn fromF64(f: f64) ?ClawDec {
     // Simple conversion - the real implementation is in builtins/dec.zig
     const scaled = builtins.compiler_rt_128.f64_to_i128(f * 1_000_000_000_000_000_000.0);
-    return RocDec{ .num = scaled };
+    return ClawDec{ .num = scaled };
 }
 
 /// Represents an import statement in a module

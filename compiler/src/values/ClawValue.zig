@@ -10,13 +10,13 @@ const base = @import("base");
 
 const Layout = layout.Layout;
 const Idx = layout.Idx;
-const RocDec = builtins.dec.RocDec;
-const RocStr = builtins.str.RocStr;
-const RocList = builtins.list.RocList;
+const ClawDec = builtins.dec.ClawDec;
+const ClawStr = builtins.str.ClawStr;
+const ClawList = builtins.list.ClawList;
 const i128h = builtins.compiler_rt_128;
 const Ident = base.Ident;
 
-const RocValue = @This();
+const ClawValue = @This();
 
 /// Pointer to raw value bytes (null for zero-sized types).
 ptr: ?[*]const u8,
@@ -26,23 +26,23 @@ lay: Layout,
 /// layout handle alongside the materialized Layout value.
 layout_idx: ?Idx = null,
 
-/// Wrap an opaque pointer and its layout into a `RocValue`.
-pub fn fromPtr(raw_ptr: *const anyopaque, lay_val: Layout) RocValue {
+/// Wrap an opaque pointer and its layout into a `ClawValue`.
+pub fn fromPtr(raw_ptr: *const anyopaque, lay_val: Layout) ClawValue {
     return .{ .ptr = @ptrCast(raw_ptr), .lay = lay_val };
 }
 
-/// Wrap an opaque pointer, its layout, and the layout index into a `RocValue`.
-pub fn fromPtrWithIdx(raw_ptr: *const anyopaque, lay_val: Layout, idx: Idx) RocValue {
+/// Wrap an opaque pointer, its layout, and the layout index into a `ClawValue`.
+pub fn fromPtrWithIdx(raw_ptr: *const anyopaque, lay_val: Layout, idx: Idx) ClawValue {
     return .{ .ptr = @ptrCast(raw_ptr), .lay = lay_val, .layout_idx = idx };
 }
 
-/// Wrap a raw byte pointer and its layout into a `RocValue`.
-pub fn fromRawBytes(raw_ptr: [*]const u8, lay_val: Layout) RocValue {
+/// Wrap a raw byte pointer and its layout into a `ClawValue`.
+pub fn fromRawBytes(raw_ptr: [*]const u8, lay_val: Layout) ClawValue {
     return .{ .ptr = raw_ptr, .lay = lay_val };
 }
 
-/// Create a `RocValue` for a zero-sized type (null pointer).
-pub fn zst(lay_val: Layout) RocValue {
+/// Create a `ClawValue` for a zero-sized type (null pointer).
+pub fn zst(lay_val: Layout) ClawValue {
     return .{ .ptr = null, .lay = lay_val };
 }
 
@@ -53,7 +53,7 @@ inline fn readAligned(comptime T: type, raw_ptr: [*]const u8) T {
 }
 
 /// Read the value as a signed 128-bit integer, widening smaller int types.
-pub fn readI128(self: RocValue) i128 {
+pub fn readI128(self: ClawValue) i128 {
     const raw_ptr = self.ptr orelse return 0;
     return switch (self.lay.getScalar().getInt()) {
         .u8 => readAligned(u8, raw_ptr),
@@ -70,7 +70,7 @@ pub fn readI128(self: RocValue) i128 {
 }
 
 /// Read the value as an unsigned 128-bit integer, widening smaller int types.
-pub fn readU128(self: RocValue) u128 {
+pub fn readU128(self: ClawValue) u128 {
     const raw_ptr = self.ptr orelse return 0;
     return switch (self.lay.getScalar().getInt()) {
         .u8 => readAligned(u8, raw_ptr),
@@ -87,41 +87,41 @@ pub fn readU128(self: RocValue) u128 {
 }
 
 /// Read the value as a boolean (any non-zero byte is `true`).
-pub fn readBool(self: RocValue) bool {
+pub fn readBool(self: ClawValue) bool {
     const raw_ptr = self.ptr orelse return false;
     return readAligned(u8, raw_ptr) != 0;
 }
 
 /// Read the value as a 32-bit float.
-pub fn readF32(self: RocValue) f32 {
+pub fn readF32(self: ClawValue) f32 {
     const raw_ptr = self.ptr orelse return 0;
     return readAligned(f32, raw_ptr);
 }
 
 /// Read the value as a 64-bit float.
-pub fn readF64(self: RocValue) f64 {
+pub fn readF64(self: ClawValue) f64 {
     const raw_ptr = self.ptr orelse return 0;
     return readAligned(f64, raw_ptr);
 }
 
-/// Read the value as a `RocDec` (i128-backed fixed-point decimal).
-pub fn readDec(self: RocValue) RocDec {
-    const raw_ptr = self.ptr orelse return RocDec{ .num = 0 };
-    return RocDec{ .num = readAligned(i128, raw_ptr) };
+/// Read the value as a `ClawDec` (i128-backed fixed-point decimal).
+pub fn readDec(self: ClawValue) ClawDec {
+    const raw_ptr = self.ptr orelse return ClawDec{ .num = 0 };
+    return ClawDec{ .num = readAligned(i128, raw_ptr) };
 }
 
-/// Reinterpret the value bytes as a `RocStr`.
-pub fn readStr(self: RocValue) *const RocStr {
+/// Reinterpret the value bytes as a `ClawStr`.
+pub fn readStr(self: ClawValue) *const ClawStr {
     return @ptrCast(@alignCast(self.ptr.?));
 }
 
-/// Reinterpret the value bytes as a `RocList`.
-pub fn readList(self: RocValue) *const RocList {
+/// Reinterpret the value bytes as a `ClawList`.
+pub fn readList(self: ClawValue) *const ClawList {
     return @ptrCast(@alignCast(self.ptr.?));
 }
 
 /// Read the value as an opaque pointer payload.
-pub fn readOpaquePtr(self: RocValue) usize {
+pub fn readOpaquePtr(self: ClawValue) usize {
     const raw_ptr = self.ptr orelse return 0;
     return readAligned(usize, raw_ptr);
 }
@@ -136,7 +136,7 @@ pub const FormatContext = struct {
 pub const FormatError = error{OutOfMemory};
 
 /// Format this value into a newly-allocated string using canonical Roc syntax.
-pub fn format(self: RocValue, allocator: std.mem.Allocator, ctx: FormatContext) FormatError![]u8 {
+pub fn format(self: ClawValue, allocator: std.mem.Allocator, ctx: FormatContext) FormatError![]u8 {
     // --- Scalars ---
     if (self.lay.tag == .scalar) {
         const scalar = self.lay.getScalar();
@@ -178,7 +178,7 @@ pub fn format(self: RocValue, allocator: std.mem.Allocator, ctx: FormatContext) 
                     },
                     .dec => {
                         const dec = self.readDec();
-                        var buf: [RocDec.max_str_length]u8 = undefined;
+                        var buf: [ClawDec.max_str_length]u8 = undefined;
                         const slice = dec.format_to_buf(&buf);
                         return try allocator.dupe(u8, slice);
                     },
@@ -214,7 +214,7 @@ pub fn format(self: RocValue, allocator: std.mem.Allocator, ctx: FormatContext) 
             const elem_offset = ctx.layout_store.getStructFieldOffset(self.lay.getStruct().idx, @intCast(sorted_idx));
             const base_ptr = self.ptr.?;
             const elem_ptr = base_ptr + elem_offset;
-            const elem_val = RocValue{ .ptr = elem_ptr, .lay = elem_layout };
+            const elem_val = ClawValue{ .ptr = elem_ptr, .lay = elem_layout };
             const rendered = try elem_val.format(allocator, ctx);
             defer allocator.free(rendered);
             try out.appendSlice(rendered);
@@ -239,7 +239,7 @@ pub fn format(self: RocValue, allocator: std.mem.Allocator, ctx: FormatContext) 
             while (i < len) : (i += 1) {
                 if (roc_list.bytes) |bytes| {
                     const elem_ptr: [*]const u8 = bytes + i * elem_size;
-                    const elem_val = RocValue{ .ptr = elem_ptr, .lay = elem_layout };
+                    const elem_val = ClawValue{ .ptr = elem_ptr, .lay = elem_layout };
                     const rendered = try elem_val.format(allocator, ctx);
                     defer allocator.free(rendered);
                     try out.appendSlice(rendered);
@@ -283,7 +283,7 @@ pub fn format(self: RocValue, allocator: std.mem.Allocator, ctx: FormatContext) 
         const elem_size = ctx.layout_store.layoutSize(elem_layout);
         if (elem_size > 0) {
             if (self.getBoxedData()) |data_ptr| {
-                const elem_val = RocValue{ .ptr = data_ptr, .lay = elem_layout };
+                const elem_val = ClawValue{ .ptr = data_ptr, .lay = elem_layout };
                 const rendered = try elem_val.format(allocator, ctx);
                 defer allocator.free(rendered);
                 try out.appendSlice(rendered);
@@ -291,7 +291,7 @@ pub fn format(self: RocValue, allocator: std.mem.Allocator, ctx: FormatContext) 
                 unreachable;
             }
         } else {
-            const elem_val = RocValue.zst(elem_layout);
+            const elem_val = ClawValue.zst(elem_layout);
             const rendered = try elem_val.format(allocator, ctx);
             defer allocator.free(rendered);
             try out.appendSlice(rendered);
@@ -318,10 +318,10 @@ pub fn format(self: RocValue, allocator: std.mem.Allocator, ctx: FormatContext) 
     unreachable; // all layout types must be handled
 }
 
-/// Compare two RocValues for structural equality.
+/// Compare two ClawValues for structural equality.
 /// The `FormatContext` is needed because composite types require the
 /// `layout_store` to determine field offsets and element sizes.
-pub fn equals(self: RocValue, other: RocValue, ctx: FormatContext) bool {
+pub fn equals(self: ClawValue, other: ClawValue, ctx: FormatContext) bool {
     // Tags must match
     if (self.lay.tag != other.lay.tag) return false;
 
@@ -364,8 +364,8 @@ pub fn equals(self: RocValue, other: RocValue, ctx: FormatContext) bool {
                 const o_field_layout = ctx.layout_store.getLayout(o_fld.layout);
                 const s_offset = ctx.layout_store.getStructFieldOffset(self.lay.getStruct().idx, @intCast(i));
                 const o_offset = ctx.layout_store.getStructFieldOffset(other.lay.getStruct().idx, @intCast(i));
-                const s_field = RocValue{ .ptr = self.ptr.? + s_offset, .lay = s_field_layout };
-                const o_field = RocValue{ .ptr = other.ptr.? + o_offset, .lay = o_field_layout };
+                const s_field = ClawValue{ .ptr = self.ptr.? + s_offset, .lay = s_field_layout };
+                const o_field = ClawValue{ .ptr = other.ptr.? + o_offset, .lay = o_field_layout };
                 if (!s_field.equals(o_field, ctx)) return false;
             }
             return true;
@@ -383,8 +383,8 @@ pub fn equals(self: RocValue, other: RocValue, ctx: FormatContext) bool {
             const s_bytes = s_list.bytes orelse return false;
             const o_bytes = o_list.bytes orelse return false;
             for (0..len) |i| {
-                const s_elem = RocValue{ .ptr = s_bytes + i * s_elem_size, .lay = s_elem_layout };
-                const o_elem = RocValue{ .ptr = o_bytes + i * o_elem_size, .lay = o_elem_layout };
+                const s_elem = ClawValue{ .ptr = s_bytes + i * s_elem_size, .lay = s_elem_layout };
+                const o_elem = ClawValue{ .ptr = o_bytes + i * o_elem_size, .lay = o_elem_layout };
                 if (!s_elem.equals(o_elem, ctx)) return false;
             }
             return true;
@@ -400,8 +400,8 @@ pub fn equals(self: RocValue, other: RocValue, ctx: FormatContext) bool {
             if (s_inner_size == 0) return true; // Both are boxes of ZST
             const s_data = self.getBoxedData() orelse return other.getBoxedData() == null;
             const o_data = other.getBoxedData() orelse return false;
-            const s_inner = RocValue{ .ptr = s_data, .lay = s_inner_layout };
-            const o_inner = RocValue{ .ptr = o_data, .lay = o_inner_layout };
+            const s_inner = ClawValue{ .ptr = s_data, .lay = s_inner_layout };
+            const o_inner = ClawValue{ .ptr = o_data, .lay = o_inner_layout };
             return s_inner.equals(o_inner, ctx);
         },
         .box_of_zst => return true,
@@ -422,8 +422,8 @@ pub fn equals(self: RocValue, other: RocValue, ctx: FormatContext) bool {
             const o_variants = ctx.layout_store.getTagUnionVariants(o_tu_data);
             const s_payload_layout = ctx.layout_store.getLayout(s_variants.get(s_disc).payload_layout);
             const o_payload_layout = ctx.layout_store.getLayout(o_variants.get(o_disc).payload_layout);
-            const s_payload = RocValue{ .ptr = s_ptr, .lay = s_payload_layout };
-            const o_payload = RocValue{ .ptr = o_ptr, .lay = o_payload_layout };
+            const s_payload = ClawValue{ .ptr = s_ptr, .lay = s_payload_layout };
+            const o_payload = ClawValue{ .ptr = o_ptr, .lay = o_payload_layout };
             return s_payload.equals(o_payload, ctx);
         },
         .closure => return false, // Closures are not compared structurally
@@ -432,7 +432,7 @@ pub fn equals(self: RocValue, other: RocValue, ctx: FormatContext) bool {
 }
 
 /// Dereference the box pointer. Returns the inner data pointer or null.
-fn getBoxedData(self: RocValue) ?[*]const u8 {
+fn getBoxedData(self: ClawValue) ?[*]const u8 {
     if (self.ptr) |ptr| {
         const slot: *const usize = @ptrCast(@alignCast(ptr));
         if (slot.* == 0) return null;
@@ -445,8 +445,8 @@ test "readBool reads discriminant byte" {
     var true_byte: [1]u8 = .{1};
     var false_byte: [1]u8 = .{0};
     const bool_layout = Layout.boolType();
-    try std.testing.expect((RocValue{ .ptr = &true_byte, .lay = bool_layout }).readBool());
-    try std.testing.expect(!(RocValue{ .ptr = &false_byte, .lay = bool_layout }).readBool());
+    try std.testing.expect((ClawValue{ .ptr = &true_byte, .lay = bool_layout }).readBool());
+    try std.testing.expect(!(ClawValue{ .ptr = &false_byte, .lay = bool_layout }).readBool());
 }
 
 test "format i64" {
@@ -454,7 +454,7 @@ test "format i64" {
     const i64_layout = Layout.int(.i64);
     var bytes: [@sizeOf(i64)]u8 = undefined;
     @memcpy(&bytes, std.mem.asBytes(&@as(i64, -42)));
-    const val = RocValue{ .ptr = &bytes, .lay = i64_layout };
+    const val = ClawValue{ .ptr = &bytes, .lay = i64_layout };
     const ctx = FormatContext{ .layout_store = undefined, .ident_store = null };
     const result = try val.format(allocator, ctx);
     defer allocator.free(result);
@@ -466,7 +466,7 @@ test "format u64" {
     const u64_layout = Layout.int(.u64);
     var bytes: [@sizeOf(u64)]u8 = undefined;
     @memcpy(&bytes, std.mem.asBytes(&@as(u64, 42)));
-    const val = RocValue{ .ptr = &bytes, .lay = u64_layout };
+    const val = ClawValue{ .ptr = &bytes, .lay = u64_layout };
     const ctx = FormatContext{ .layout_store = undefined, .ident_store = null };
     const result = try val.format(allocator, ctx);
     defer allocator.free(result);
@@ -477,10 +477,10 @@ test "format dec with strip" {
     const allocator = std.testing.allocator;
     const dec_layout = Layout.frac(.dec);
     // 3 as Dec = 3 * 10^18
-    const dec_val: i128 = 3 * RocDec.one_point_zero_i128;
+    const dec_val: i128 = 3 * ClawDec.one_point_zero_i128;
     var bytes: [@sizeOf(i128)]u8 = undefined;
     @memcpy(&bytes, std.mem.asBytes(&dec_val));
-    const val = RocValue{ .ptr = &bytes, .lay = dec_layout };
+    const val = ClawValue{ .ptr = &bytes, .lay = dec_layout };
     const ctx = FormatContext{ .layout_store = undefined, .ident_store = null };
     const result = try val.format(allocator, ctx);
     defer allocator.free(result);
@@ -494,7 +494,7 @@ test "format dec fractional" {
     const dec_val: i128 = 3_140_000_000_000_000_000;
     var bytes: [@sizeOf(i128)]u8 = undefined;
     @memcpy(&bytes, std.mem.asBytes(&dec_val));
-    const val = RocValue{ .ptr = &bytes, .lay = dec_layout };
+    const val = ClawValue{ .ptr = &bytes, .lay = dec_layout };
     const ctx = FormatContext{ .layout_store = undefined, .ident_store = null };
     const result = try val.format(allocator, ctx);
     defer allocator.free(result);
@@ -504,7 +504,7 @@ test "format dec fractional" {
 test "format zst" {
     const allocator = std.testing.allocator;
     const zst_layout = Layout.zst();
-    const val = RocValue.zst(zst_layout);
+    const val = ClawValue.zst(zst_layout);
     const ctx = FormatContext{ .layout_store = undefined, .ident_store = null };
     const result = try val.format(allocator, ctx);
     defer allocator.free(result);
@@ -514,7 +514,7 @@ test "format zst" {
 test "format box_of_zst" {
     const allocator = std.testing.allocator;
     const box_zst_layout = Layout.boxOfZst();
-    const val = RocValue.zst(box_zst_layout);
+    const val = ClawValue.zst(box_zst_layout);
     const ctx = FormatContext{ .layout_store = undefined, .ident_store = null };
     const result = try val.format(allocator, ctx);
     defer allocator.free(result);
@@ -529,9 +529,9 @@ test "equals i64" {
     @memcpy(&a, std.mem.asBytes(&@as(i64, 42)));
     @memcpy(&b, std.mem.asBytes(&@as(i64, 42)));
     @memcpy(&c, std.mem.asBytes(&@as(i64, -1)));
-    const va = RocValue{ .ptr = &a, .lay = i64_layout };
-    const vb = RocValue{ .ptr = &b, .lay = i64_layout };
-    const vc = RocValue{ .ptr = &c, .lay = i64_layout };
+    const va = ClawValue{ .ptr = &a, .lay = i64_layout };
+    const vb = ClawValue{ .ptr = &b, .lay = i64_layout };
+    const vc = ClawValue{ .ptr = &c, .lay = i64_layout };
     const ctx = FormatContext{ .layout_store = undefined, .ident_store = null };
     try std.testing.expect(va.equals(vb, ctx));
     try std.testing.expect(!va.equals(vc, ctx));
@@ -545,9 +545,9 @@ test "equals f64" {
     @memcpy(&a, std.mem.asBytes(&@as(f64, 3.14)));
     @memcpy(&b, std.mem.asBytes(&@as(f64, 3.14)));
     @memcpy(&c, std.mem.asBytes(&@as(f64, 2.71)));
-    const va = RocValue{ .ptr = &a, .lay = f64_layout };
-    const vb = RocValue{ .ptr = &b, .lay = f64_layout };
-    const vc = RocValue{ .ptr = &c, .lay = f64_layout };
+    const va = ClawValue{ .ptr = &a, .lay = f64_layout };
+    const vb = ClawValue{ .ptr = &b, .lay = f64_layout };
+    const vc = ClawValue{ .ptr = &c, .lay = f64_layout };
     const ctx = FormatContext{ .layout_store = undefined, .ident_store = null };
     try std.testing.expect(va.equals(vb, ctx));
     try std.testing.expect(!va.equals(vc, ctx));
@@ -555,18 +555,18 @@ test "equals f64" {
 
 test "equals dec" {
     const dec_layout = Layout.frac(.dec);
-    const dec_a: i128 = 3 * RocDec.one_point_zero_i128;
-    const dec_b: i128 = 3 * RocDec.one_point_zero_i128;
-    const dec_c: i128 = 5 * RocDec.one_point_zero_i128;
+    const dec_a: i128 = 3 * ClawDec.one_point_zero_i128;
+    const dec_b: i128 = 3 * ClawDec.one_point_zero_i128;
+    const dec_c: i128 = 5 * ClawDec.one_point_zero_i128;
     var a: [@sizeOf(i128)]u8 = undefined;
     var b: [@sizeOf(i128)]u8 = undefined;
     var c: [@sizeOf(i128)]u8 = undefined;
     @memcpy(&a, std.mem.asBytes(&dec_a));
     @memcpy(&b, std.mem.asBytes(&dec_b));
     @memcpy(&c, std.mem.asBytes(&dec_c));
-    const va = RocValue{ .ptr = &a, .lay = dec_layout };
-    const vb = RocValue{ .ptr = &b, .lay = dec_layout };
-    const vc = RocValue{ .ptr = &c, .lay = dec_layout };
+    const va = ClawValue{ .ptr = &a, .lay = dec_layout };
+    const vb = ClawValue{ .ptr = &b, .lay = dec_layout };
+    const vc = ClawValue{ .ptr = &c, .lay = dec_layout };
     const ctx = FormatContext{ .layout_store = undefined, .ident_store = null };
     try std.testing.expect(va.equals(vb, ctx));
     try std.testing.expect(!va.equals(vc, ctx));
@@ -574,8 +574,8 @@ test "equals dec" {
 
 test "equals zst" {
     const zst_layout = Layout.zst();
-    const va = RocValue.zst(zst_layout);
-    const vb = RocValue.zst(zst_layout);
+    const va = ClawValue.zst(zst_layout);
+    const vb = ClawValue.zst(zst_layout);
     const ctx = FormatContext{ .layout_store = undefined, .ident_store = null };
     try std.testing.expect(va.equals(vb, ctx));
 }
@@ -583,8 +583,8 @@ test "equals zst" {
 test "equals mismatched tags" {
     const zst_layout = Layout.zst();
     const box_zst_layout = Layout.boxOfZst();
-    const va = RocValue.zst(zst_layout);
-    const vb = RocValue.zst(box_zst_layout);
+    const va = ClawValue.zst(zst_layout);
+    const vb = ClawValue.zst(box_zst_layout);
     const ctx = FormatContext{ .layout_store = undefined, .ident_store = null };
     try std.testing.expect(!va.equals(vb, ctx));
 }

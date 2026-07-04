@@ -65,7 +65,7 @@ pub fn buildProvidedDataExports(
     allocator: Allocator,
     modules: ModuleViews,
     lowered: ?*const lir.CheckedPipeline.LoweredProgram,
-    target: roc_target.RocTarget,
+    target: roc_target.ClawTarget,
 ) MaterializationError![]StaticDataExport {
     const root = modules.root orelse {
         if (hasProvidedData(modules)) staticDataInvariant("provided data exports require a root checked module");
@@ -119,7 +119,7 @@ const StaticDataBuilder = struct {
         root: Checked.LoweringModuleView,
         imports: []const Checked.ImportedModuleView,
         lowered: *const lir.CheckedPipeline.LoweredProgram,
-        target: roc_target.RocTarget,
+        target: roc_target.ClawTarget,
     ) ?StaticDataBuilder {
         const target_usize = switch (target.ptrBitWidth()) {
             32 => @import("base").target.TargetUsize.u32,
@@ -952,14 +952,14 @@ const StaticDataBuilder = struct {
     fn encodeRocStrCapacity(self: *StaticDataBuilder, capacity: usize) u64 {
         const target_capacity: u64 = @intCast(capacity);
         const max_capacity = self.targetWordMax() >> 1;
-        if (target_capacity > max_capacity) staticDataInvariant("static string exceeds RocStr capacity limit for target");
+        if (target_capacity > max_capacity) staticDataInvariant("static string exceeds ClawStr capacity limit for target");
         return target_capacity << 1;
     }
 
     fn encodeRocListCapacity(self: *StaticDataBuilder, capacity: usize) u64 {
         const target_capacity: u64 = @intCast(capacity);
         const max_capacity = self.targetWordMax() >> 1;
-        if (target_capacity > max_capacity) staticDataInvariant("static list exceeds RocList capacity limit for target");
+        if (target_capacity > max_capacity) staticDataInvariant("static list exceeds ClawList capacity limit for target");
         return target_capacity << 1;
     }
 

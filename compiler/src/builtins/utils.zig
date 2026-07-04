@@ -9,7 +9,7 @@
 const std = @import("std");
 const builtin = @import("builtin");
 
-pub const RocOps = @import("host_abi.zig").RocOps;
+pub const ClawOps = @import("host_abi.zig").ClawOps;
 
 inline fn debugPrint(comptime fmt: []const u8, args: anytype) void {
     if (comptime builtin.os.tag != .freestanding) {
@@ -96,7 +96,7 @@ pub const TestEnv = struct {
 
     allocation_map: AllocationMap,
     allocator: std.mem.Allocator,
-    ops: ?RocOps,
+    ops: ?ClawOps,
 
     pub fn init(allocator: std.mem.Allocator) TestEnv {
         return TestEnv{
@@ -106,9 +106,9 @@ pub const TestEnv = struct {
         };
     }
 
-    pub fn getOps(self: *TestEnv) *RocOps {
+    pub fn getOps(self: *TestEnv) *ClawOps {
         if (self.ops == null) {
-            self.ops = RocOps{
+            self.ops = ClawOps{
                 .env = @as(*anyopaque, @ptrCast(self)),
                 .roc_alloc = rocAllocFn,
                 .roc_dealloc = rocDeallocFn,
@@ -151,7 +151,7 @@ pub const TestEnv = struct {
         return self.allocation_map.count();
     }
 
-    fn rocAllocFn(ops: *RocOps, length: usize, alignment: usize) callconv(.c) ?*anyopaque {
+    fn rocAllocFn(ops: *ClawOps, length: usize, alignment: usize) callconv(.c) ?*anyopaque {
         const self: *TestEnv = @ptrCast(@alignCast(ops.env));
 
         // Allocate memory using the testing allocator with comptime alignment
@@ -187,7 +187,7 @@ pub const TestEnv = struct {
         return result;
     }
 
-    fn rocDeallocFn(ops: *RocOps, ptr: *anyopaque, _: usize) callconv(.c) void {
+    fn rocDeallocFn(ops: *ClawOps, ptr: *anyopaque, _: usize) callconv(.c) void {
         const self: *TestEnv = @ptrCast(@alignCast(ops.env));
 
         if (self.allocation_map.fetchRemove(ptr)) |entry| {
@@ -208,7 +208,7 @@ pub const TestEnv = struct {
         }
     }
 
-    fn rocReallocFn(ops: *RocOps, ptr: *anyopaque, new_length: usize, _: usize) callconv(.c) ?*anyopaque {
+    fn rocReallocFn(ops: *ClawOps, ptr: *anyopaque, new_length: usize, _: usize) callconv(.c) ?*anyopaque {
         const self: *TestEnv = @ptrCast(@alignCast(ops.env));
 
         // Look up the old allocation
@@ -251,11 +251,11 @@ pub const TestEnv = struct {
         }
     }
 
-    fn rocDbgFn(_: *RocOps, _: [*]const u8, _: usize) callconv(.c) void {}
+    fn rocDbgFn(_: *ClawOps, _: [*]const u8, _: usize) callconv(.c) void {}
 
-    fn rocExpectFailedFn(_: *RocOps, _: [*]const u8, _: usize) callconv(.c) void {}
+    fn rocExpectFailedFn(_: *ClawOps, _: [*]const u8, _: usize) callconv(.c) void {}
 
-    fn rocCrashedFn(_: *RocOps, bytes: [*]const u8, len: usize) callconv(.c) void {
+    fn rocCrashedFn(_: *ClawOps, bytes: [*]const u8, len: usize) callconv(.c) void {
         const message = bytes[0..len];
         debugPrint("Roc crashed: {s}\n", .{message});
         unreachable;
@@ -337,7 +337,7 @@ pub const RcAtomicity = enum(u1) {
 
 /// Increments reference count of an RC pointer by specified amount,
 /// using the given count-update atomicity.
-pub fn increfRcPtr(ptr_to_refcount: *isize, amount: isize, atomicity: RcAtomicity, roc_ops: *RocOps) void {
+pub fn increfRcPtr(ptr_to_refcount: *isize, amount: isize, atomicity: RcAtomicity, roc_ops: *ClawOps) void {
     if (RC_TYPE == .none) return;
 
     // Ensure that the refcount is not whole program lifetime.
@@ -387,13 +387,13 @@ pub fn increfRcPtr(ptr_to_refcount: *isize, amount: isize, atomicity: RcAtomicit
 }
 
 /// Increments reference count of an RC pointer by specified amount
-pub fn increfRcPtrC(ptr_to_refcount: *isize, amount: isize, roc_ops: *RocOps) callconv(.c) void {
+pub fn increfRcPtrC(ptr_to_refcount: *isize, amount: isize, roc_ops: *ClawOps) callconv(.c) void {
     increfRcPtr(ptr_to_refcount, amount, .atomic, roc_ops);
 }
 
 /// Increments reference count of an RC pointer by specified amount, for
 /// allocations proven confined to a single thread.
-pub fn increfRcPtrSingleThreadC(ptr_to_refcount: *isize, amount: isize, roc_ops: *RocOps) callconv(.c) void {
+pub fn increfRcPtrSingleThreadC(ptr_to_refcount: *isize, amount: isize, roc_ops: *ClawOps) callconv(.c) void {
     increfRcPtr(ptr_to_refcount, amount, .single_thread, roc_ops);
 }
 
@@ -404,7 +404,7 @@ pub fn decrefRcPtr(
     alignment: u32,
     elements_refcounted: bool,
     atomicity: RcAtomicity,
-    roc_ops: *RocOps,
+    roc_ops: *ClawOps,
 ) void {
     // IMPORTANT: bytes_or_null is this case is expected to be a pointer to the refcount
     // (NOT the start of the data, or the start of the allocation)
@@ -424,7 +424,7 @@ pub fn decrefRcPtrC(
     bytes_or_null: ?[*]isize,
     alignment: u32,
     elements_refcounted: bool,
-    roc_ops: *RocOps,
+    roc_ops: *ClawOps,
 ) callconv(.c) void {
     return decrefRcPtr(bytes_or_null, alignment, elements_refcounted, .atomic, roc_ops);
 }
@@ -435,7 +435,7 @@ pub fn decrefRcPtrSingleThreadC(
     bytes_or_null: ?[*]isize,
     alignment: u32,
     elements_refcounted: bool,
-    roc_ops: *RocOps,
+    roc_ops: *ClawOps,
 ) callconv(.c) void {
     return decrefRcPtr(bytes_or_null, alignment, elements_refcounted, .single_thread, roc_ops);
 }
@@ -444,13 +444,13 @@ pub fn decrefRcPtrSingleThreadC(
 /// using the given count-update atomicity.
 /// WARNING: This function assumes `bytes` points to 8-byte aligned data.
 /// It should NOT be used for seamless slices with non-zero start offsets,
-/// as those have misaligned bytes pointers. Use RocList.decref instead.
+/// as those have misaligned bytes pointers. Use ClawList.decref instead.
 pub fn decrefCheckNull(
     bytes_or_null: ?[*]u8,
     alignment: u32,
     elements_refcounted: bool,
     atomicity: RcAtomicity,
-    roc_ops: *RocOps,
+    roc_ops: *ClawOps,
 ) void {
     if (bytes_or_null) |bytes| {
         const isizes: [*]isize = alignedPtrCast([*]isize, bytes, @src());
@@ -465,12 +465,12 @@ pub fn decrefCheckNull(
 /// Safely decrements reference count for a potentially null pointer
 /// WARNING: This function assumes `bytes` points to 8-byte aligned data.
 /// It should NOT be used for seamless slices with non-zero start offsets,
-/// as those have misaligned bytes pointers. Use RocList.decref instead.
+/// as those have misaligned bytes pointers. Use ClawList.decref instead.
 pub fn decrefCheckNullC(
     bytes_or_null: ?[*]u8,
     alignment: u32,
     elements_refcounted: bool,
-    roc_ops: *RocOps,
+    roc_ops: *ClawOps,
 ) callconv(.c) void {
     return decrefCheckNull(bytes_or_null, alignment, elements_refcounted, .atomic, roc_ops);
 }
@@ -479,12 +479,12 @@ pub fn decrefCheckNullC(
 /// allocations proven confined to a single thread.
 /// WARNING: This function assumes `bytes` points to 8-byte aligned data.
 /// It should NOT be used for seamless slices with non-zero start offsets,
-/// as those have misaligned bytes pointers. Use RocList.decref instead.
+/// as those have misaligned bytes pointers. Use ClawList.decref instead.
 pub fn decrefCheckNullSingleThreadC(
     bytes_or_null: ?[*]u8,
     alignment: u32,
     elements_refcounted: bool,
-    roc_ops: *RocOps,
+    roc_ops: *ClawOps,
 ) callconv(.c) void {
     return decrefCheckNull(bytes_or_null, alignment, elements_refcounted, .single_thread, roc_ops);
 }
@@ -497,7 +497,7 @@ pub fn decrefDataPtr(
     alignment: u32,
     elements_refcounted: bool,
     atomicity: RcAtomicity,
-    roc_ops: *RocOps,
+    roc_ops: *ClawOps,
 ) void {
     const bytes = bytes_or_null orelse return;
     const tag_mask: usize = if (@sizeOf(usize) == 8) 0b111 else 0b11;
@@ -536,7 +536,7 @@ pub fn decrefDataPtrC(
     bytes_or_null: ?[*]u8,
     alignment: u32,
     elements_refcounted: bool,
-    roc_ops: *RocOps,
+    roc_ops: *ClawOps,
 ) callconv(.c) void {
     return decrefDataPtr(bytes_or_null, alignment, elements_refcounted, .atomic, roc_ops);
 }
@@ -548,7 +548,7 @@ pub fn decrefDataPtrSingleThreadC(
     bytes_or_null: ?[*]u8,
     alignment: u32,
     elements_refcounted: bool,
-    roc_ops: *RocOps,
+    roc_ops: *ClawOps,
 ) callconv(.c) void {
     return decrefDataPtr(bytes_or_null, alignment, elements_refcounted, .single_thread, roc_ops);
 }
@@ -560,7 +560,7 @@ pub fn increfDataPtr(
     bytes_or_null: ?[*]u8,
     inc_amount: isize,
     atomicity: RcAtomicity,
-    roc_ops: *RocOps,
+    roc_ops: *ClawOps,
 ) void {
     const bytes = bytes_or_null orelse return;
 
@@ -589,7 +589,7 @@ pub fn increfDataPtr(
 pub fn increfDataPtrC(
     bytes_or_null: ?[*]u8,
     inc_amount: isize,
-    roc_ops: *RocOps,
+    roc_ops: *ClawOps,
 ) callconv(.c) void {
     return increfDataPtr(bytes_or_null, inc_amount, .atomic, roc_ops);
 }
@@ -600,7 +600,7 @@ pub fn increfDataPtrC(
 pub fn increfDataPtrSingleThreadC(
     bytes_or_null: ?[*]u8,
     inc_amount: isize,
-    roc_ops: *RocOps,
+    roc_ops: *ClawOps,
 ) callconv(.c) void {
     return increfDataPtr(bytes_or_null, inc_amount, .single_thread, roc_ops);
 }
@@ -612,7 +612,7 @@ pub fn freeDataPtrC(
     bytes_or_null: ?[*]u8,
     alignment: u32,
     elements_refcounted: bool,
-    roc_ops: *RocOps,
+    roc_ops: *ClawOps,
 ) callconv(.c) void {
     const bytes = bytes_or_null orelse return;
 
@@ -633,7 +633,7 @@ pub fn freeRcPtrC(
     bytes_or_null: ?[*]isize,
     alignment: u32,
     elements_refcounted: bool,
-    roc_ops: *RocOps,
+    roc_ops: *ClawOps,
 ) callconv(.c) void {
     const bytes = bytes_or_null orelse return;
     return free_ptr_to_refcount(bytes, alignment, elements_refcounted, roc_ops);
@@ -647,7 +647,7 @@ pub fn decref(
     alignment: u32,
     elements_refcounted: bool,
     atomicity: RcAtomicity,
-    roc_ops: *RocOps,
+    roc_ops: *ClawOps,
 ) void {
     if (data_bytes == 0) {
         return;
@@ -664,7 +664,7 @@ inline fn free_ptr_to_refcount(
     refcount_ptr: [*]isize,
     element_alignment: u32,
     elements_refcounted: bool,
-    roc_ops: *RocOps,
+    roc_ops: *ClawOps,
 ) void {
     if (RC_TYPE == .none) return;
 
@@ -696,7 +696,7 @@ inline fn decref_ptr_to_refcount(
     element_alignment: u32,
     elements_refcounted: bool,
     atomicity: RcAtomicity,
-    roc_ops: *RocOps,
+    roc_ops: *ClawOps,
     comptime site: DebugRefcountTracker.Site,
 ) void {
     if (RC_TYPE == .none) return;
@@ -754,7 +754,7 @@ inline fn decref_ptr_to_refcount(
 /// Handles tag bits in the pointer and extracts the reference count
 pub fn isUnique(
     bytes_or_null: ?[*]u8,
-    _: *RocOps,
+    _: *ClawOps,
 ) callconv(.c) bool {
     const bytes = bytes_or_null orelse return true;
 
@@ -807,7 +807,7 @@ pub inline fn rcConstant(refcount: isize) bool {
 ///
 /// Use this at key points in slice-creating or refcount-manipulating functions
 /// to catch bugs early during development.
-pub inline fn assertValidRefcount(data_ptr: ?[*]u8, roc_ops: *RocOps) void {
+pub inline fn assertValidRefcount(data_ptr: ?[*]u8, roc_ops: *ClawOps) void {
     if (builtin.mode != .Debug) return;
     if (data_ptr) |ptr| {
         const rc_ptr: [*]isize = alignedPtrCast([*]isize, ptr - @sizeOf(usize), @src());
@@ -823,7 +823,7 @@ pub inline fn assertValidRefcount(data_ptr: ?[*]u8, roc_ops: *RocOps) void {
     }
 }
 
-// We follow roughly the [fbvector](https://github.com/facebook/folly/blob/main/folly/docs/FBVector.md) when it comes to growing a RocList.
+// We follow roughly the [fbvector](https://github.com/facebook/folly/blob/main/folly/docs/FBVector.md) when it comes to growing a ClawList.
 // Here is [their growth strategy](https://github.com/facebook/folly/blob/3e0525988fd444201b19b76b390a5927c15cb697/folly/FBVector.h#L1128) for push_back:
 //
 // (1) initial size
@@ -881,7 +881,7 @@ pub fn allocateWithRefcountC(
     data_bytes: usize,
     element_alignment: u32,
     elements_refcounted: bool,
-    roc_ops: *RocOps,
+    roc_ops: *ClawOps,
 ) callconv(.c) [*]u8 {
     return allocateWithRefcount(data_bytes, element_alignment, elements_refcounted, roc_ops);
 }
@@ -893,7 +893,7 @@ pub fn allocateWithRefcount(
     data_bytes: usize,
     element_alignment: u32,
     elements_refcounted: bool,
-    roc_ops: *RocOps,
+    roc_ops: *ClawOps,
 ) [*]u8 {
     // If the element type is refcounted, we need to also allocate space to store the element count on the heap.
     // This is used so that a seamless slice can de-allocate the underlying list type.
@@ -933,7 +933,7 @@ pub fn unsafeReallocate(
     new_length: usize,
     element_width: usize,
     elements_refcounted: bool,
-    roc_ops: *RocOps,
+    roc_ops: *ClawOps,
 ) [*]u8 {
     const ptr_width: usize = @sizeOf(usize);
     const required_space: usize = if (elements_refcounted) (2 * ptr_width) else ptr_width;

@@ -413,7 +413,7 @@ pub const TagUnionVariant = struct {
 };
 
 /// Roc's version of alignment that is limited to a max alignment of 16B to save bits.
-pub const RocAlignment = enum(u3) {
+pub const ClawAlignment = enum(u3) {
     @"1" = 0,
     @"2" = 1,
     @"4" = 2,
@@ -421,11 +421,11 @@ pub const RocAlignment = enum(u3) {
     @"16" = 4,
     _,
 
-    pub fn toByteUnits(a: RocAlignment) usize {
+    pub fn toByteUnits(a: ClawAlignment) usize {
         return @as(usize, 1) << @intFromEnum(a);
     }
 
-    pub fn fromByteUnits(n: u16) RocAlignment {
+    pub fn fromByteUnits(n: u16) ClawAlignment {
         std.debug.assert(std.math.isPowerOfTwo(n));
         return @enumFromInt(@ctz(n));
     }
@@ -489,18 +489,18 @@ pub const SortKey = enum(u3) {
 /// Size and alignment information
 pub const SizeAlign = packed struct(u32) {
     size: u29, // u29 can represent sizes up to ~1GiB (is 1 byte shy of it).
-    alignment: RocAlignment, // u3 bits
+    alignment: ClawAlignment, // u3 bits
 
     /// Box size and alignment (pointer-sized)
     pub const box = SizeAlign{
         .size = @sizeOf(usize),
-        .alignment = RocAlignment.fromByteUnits(@alignOf(usize)),
+        .alignment = ClawAlignment.fromByteUnits(@alignOf(usize)),
     };
 
     /// List size and alignment (3 pointer-sized fields)
     pub const list = SizeAlign{
         .size = 3 * @sizeOf(usize),
-        .alignment = RocAlignment.fromByteUnits(@alignOf(usize)),
+        .alignment = ClawAlignment.fromByteUnits(@alignOf(usize)),
     };
 };
 
@@ -546,7 +546,7 @@ pub const ListInfo = struct {
     };
 
     /// Create an iterator for traversing list elements.
-    /// The caller should obtain base_ptr and count from RocList methods:
+    /// The caller should obtain base_ptr and count from ClawList methods:
     ///   - base_ptr from list.getAllocationDataPtr(ops)
     ///   - count from list.getAllocationElementCount(self.contains_refcounted, ops)
     pub fn iterateElements(self: ListInfo, base_ptr: [*]u8, count: usize) ElementIterator {
@@ -808,7 +808,7 @@ pub const Layout = packed struct {
     pub fn isRefcounted(self: Layout) bool {
         return switch (self.tag) {
             .scalar => switch (self.getScalar().tag) {
-                .str => true, // RocStr needs refcounting
+                .str => true, // ClawStr needs refcounting
                 .int, .frac, .opaque_ptr => false,
             },
             .list, .list_of_zst => true, // Lists need refcounting

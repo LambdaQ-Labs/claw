@@ -5,12 +5,12 @@
 //!
 //! Note: All aarch64 instructions are 32 bits (4 bytes) and must be 4-byte aligned.
 //!
-//! The Emit function is parameterized by RocTarget to enable full cross-compilation.
+//! The Emit function is parameterized by ClawTarget to enable full cross-compilation.
 //! Each target variant is specialized at comptime with the correct calling convention.
 
 const std = @import("std");
 const Allocator = std.mem.Allocator;
-const RocTarget = @import("roc_target").RocTarget;
+const ClawTarget = @import("roc_target").ClawTarget;
 const Registers = @import("Registers.zig");
 const RegisterWidth = Registers.RegisterWidth;
 
@@ -18,7 +18,7 @@ const Relocation = @import("../Relocation.zig").Relocation;
 
 /// aarch64 instruction emitter for generating machine code.
 /// Parameterized by target for cross-compilation support.
-pub fn Emit(comptime target: RocTarget) type {
+pub fn Emit(comptime target: ClawTarget) type {
     // Validate this is an aarch64 target
     if (target.toCpuArch() != .aarch64 and target.toCpuArch() != .aarch64_be) {
         @compileError("aarch64.Emit requires an aarch64 target");

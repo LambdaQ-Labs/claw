@@ -1,6 +1,6 @@
 //! Root for the extern-symbol-mode prebuilt builtins objects. Identical to
 //! static_lib.zig except that builtins reach the host through linker-resolved
-//! symbols (roc_alloc and friends) instead of the RocOps vtable, which is what
+//! symbols (roc_alloc and friends) instead of the ClawOps vtable, which is what
 //! compiled output links against under the symbol ABI.
 
 const static_lib = @import("static_lib.zig");

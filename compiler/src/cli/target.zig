@@ -4,8 +4,8 @@
 
 const compile = @import("compile");
 
-// Re-export RocTarget from the shared build module
-pub const RocTarget = @import("roc_target").RocTarget;
+// Re-export ClawTarget from the shared build module
+pub const ClawTarget = @import("roc_target").ClawTarget;
 pub const macos_deployment = @import("roc_target").macos_deployment;
 
 // Re-export link configuration types from the compile layer

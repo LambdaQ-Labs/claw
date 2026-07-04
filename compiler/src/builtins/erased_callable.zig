@@ -9,7 +9,7 @@ const std = @import("std");
 
 const utils = @import("utils.zig");
 
-pub const RocOps = utils.RocOps;
+pub const ClawOps = utils.ClawOps;
 
 /// Uniform ABI of a boxed erased callable function pointer.
 ///
@@ -18,7 +18,7 @@ pub const RocOps = utils.RocOps;
 /// storage, or is null for zero-sized results. `capture` is always the pointer
 /// returned by `capturePtr(payload_data_ptr)`.
 pub const ErasedCallableFn = *const fn (
-    ops: *RocOps,
+    ops: *ClawOps,
     ret: ?[*]u8,
     args: ?[*]const u8,
     capture: ?[*]u8,
@@ -35,10 +35,10 @@ pub const CallableFnPtr = ErasedCallableFn;
 /// this callback returns.
 ///
 /// The ops argument is whatever the final release passed along. Compiled Roc
-/// code carries no RocOps under the symbol ABI and passes null here, so a
-/// host-installed callback must reach the host's RocOps through the host's
+/// code carries no ClawOps under the symbol ABI and passes null here, so a
+/// host-installed callback must reach the host's ClawOps through the host's
 /// own storage, never through this parameter.
-pub const OnDropFn = *const fn (?[*]u8, *RocOps) callconv(.c) void;
+pub const OnDropFn = *const fn (?[*]u8, *ClawOps) callconv(.c) void;
 
 /// Fixed header at the beginning of a boxed erased callable payload.
 pub const Payload = extern struct {
@@ -93,7 +93,7 @@ pub fn allocate(
     callable_fn_ptr: CallableFnPtr,
     on_drop: ?OnDropFn,
     capture_size: usize,
-    roc_ops: *RocOps,
+    roc_ops: *ClawOps,
 ) [*]u8 {
     const data_ptr = utils.allocateWithRefcount(
         payloadSize(capture_size),
@@ -147,12 +147,12 @@ pub fn hotReloadAdjustedCapturePtr(capture_ptr: ?[*]u8) ?[*]u8 {
 }
 
 /// Increment the outer boxed-erased-callable allocation refcount.
-pub fn incref(data_ptr: ?[*]u8, amount: isize, roc_ops: *RocOps) callconv(.c) void {
+pub fn incref(data_ptr: ?[*]u8, amount: isize, roc_ops: *ClawOps) callconv(.c) void {
     utils.increfDataPtrC(data_ptr, amount, roc_ops);
 }
 
 /// Decrement the outer refcount, running `on_drop` if this was the final ref.
-pub fn decref(data_ptr: ?[*]u8, roc_ops: *RocOps) callconv(.c) void {
+pub fn decref(data_ptr: ?[*]u8, roc_ops: *ClawOps) callconv(.c) void {
     if (data_ptr) |ptr| {
         if (utils.isUnique(ptr, roc_ops)) {
             const payload = payloadPtr(ptr);
@@ -165,7 +165,7 @@ pub fn decref(data_ptr: ?[*]u8, roc_ops: *RocOps) callconv(.c) void {
 }
 
 /// Run final-drop logic and free the boxed-erased-callable allocation.
-pub fn free(data_ptr: ?[*]u8, roc_ops: *RocOps) callconv(.c) void {
+pub fn free(data_ptr: ?[*]u8, roc_ops: *ClawOps) callconv(.c) void {
     if (data_ptr) |ptr| {
         const payload = payloadPtr(ptr);
         if (payload.on_drop) |on_drop| {

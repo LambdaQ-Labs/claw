@@ -1,8 +1,8 @@
-//! Production-faithful RocOps recorder for eval test harnesses.
+//! Production-faithful ClawOps recorder for eval test harnesses.
 //!
 //! This env records exactly what a real host can observe through `host_abi`:
 //! callback kind, raw UTF-8 payload bytes, event order, and crash termination.
-//! It also tracks allocations made through RocOps so tests can detect leaks or
+//! It also tracks allocations made through ClawOps so tests can detect leaks or
 //! clean up any surviving runtime allocations at the end of a run.
 
 const std = @import("std");
@@ -10,7 +10,7 @@ const Allocator = std.mem.Allocator;
 const builtins = @import("builtins");
 const sljmp = @import("sljmp");
 
-const RocOps = builtins.host_abi.RocOps;
+const ClawOps = builtins.host_abi.ClawOps;
 const JmpBuf = sljmp.JmpBuf;
 const setjmp = sljmp.setjmp;
 const longjmp = sljmp.longjmp;
@@ -99,7 +99,7 @@ pub const CrashState = union(enum) {
 pub const LeakError = error{MemoryLeak};
 
 allocator: std.mem.Allocator,
-roc_ops: ?RocOps = null,
+roc_ops: ?ClawOps = null,
 jmp_buf: JmpBuf = undefined,
 active_jmp_buf: ?*JmpBuf = null,
 termination: Termination = .returned,
@@ -157,7 +157,7 @@ pub fn setLongjmpOnCrash(self: *RuntimeHostEnv, enabled: bool) void {
 }
 
 /// Public function `get_ops`.
-pub fn get_ops(self: *RuntimeHostEnv) *RocOps {
+pub fn get_ops(self: *RuntimeHostEnv) *ClawOps {
     if (self.roc_ops == null) {
         self.roc_ops = .{
             .env = @ptrCast(self),
@@ -249,17 +249,17 @@ fn appendEvent(
     };
 }
 
-fn rocDbgFn(ops: *RocOps, bytes: [*]const u8, len: usize) callconv(.c) void {
+fn rocDbgFn(ops: *ClawOps, bytes: [*]const u8, len: usize) callconv(.c) void {
     const self: *RuntimeHostEnv = @ptrCast(@alignCast(ops.env));
     self.appendEvent(.dbg, bytes[0..len]);
 }
 
-fn rocExpectFailedFn(ops: *RocOps, bytes: [*]const u8, len: usize) callconv(.c) void {
+fn rocExpectFailedFn(ops: *ClawOps, bytes: [*]const u8, len: usize) callconv(.c) void {
     const self: *RuntimeHostEnv = @ptrCast(@alignCast(ops.env));
     self.appendEvent(.expect_failed, bytes[0..len]);
 }
 
-fn rocCrashedFn(ops: *RocOps, bytes: [*]const u8, len: usize) callconv(.c) void {
+fn rocCrashedFn(ops: *ClawOps, bytes: [*]const u8, len: usize) callconv(.c) void {
     const self: *RuntimeHostEnv = @ptrCast(@alignCast(ops.env));
     self.appendEvent(.crashed, bytes[0..len]);
     self.termination = .crashed;
@@ -272,7 +272,7 @@ fn rocCrashedFn(ops: *RocOps, bytes: [*]const u8, len: usize) callconv(.c) void 
     }
 }
 
-fn rocAllocFn(ops: *RocOps, length: usize, alignment: usize) callconv(.c) ?*anyopaque {
+fn rocAllocFn(ops: *ClawOps, length: usize, alignment: usize) callconv(.c) ?*anyopaque {
     const self: *RuntimeHostEnv = @ptrCast(@alignCast(ops.env));
     self.allocation_call_count += 1;
     const alloc_ptr = allocateTrackedBytes(self.allocator, length, alignment);
@@ -285,7 +285,7 @@ fn rocAllocFn(ops: *RocOps, length: usize, alignment: usize) callconv(.c) ?*anyo
     return @ptrCast(alloc_ptr);
 }
 
-fn rocDeallocFn(ops: *RocOps, ptr: *anyopaque, _: usize) callconv(.c) void {
+fn rocDeallocFn(ops: *ClawOps, ptr: *anyopaque, _: usize) callconv(.c) void {
     const self: *RuntimeHostEnv = @ptrCast(@alignCast(ops.env));
     const alloc_ptr = @intFromPtr(ptr);
     const alloc_info = self.allocation_tracker.fetchRemove(alloc_ptr) orelse {
@@ -300,7 +300,7 @@ fn rocDeallocFn(ops: *RocOps, ptr: *anyopaque, _: usize) callconv(.c) void {
     freeTrackedBytes(self.allocator, ptr, alloc_info.value);
 }
 
-fn rocReallocFn(ops: *RocOps, ptr: *anyopaque, new_length: usize, alignment: usize) callconv(.c) ?*anyopaque {
+fn rocReallocFn(ops: *ClawOps, ptr: *anyopaque, new_length: usize, alignment: usize) callconv(.c) ?*anyopaque {
     const self: *RuntimeHostEnv = @ptrCast(@alignCast(ops.env));
     self.allocation_call_count += 1;
     const old_alloc_ptr = @intFromPtr(ptr);

@@ -27,7 +27,7 @@ pub const Store = struct {
     ///
     /// | len: u32 | padding | static refcount: isize | bytes... |
     ///
-    /// The byte pointer at Idx can therefore be used directly as big `RocStr`
+    /// The byte pointer at Idx can therefore be used directly as big `ClawStr`
     /// static data. Runtime refcount operations read the word immediately
     /// before the bytes and see `0`, the static-data refcount sentinel.
     ///

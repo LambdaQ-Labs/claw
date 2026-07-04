@@ -10,7 +10,7 @@ const StringLiteral = base.StringLiteral;
 const CIR = @import("../CIR.zig");
 const ModuleEnv = @import("../ModuleEnv.zig");
 const NodeStore = @import("../NodeStore.zig");
-const RocDec = builtins.dec.RocDec;
+const ClawDec = builtins.dec.ClawDec;
 const CalledVia = base.CalledVia;
 const TypeVar = types.Var;
 const Ident = base.Ident;
@@ -231,7 +231,7 @@ test "NodeStore round trip - Expressions" {
     });
     try expressions.append(gpa, CIR.Expr{
         .e_dec = .{
-            .value = RocDec{ .num = 314 },
+            .value = ClawDec{ .num = 314 },
             .has_suffix = false,
         },
     });
@@ -1389,7 +1389,7 @@ test "NodeStore round trip - Pattern" {
     });
     try patterns.append(gpa, CIR.Pattern{
         .dec_literal = .{
-            .value = RocDec.fromU64(rand.random().int(u64)),
+            .value = ClawDec.fromU64(rand.random().int(u64)),
             .has_suffix = false,
         },
     });

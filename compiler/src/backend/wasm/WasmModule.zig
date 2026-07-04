@@ -354,18 +354,18 @@ pub const TableImport = struct {
 /// Wasm reference type for funcref tables
 const funcref: u8 = 0x70;
 
-/// WASM32 layout of the RocOps struct in linear memory.
+/// WASM32 layout of the ClawOps struct in linear memory.
 ///
-/// On native 64-bit targets, RocOps is 72 bytes with 8-byte pointers and function
+/// On native 64-bit targets, ClawOps is 72 bytes with 8-byte pointers and function
 /// pointers. On wasm32, function pointers don't exist in linear memory — instead,
 /// functions are referenced by u32 table indices for use with `call_indirect`.
 /// This makes the WASM layout 36 bytes with all fields being i32.
 ///
 /// Two distinct `call_indirect` type signatures are used:
-/// - RocOps callbacks (roc_alloc, etc.): 2-arg `(i32 args_struct_ptr, i32 env_ptr) → void`
-/// - Hosted functions (RocCall ABI):     3-arg `(i32 roc_ops_ptr, i32 ret_ptr, i32 args_ptr) → void`
+/// - ClawOps callbacks (roc_alloc, etc.): 2-arg `(i32 args_struct_ptr, i32 env_ptr) → void`
+/// - Hosted functions (ClawCall ABI):     3-arg `(i32 roc_ops_ptr, i32 ret_ptr, i32 args_ptr) → void`
 pub const WasmRocOps = struct {
-    /// Host environment pointer (passed as second arg to all RocOps callbacks).
+    /// Host environment pointer (passed as second arg to all ClawOps callbacks).
     pub const env_ptr: u32 = 0;
     /// Table index for roc_alloc: (args_ptr, env_ptr) → void.
     pub const roc_alloc_table_idx: u32 = 4;
@@ -1025,9 +1025,9 @@ pub fn addTableElement(self: *Self, func_idx: u32) Allocator.Error!u32 {
 
 /// Import a hosted function and add it to the funcref table.
 ///
-/// Hosted functions use the RocCall ABI: (i32 roc_ops_ptr, i32 ret_ptr, i32 args_ptr) → void.
+/// Hosted functions use the ClawCall ABI: (i32 roc_ops_ptr, i32 ret_ptr, i32 args_ptr) → void.
 /// The caller must provide the type index for this 3-arg signature (registered separately
-/// from the 2-arg RocOps callback type).
+/// from the 2-arg ClawOps callback type).
 ///
 /// Returns the table index that can be used with `call_indirect` to invoke the function.
 pub fn addHostedFunctionToTable(self: *Self, module_name: []const u8, fn_name: []const u8, roc_call_type_idx: u32) Allocator.Error!u32 {
@@ -5008,9 +5008,9 @@ test "phase5 — real host module: full setup and finalization produces valid WA
     try std.testing.expect(found_memory_export);
 }
 
-// --- Phase 6 tests: WASM Function Pointer Representation & RocOps Layout ---
+// --- Phase 6 tests: WASM Function Pointer Representation & ClawOps Layout ---
 
-test "RocOps struct — correct field offsets for wasm32 (36 bytes total)" {
+test "ClawOps struct — correct field offsets for wasm32 (36 bytes total)" {
     const W = Self.WasmRocOps;
     try std.testing.expectEqual(@as(u32, 0), W.env_ptr);
     try std.testing.expectEqual(@as(u32, 4), W.roc_alloc_table_idx);
@@ -5026,14 +5026,14 @@ test "RocOps struct — correct field offsets for wasm32 (36 bytes total)" {
     try std.testing.expectEqual(@as(u32, 9 * 4), W.total_size);
 }
 
-test "call_indirect — roc_alloc uses 2-arg callback type, not RocCall type" {
+test "call_indirect — roc_alloc uses 2-arg callback type, not ClawCall type" {
     const allocator = std.testing.allocator;
     var module = Self.init(allocator);
     defer module.deinit();
 
-    // Register the 2-arg RocOps callback type: (i32, i32) -> void
+    // Register the 2-arg ClawOps callback type: (i32, i32) -> void
     const roc_ops_type = try module.addFuncType(&.{ .i32, .i32 }, &.{});
-    // Register the 3-arg RocCall type: (i32, i32, i32) -> void
+    // Register the 3-arg ClawCall type: (i32, i32, i32) -> void
     const roc_call_type = try module.addFuncType(&.{ .i32, .i32, .i32 }, &.{});
 
     // They must be distinct type indices
@@ -5048,7 +5048,7 @@ test "call_indirect — roc_alloc uses 2-arg callback type, not RocCall type" {
     try std.testing.expect(module.imports.items[roc_alloc_idx].type_idx != roc_call_type);
 }
 
-test "call_indirect — hosted function uses 3-arg RocCall type" {
+test "call_indirect — hosted function uses 3-arg ClawCall type" {
     const allocator = std.testing.allocator;
     var module = Self.init(allocator);
     defer module.deinit();
@@ -5100,7 +5100,7 @@ test "call_indirect — mismatched type index would trap (validate type separati
     try std.testing.expectEqual(@as(?ValType, null), module.func_type_results.items[roc_call_type]);
 }
 
-test "function table — all RocOps functions have valid table entries after linking" {
+test "function table — all ClawOps functions have valid table entries after linking" {
     const allocator = std.testing.allocator;
     var module = Self.init(allocator);
     defer module.deinit();
@@ -5108,7 +5108,7 @@ test "function table — all RocOps functions have valid table entries after lin
     const roc_ops_type = try module.addFuncType(&.{ .i32, .i32 }, &.{});
     module.enableTable();
 
-    // Import all 6 RocOps callbacks and add them to the table
+    // Import all 6 ClawOps callbacks and add them to the table
     const roc_alloc_idx = try module.addImport("env", "roc_alloc", roc_ops_type);
     const roc_alloc_table = try module.addTableElement(roc_alloc_idx);
 
@@ -5159,23 +5159,23 @@ test "function table — hosted functions added to table with correct indices" {
     const roc_call_type = try module.addFuncType(&.{ .i32, .i32, .i32 }, &.{});
     module.enableTable();
 
-    // Add RocOps callbacks first (as the codegen does)
+    // Add ClawOps callbacks first (as the codegen does)
     const roc_alloc_idx = try module.addImport("env", "roc_alloc", roc_ops_type);
     _ = try module.addTableElement(roc_alloc_idx);
     const roc_dealloc_idx = try module.addImport("env", "roc_dealloc", roc_ops_type);
     _ = try module.addTableElement(roc_dealloc_idx);
 
-    // Now add hosted functions — they follow the RocOps entries in the table
+    // Now add hosted functions — they follow the ClawOps entries in the table
     const hosted_0_table = try module.addHostedFunctionToTable("env", "hosted_fn_0", roc_call_type);
     const hosted_1_table = try module.addHostedFunctionToTable("env", "hosted_fn_1", roc_call_type);
     const hosted_2_table = try module.addHostedFunctionToTable("env", "hosted_fn_2", roc_call_type);
 
-    // Hosted functions follow RocOps entries (indices 0, 1 are alloc/dealloc)
+    // Hosted functions follow ClawOps entries (indices 0, 1 are alloc/dealloc)
     try std.testing.expectEqual(@as(u32, 2), hosted_0_table);
     try std.testing.expectEqual(@as(u32, 3), hosted_1_table);
     try std.testing.expectEqual(@as(u32, 4), hosted_2_table);
 
-    // Total table size: 2 RocOps + 3 hosted = 5
+    // Total table size: 2 ClawOps + 3 hosted = 5
     try std.testing.expectEqual(@as(usize, 5), module.table_func_indices.items.len);
 
     // Verify hosted function imports use the 3-arg type
@@ -5981,7 +5981,7 @@ test "materializeFuncBodies — includes dummy functions for dead imports" {
     try std.testing.expectEqualSlices(u8, &DUMMY_FUNCTION, module.func_bodies.items[0].body);
 }
 
-test "verifyNoBuiltinImports — passes when only RocOps imports remain" {
+test "verifyNoBuiltinImports — passes when only ClawOps imports remain" {
     const allocator = std.testing.allocator;
     var module = Self.init(allocator);
     defer module.deinit();
@@ -6903,7 +6903,7 @@ test "preload + merge + encode roundtrip with real builtins" {
     var builtins_module = try preload(allocator, wasm32_builtins.bytes, false);
     defer builtins_module.deinit();
 
-    // Create an app module with standard RocOps imports
+    // Create an app module with standard ClawOps imports
     var app_module = Self.init(allocator);
 
     const roc_ops_type_idx = try app_module.addFuncType(&.{ .i32, .i32 }, &.{});
@@ -6928,7 +6928,7 @@ test "preload + merge + encode roundtrip with real builtins" {
     app_module.enableTable();
     try app_module.addExport("memory", .memory, 0);
 
-    // Add RocCall function: (i32, i32, i32) -> void
+    // Add ClawCall function: (i32, i32, i32) -> void
     const roc_call_type_idx = try app_module.addFuncType(&.{ .i32, .i32, .i32 }, &.{});
     const roc_call_fn_idx = try app_module.addFunction(roc_call_type_idx);
     const roc_call_body = [_]u8{ 0x00, Op.end };

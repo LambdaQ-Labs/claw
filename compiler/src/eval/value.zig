@@ -79,7 +79,7 @@ pub const Value = struct {
         return .{ .ptr = self.ptr + n };
     }
 
-    /// Get a usize-aligned pointer (for RocStr/RocList field access).
+    /// Get a usize-aligned pointer (for ClawStr/ClawList field access).
     pub fn asOpaquePtr(self: Value) *anyopaque {
         return @ptrCast(self.ptr);
     }

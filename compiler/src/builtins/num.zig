@@ -11,9 +11,9 @@ const parse_float = @import("vendor_parse_float");
 
 const WithOverflow = @import("utils.zig").WithOverflow;
 const Ordering = @import("utils.zig").Ordering;
-const RocOps = @import("utils.zig").RocOps;
+const ClawOps = @import("utils.zig").ClawOps;
 const TestEnv = @import("utils.zig").TestEnv;
-const RocStr = @import("str.zig").RocStr;
+const ClawStr = @import("str.zig").ClawStr;
 const math = std.math;
 
 /// Result type for numeric parsing, with value and error code.
@@ -83,8 +83,8 @@ pub fn mul_u128(a: u128, b: u128) U256 {
     return .{ .hi = hi, .lo = lo };
 }
 
-/// Parses an integer from a RocStr
-pub fn parseIntFromStr(comptime T: type, buf: RocStr) NumParseResult(T) {
+/// Parses an integer from a ClawStr
+pub fn parseIntFromStr(comptime T: type, buf: ClawStr) NumParseResult(T) {
     if (parseIntNoFmt(T, buf.asSlice())) |success| {
         return .{ .errorcode = 0, .value = success };
     } else |_| {
@@ -217,15 +217,15 @@ fn digitValue(byte: u8) ?u8 {
 /// Exports a function to parse integers from strings.
 pub fn exportParseInt(comptime T: type, comptime name: []const u8) void {
     const f = struct {
-        fn func(buf: RocStr) callconv(.c) NumParseResult(T) {
+        fn func(buf: ClawStr) callconv(.c) NumParseResult(T) {
             return @call(.always_inline, parseIntFromStr, .{ T, buf });
         }
     }.func;
     @export(&f, .{ .name = name ++ @typeName(T), .linkage = .strong });
 }
 
-/// Parses a floating-point number from a RocStr.
-pub fn parseFloatFromStr(comptime T: type, buf: RocStr) NumParseResult(T) {
+/// Parses a floating-point number from a ClawStr.
+pub fn parseFloatFromStr(comptime T: type, buf: ClawStr) NumParseResult(T) {
     const bytes = buf.asSlice();
     if (parse_float.parseFloat(T, bytes)) |success| {
         if (std.math.isInf(success) and !isExplicitInfinity(bytes)) {
@@ -249,7 +249,7 @@ fn isExplicitInfinity(bytes: []const u8) bool {
 /// Exports a function to parse floating-point numbers from strings.
 pub fn exportParseFloat(comptime T: type, comptime name: []const u8) void {
     const f = struct {
-        fn func(buf: RocStr) callconv(.c) NumParseResult(T) {
+        fn func(buf: ClawStr) callconv(.c) NumParseResult(T) {
             return @call(.always_inline, parseFloatFromStr, .{ T, buf });
         }
     }.func;
@@ -283,7 +283,7 @@ pub fn exportPow(
         fn func(
             base: T,
             exp: T,
-            roc_ops: *RocOps,
+            roc_ops: *ClawOps,
         ) callconv(.c) T {
             switch (@typeInfo(T)) {
                 // std.math.pow can handle ints via powi, but it turns any errors to unreachable
@@ -549,7 +549,7 @@ pub fn exportDivCeil(
         fn func(
             a: T,
             b: T,
-            roc_ops: *RocOps,
+            roc_ops: *ClawOps,
         ) callconv(.c) T {
             return math.divCeil(T, a, b) catch {
                 roc_ops.crash("Integer division by 0!");
@@ -569,7 +569,7 @@ pub fn exportDivTrunc(
         fn func(
             a: T,
             b: T,
-            roc_ops: *RocOps,
+            roc_ops: *ClawOps,
         ) callconv(.c) T {
             if (b == 0) {
                 roc_ops.crash("Integer division by 0!");
@@ -592,7 +592,7 @@ pub fn exportRemTrunc(
         fn func(
             a: T,
             b: T,
-            roc_ops: *RocOps,
+            roc_ops: *ClawOps,
         ) callconv(.c) T {
             if (b == 0) {
                 roc_ops.crash("Integer remainder by 0!");
@@ -606,7 +606,7 @@ pub fn exportRemTrunc(
 }
 
 /// i128 division truncating towards zero - callable from generated code.
-pub fn divTruncI128(a: i128, b: i128, roc_ops: *RocOps) callconv(.c) i128 {
+pub fn divTruncI128(a: i128, b: i128, roc_ops: *ClawOps) callconv(.c) i128 {
     if (b == 0) {
         roc_ops.crash("Integer division by 0!");
     }
@@ -614,7 +614,7 @@ pub fn divTruncI128(a: i128, b: i128, roc_ops: *RocOps) callconv(.c) i128 {
 }
 
 /// u128 division truncating towards zero - callable from generated code.
-pub fn divTruncU128(a: u128, b: u128, roc_ops: *RocOps) callconv(.c) u128 {
+pub fn divTruncU128(a: u128, b: u128, roc_ops: *ClawOps) callconv(.c) u128 {
     if (b == 0) {
         roc_ops.crash("Integer division by 0!");
     }
@@ -622,7 +622,7 @@ pub fn divTruncU128(a: u128, b: u128, roc_ops: *RocOps) callconv(.c) u128 {
 }
 
 /// i128 remainder after truncating division - callable from generated code.
-pub fn remTruncI128(a: i128, b: i128, roc_ops: *RocOps) callconv(.c) i128 {
+pub fn remTruncI128(a: i128, b: i128, roc_ops: *ClawOps) callconv(.c) i128 {
     if (b == 0) {
         roc_ops.crash("Integer remainder by 0!");
     }
@@ -630,7 +630,7 @@ pub fn remTruncI128(a: i128, b: i128, roc_ops: *RocOps) callconv(.c) i128 {
 }
 
 /// u128 remainder after truncating division - callable from generated code.
-pub fn remTruncU128(a: u128, b: u128, roc_ops: *RocOps) callconv(.c) u128 {
+pub fn remTruncU128(a: u128, b: u128, roc_ops: *ClawOps) callconv(.c) u128 {
     if (b == 0) {
         roc_ops.crash("Integer remainder by 0!");
     }
@@ -763,7 +763,7 @@ pub fn exportAddOrPanic(
         fn func(
             self: T,
             other: T,
-            roc_ops: *RocOps,
+            roc_ops: *ClawOps,
         ) callconv(.c) T {
             const result = addWithOverflow(T, self, other);
             if (result.has_overflowed) {
@@ -841,7 +841,7 @@ pub fn exportSubOrPanic(
         fn func(
             self: T,
             other: T,
-            roc_ops: *RocOps,
+            roc_ops: *ClawOps,
         ) callconv(.c) T {
             const result = subWithOverflow(T, self, other);
             if (result.has_overflowed) {
@@ -1049,7 +1049,7 @@ pub fn exportMulOrPanic(
         fn func(
             self: T,
             other: T,
-            roc_ops: *RocOps,
+            roc_ops: *ClawOps,
         ) callconv(.c) T {
             const result = @call(.always_inline, mulWithOverflow, .{ T, self, other });
             if (result.has_overflowed) {
@@ -1222,8 +1222,8 @@ const NumTestHelperError = error{
     TestExpectedEqual,
 };
 
-fn expectParseIntText(comptime T: type, text: []const u8, expected: T, roc_ops: *RocOps) NumTestHelperError!void {
-    const roc_str = @import("str.zig").RocStr.fromSlice(text, roc_ops);
+fn expectParseIntText(comptime T: type, text: []const u8, expected: T, roc_ops: *ClawOps) NumTestHelperError!void {
+    const roc_str = @import("str.zig").ClawStr.fromSlice(text, roc_ops);
     defer roc_str.decref(roc_ops);
 
     const result = parseIntFromStr(T, roc_str);
@@ -1231,8 +1231,8 @@ fn expectParseIntText(comptime T: type, text: []const u8, expected: T, roc_ops: 
     try std.testing.expectEqual(expected, result.value);
 }
 
-fn expectParseIntReject(comptime T: type, text: []const u8, roc_ops: *RocOps) NumTestHelperError!void {
-    const roc_str = @import("str.zig").RocStr.fromSlice(text, roc_ops);
+fn expectParseIntReject(comptime T: type, text: []const u8, roc_ops: *ClawOps) NumTestHelperError!void {
+    const roc_str = @import("str.zig").ClawStr.fromSlice(text, roc_ops);
     defer roc_str.decref(roc_ops);
 
     const result = parseIntFromStr(T, roc_str);
@@ -1261,8 +1261,8 @@ fn expectMulWithOverflowOracle(comptime T: type, lhs: T, rhs: T) NumTestHelperEr
     try std.testing.expectEqual(expected[1] == 1, actual.has_overflowed);
 }
 
-fn expectParseFloatBits(comptime T: type, text: []const u8, expected_bits: std.meta.Int(.unsigned, @bitSizeOf(T)), roc_ops: *RocOps) NumTestHelperError!void {
-    const roc_str = @import("str.zig").RocStr.fromSlice(text, roc_ops);
+fn expectParseFloatBits(comptime T: type, text: []const u8, expected_bits: std.meta.Int(.unsigned, @bitSizeOf(T)), roc_ops: *ClawOps) NumTestHelperError!void {
+    const roc_str = @import("str.zig").ClawStr.fromSlice(text, roc_ops);
     defer roc_str.decref(roc_ops);
 
     const result = parseFloatFromStr(T, roc_str);
@@ -1405,7 +1405,7 @@ test "parseIntFromStr decimal parsing" {
     defer test_env.deinit();
 
     // Test successful decimal parsing
-    const valid_str = @import("str.zig").RocStr.fromSlice("42", test_env.getOps());
+    const valid_str = @import("str.zig").ClawStr.fromSlice("42", test_env.getOps());
     defer valid_str.decref(test_env.getOps());
 
     const result = parseIntFromStr(i32, valid_str);
@@ -1413,7 +1413,7 @@ test "parseIntFromStr decimal parsing" {
     try std.testing.expectEqual(@as(u8, 0), result.errorcode);
 
     // Test negative number
-    const neg_str = @import("str.zig").RocStr.fromSlice("-123", test_env.getOps());
+    const neg_str = @import("str.zig").ClawStr.fromSlice("-123", test_env.getOps());
     defer neg_str.decref(test_env.getOps());
 
     const neg_result = parseIntFromStr(i32, neg_str);
@@ -1421,7 +1421,7 @@ test "parseIntFromStr decimal parsing" {
     try std.testing.expectEqual(@as(u8, 0), neg_result.errorcode);
 
     // Test zero
-    const zero_str = @import("str.zig").RocStr.fromSlice("0", test_env.getOps());
+    const zero_str = @import("str.zig").ClawStr.fromSlice("0", test_env.getOps());
     defer zero_str.decref(test_env.getOps());
 
     const zero_result = parseIntFromStr(i32, zero_str);
@@ -1434,7 +1434,7 @@ test "parseIntFromStr hex and binary parsing" {
     defer test_env.deinit();
 
     // Test hexadecimal parsing
-    const hex_str = @import("str.zig").RocStr.fromSlice("0xFF", test_env.getOps());
+    const hex_str = @import("str.zig").ClawStr.fromSlice("0xFF", test_env.getOps());
     defer hex_str.decref(test_env.getOps());
 
     const hex_result = parseIntFromStr(i32, hex_str);
@@ -1442,7 +1442,7 @@ test "parseIntFromStr hex and binary parsing" {
     try std.testing.expectEqual(@as(u8, 0), hex_result.errorcode);
 
     // Test binary parsing
-    const bin_str = @import("str.zig").RocStr.fromSlice("0b1010", test_env.getOps());
+    const bin_str = @import("str.zig").ClawStr.fromSlice("0b1010", test_env.getOps());
     defer bin_str.decref(test_env.getOps());
 
     const bin_result = parseIntFromStr(i32, bin_str);
@@ -1450,7 +1450,7 @@ test "parseIntFromStr hex and binary parsing" {
     try std.testing.expectEqual(@as(u8, 0), bin_result.errorcode);
 
     // Test octal parsing
-    const oct_str = @import("str.zig").RocStr.fromSlice("0o755", test_env.getOps());
+    const oct_str = @import("str.zig").ClawStr.fromSlice("0o755", test_env.getOps());
     defer oct_str.decref(test_env.getOps());
 
     const oct_result = parseIntFromStr(i32, oct_str);
@@ -1463,7 +1463,7 @@ test "parseIntFromStr error cases" {
     defer test_env.deinit();
 
     // Test invalid string
-    const invalid_str = @import("str.zig").RocStr.fromSlice("not_a_number", test_env.getOps());
+    const invalid_str = @import("str.zig").ClawStr.fromSlice("not_a_number", test_env.getOps());
     defer invalid_str.decref(test_env.getOps());
 
     const invalid_result = parseIntFromStr(i32, invalid_str);
@@ -1471,7 +1471,7 @@ test "parseIntFromStr error cases" {
     try std.testing.expectEqual(@as(u8, 1), invalid_result.errorcode);
 
     // Test empty string
-    const empty_str = @import("str.zig").RocStr.fromSlice("", test_env.getOps());
+    const empty_str = @import("str.zig").ClawStr.fromSlice("", test_env.getOps());
     defer empty_str.decref(test_env.getOps());
 
     const empty_result = parseIntFromStr(i32, empty_str);
@@ -1479,7 +1479,7 @@ test "parseIntFromStr error cases" {
     try std.testing.expectEqual(@as(u8, 1), empty_result.errorcode);
 
     // Test overflow (for i8)
-    const overflow_str = @import("str.zig").RocStr.fromSlice("1000", test_env.getOps());
+    const overflow_str = @import("str.zig").ClawStr.fromSlice("1000", test_env.getOps());
     defer overflow_str.decref(test_env.getOps());
 
     const overflow_result = parseIntFromStr(i8, overflow_str);
@@ -1492,7 +1492,7 @@ test "parseFloatFromStr basic functionality" {
     defer test_env.deinit();
 
     // Test successful float parsing
-    const valid_str = @import("str.zig").RocStr.fromSlice("3.14159", test_env.getOps());
+    const valid_str = @import("str.zig").ClawStr.fromSlice("3.14159", test_env.getOps());
     defer valid_str.decref(test_env.getOps());
 
     const result = parseFloatFromStr(f32, valid_str);
@@ -1500,7 +1500,7 @@ test "parseFloatFromStr basic functionality" {
     try std.testing.expectEqual(@as(u8, 0), result.errorcode);
 
     // Test negative float
-    const neg_str = @import("str.zig").RocStr.fromSlice("-42.5", test_env.getOps());
+    const neg_str = @import("str.zig").ClawStr.fromSlice("-42.5", test_env.getOps());
     defer neg_str.decref(test_env.getOps());
 
     const neg_result = parseFloatFromStr(f64, neg_str);
@@ -1508,7 +1508,7 @@ test "parseFloatFromStr basic functionality" {
     try std.testing.expectEqual(@as(u8, 0), neg_result.errorcode);
 
     // Test scientific notation
-    const sci_str = @import("str.zig").RocStr.fromSlice("1.5e2", test_env.getOps());
+    const sci_str = @import("str.zig").ClawStr.fromSlice("1.5e2", test_env.getOps());
     defer sci_str.decref(test_env.getOps());
 
     const sci_result = parseFloatFromStr(f32, sci_str);
@@ -1521,7 +1521,7 @@ test "parseFloatFromStr error cases" {
     defer test_env.deinit();
 
     // Test invalid string
-    const invalid_str = @import("str.zig").RocStr.fromSlice("not_a_float", test_env.getOps());
+    const invalid_str = @import("str.zig").ClawStr.fromSlice("not_a_float", test_env.getOps());
     defer invalid_str.decref(test_env.getOps());
 
     const invalid_result = parseFloatFromStr(f32, invalid_str);
@@ -1529,7 +1529,7 @@ test "parseFloatFromStr error cases" {
     try std.testing.expectEqual(@as(u8, 1), invalid_result.errorcode);
 
     // Test empty string
-    const empty_str = @import("str.zig").RocStr.fromSlice("", test_env.getOps());
+    const empty_str = @import("str.zig").ClawStr.fromSlice("", test_env.getOps());
     defer empty_str.decref(test_env.getOps());
 
     const empty_result = parseFloatFromStr(f32, empty_str);
@@ -1537,14 +1537,14 @@ test "parseFloatFromStr error cases" {
     try std.testing.expectEqual(@as(u8, 1), empty_result.errorcode);
 
     // Test malformed decimal
-    const malformed_str = @import("str.zig").RocStr.fromSlice("3.14.15", test_env.getOps());
+    const malformed_str = @import("str.zig").ClawStr.fromSlice("3.14.15", test_env.getOps());
     defer malformed_str.decref(test_env.getOps());
 
     const malformed_result = parseFloatFromStr(f32, malformed_str);
     try std.testing.expectEqual(@as(f32, 0.0), malformed_result.value);
     try std.testing.expectEqual(@as(u8, 1), malformed_result.errorcode);
 
-    const overflow_str = @import("str.zig").RocStr.fromSlice("1e999", test_env.getOps());
+    const overflow_str = @import("str.zig").ClawStr.fromSlice("1e999", test_env.getOps());
     defer overflow_str.decref(test_env.getOps());
 
     const overflow_result = parseFloatFromStr(f64, overflow_str);
@@ -1557,7 +1557,7 @@ test "parseFloatFromStr special values" {
     defer test_env.deinit();
 
     // Test infinity
-    const inf_str = @import("str.zig").RocStr.fromSlice("inf", test_env.getOps());
+    const inf_str = @import("str.zig").ClawStr.fromSlice("inf", test_env.getOps());
     defer inf_str.decref(test_env.getOps());
 
     const inf_result = parseFloatFromStr(f32, inf_str);
@@ -1565,7 +1565,7 @@ test "parseFloatFromStr special values" {
     try std.testing.expectEqual(@as(u8, 0), inf_result.errorcode);
 
     // Test negative infinity
-    const neg_inf_str = @import("str.zig").RocStr.fromSlice("-inf", test_env.getOps());
+    const neg_inf_str = @import("str.zig").ClawStr.fromSlice("-inf", test_env.getOps());
     defer neg_inf_str.decref(test_env.getOps());
 
     const neg_inf_result = parseFloatFromStr(f32, neg_inf_str);
@@ -1573,7 +1573,7 @@ test "parseFloatFromStr special values" {
     try std.testing.expectEqual(@as(u8, 0), neg_inf_result.errorcode);
 
     // Test NaN
-    const nan_str = @import("str.zig").RocStr.fromSlice("nan", test_env.getOps());
+    const nan_str = @import("str.zig").ClawStr.fromSlice("nan", test_env.getOps());
     defer nan_str.decref(test_env.getOps());
 
     const nan_result = parseFloatFromStr(f32, nan_str);

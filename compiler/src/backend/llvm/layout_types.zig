@@ -106,7 +106,7 @@ pub fn layoutToLlvmType(
 fn scalarToLlvmType(builder: *Builder, layout_val: Layout) Error!Builder.Type {
     return switch (layout_val.getScalar().tag) {
         .opaque_ptr => .ptr,
-        .str => strLlvmType(builder), // RocStr: { ptr, encoded capacity, len }
+        .str => strLlvmType(builder), // ClawStr: { ptr, encoded capacity, len }
         .int => intPrecisionToLlvmType(layout_val.getScalar().getInt()),
         .frac => fracPrecisionToLlvmType(layout_val.getScalar().getFrac()),
     };

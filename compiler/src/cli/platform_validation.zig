@@ -17,7 +17,7 @@ const target_mod = @import("target.zig");
 pub const targets_validator = @import("targets_validator.zig");
 
 const TargetsConfig = target_mod.TargetsConfig;
-const RocTarget = target_mod.RocTarget;
+const ClawTarget = target_mod.ClawTarget;
 
 const is_windows = builtin.target.os.tag == .windows;
 
@@ -177,7 +177,7 @@ fn renderMissingTargetsError(allocator: std.mem.Allocator, path: []const u8) std
 /// Does not log - caller should handle error reporting.
 pub fn validateTargetSupported(
     config: TargetsConfig,
-    target: RocTarget,
+    target: ClawTarget,
 ) ValidationError!void {
     if (!config.supportsTarget(target)) {
         return error.UnsupportedTarget;
@@ -188,7 +188,7 @@ pub fn validateTargetSupported(
 /// This can be passed to targets_validator.createValidationReport for nice error formatting.
 pub fn createUnsupportedTargetResult(
     platform_path: []const u8,
-    requested_target: RocTarget,
+    requested_target: ClawTarget,
     config: TargetsConfig,
 ) ValidationResult {
     return .{

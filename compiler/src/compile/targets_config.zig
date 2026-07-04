@@ -16,7 +16,7 @@ const roc_target = @import("roc_target");
 
 const Allocator = std.mem.Allocator;
 const Ident = base.Ident;
-const RocTarget = roc_target.RocTarget;
+const ClawTarget = roc_target.ClawTarget;
 const checked = check.CheckedArtifact;
 
 /// Individual link item from a targets section.
@@ -87,7 +87,7 @@ pub const TargetConfigResolveReason = enum {
 
 /// Context for reporting an invalid identifier-backed target config field.
 pub const TargetConfigResolveDiagnostic = struct {
-    target: RocTarget,
+    target: ClawTarget,
     output: OutputKind,
     field_name: []const u8,
     ident_name: []const u8,
@@ -97,7 +97,7 @@ pub const TargetConfigResolveDiagnostic = struct {
 /// Link specification for a single target.
 /// Contains the artifact kind and the ordered list of items to link for this target.
 pub const TargetLinkSpec = struct {
-    target: RocTarget,
+    target: ClawTarget,
     output: OutputKind,
     items: []const LinkItem,
     wasm: ?WasmTargetConfig = null,
@@ -150,7 +150,7 @@ pub const TargetsConfig = struct {
     }
 
     /// Get the link spec for a specific target.
-    pub fn getLinkSpec(self: TargetsConfig, target: RocTarget) ?TargetLinkSpec {
+    pub fn getLinkSpec(self: TargetsConfig, target: ClawTarget) ?TargetLinkSpec {
         for (self.targets) |spec| {
             if (spec.target == target) {
                 return spec;
@@ -161,7 +161,7 @@ pub const TargetsConfig = struct {
 
     /// Get the default target based on the current system.
     /// Returns the first target in the list that's compatible with the current host (OS and arch).
-    pub fn getDefaultTarget(self: TargetsConfig) ?RocTarget {
+    pub fn getDefaultTarget(self: TargetsConfig) ?ClawTarget {
         for (self.targets) |spec| {
             if (spec.target.isCompatibleWithHost()) {
                 return spec.target;
@@ -174,7 +174,7 @@ pub const TargetsConfig = struct {
     /// Get the default target for commands that must execute the result on this host.
     /// This excludes build-compatible targets such as wasm32 that are not native
     /// process executables for the default `roc` command, and targets that don't produce executables.
-    pub fn getDefaultHostExecutableTarget(self: TargetsConfig) ?RocTarget {
+    pub fn getDefaultHostExecutableTarget(self: TargetsConfig) ?ClawTarget {
         for (self.targets) |spec| {
             if (spec.output == .exe and spec.target.isExecutableOnHost()) {
                 return spec.target;
@@ -185,7 +185,7 @@ pub const TargetsConfig = struct {
     }
 
     /// Check if a specific target is supported.
-    pub fn supportsTarget(self: TargetsConfig, target: RocTarget) bool {
+    pub fn supportsTarget(self: TargetsConfig, target: ClawTarget) bool {
         return self.getLinkSpec(target) != null;
     }
 
@@ -461,7 +461,7 @@ pub const TargetsConfig = struct {
 
             // Parse target name from token
             const target_name = ast.resolve(entry.target);
-            const target = RocTarget.fromString(target_name) orelse continue; // Skip unknown targets
+            const target = ClawTarget.fromString(target_name) orelse continue; // Skip unknown targets
 
             var link_items = std.array_list.Managed(LinkItem).init(allocator);
             errdefer {
@@ -511,7 +511,7 @@ fn resolveLinkTypeCheckedConstants(
 fn resolveWasmCheckedConstants(
     allocator: Allocator,
     checked_module: *const checked.CheckedModuleArtifact,
-    target: RocTarget,
+    target: ClawTarget,
     output: OutputKind,
     wasm: *WasmTargetConfig,
     diagnostic: *TargetConfigResolveDiagnostic,
@@ -526,7 +526,7 @@ fn resolveWasmCheckedConstants(
 fn resolveWasmBoolField(
     allocator: Allocator,
     checked_module: *const checked.CheckedModuleArtifact,
-    target: RocTarget,
+    target: ClawTarget,
     output: OutputKind,
     field_name: []const u8,
     out: *bool,
@@ -551,7 +551,7 @@ fn resolveWasmBoolField(
 fn resolveWasmUsizeField(
     allocator: Allocator,
     checked_module: *const checked.CheckedModuleArtifact,
-    target: RocTarget,
+    target: ClawTarget,
     output: OutputKind,
     field_name: []const u8,
     out: *?usize,
@@ -576,7 +576,7 @@ fn resolveWasmUsizeField(
 fn resolveWasmU32Field(
     allocator: Allocator,
     checked_module: *const checked.CheckedModuleArtifact,
-    target: RocTarget,
+    target: ClawTarget,
     output: OutputKind,
     field_name: []const u8,
     out: *?u32,
@@ -700,7 +700,7 @@ fn signedScalarUnsigned(value: anytype, reason: *TargetConfigResolveReason) ?u12
 }
 
 fn decScalarUnsigned(value: i128, reason: *TargetConfigResolveReason) ?u128 {
-    const scale = builtins.dec.RocDec.one_point_zero_i128;
+    const scale = builtins.dec.ClawDec.one_point_zero_i128;
     if (value < 0 or @rem(value, scale) != 0) {
         reason.* = .expected_unsigned_integer;
         return null;
@@ -728,7 +728,7 @@ test "getDefaultTarget returns first compatible target" {
     if (builtin.target.os.tag == .linux and builtin.target.cpu.arch == .x86_64) {
         const result = config.getDefaultTarget();
         try testing.expect(result != null);
-        try testing.expectEqual(RocTarget.x64glibc, result.?);
+        try testing.expectEqual(ClawTarget.x64glibc, result.?);
     }
 }
 
@@ -740,7 +740,7 @@ test "getDefaultHostExecutableTarget excludes wasm" {
         },
     };
 
-    try testing.expectEqual(RocTarget.wasm32, config.getDefaultTarget().?);
+    try testing.expectEqual(ClawTarget.wasm32, config.getDefaultTarget().?);
     try testing.expect(config.getDefaultHostExecutableTarget() == null);
 }
 
@@ -767,7 +767,7 @@ test "getLinkSpec returns correct spec for supported target" {
 
     const spec = config.getLinkSpec(.x64mac);
     try testing.expect(spec != null);
-    try testing.expectEqual(RocTarget.x64mac, spec.?.target);
+    try testing.expectEqual(ClawTarget.x64mac, spec.?.target);
     try testing.expectEqual(OutputKind.exe, spec.?.output);
     try testing.expectEqual(@as(usize, 2), spec.?.items.len);
 

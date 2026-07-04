@@ -10,7 +10,7 @@ const builtin = @import("builtin");
 const GT = Ordering.GT;
 const utils = @import("utils.zig");
 const Ordering = utils.Ordering;
-const RocOps = @import("host_abi.zig").RocOps;
+const ClawOps = @import("host_abi.zig").ClawOps;
 const testing = std.testing;
 
 /// TODO
@@ -50,7 +50,7 @@ pub fn fluxsort(
     element_width: usize,
     alignment: u32,
     copy: CopyFn,
-    roc_ops: *RocOps,
+    roc_ops: *ClawOps,
 ) void {
     // Note, knowing constant versions of element_width and copy could have huge perf gains.
     // Hopefully llvm will essentially always do it via constant argument propagation and inlining.
@@ -108,7 +108,7 @@ fn fluxsort_direct(
     inc_n_context: ?*anyopaque,
     inc_n_data: IncN,
     comptime indirect: bool,
-    roc_ops: *RocOps,
+    roc_ops: *ClawOps,
 ) void {
     const swap = roc_ops.alloc(len * element_width, alignment);
 
@@ -901,7 +901,7 @@ pub fn quadsort(
     element_width: usize,
     alignment: u32,
     copy: CopyFn,
-    roc_ops: *RocOps,
+    roc_ops: *ClawOps,
 ) void {
     // Note, knowing constant versions of element_width and copy could have huge perf gains.
     // Hopefully llvm will essentially always do it via constant argument propagation and inlining.
@@ -956,7 +956,7 @@ fn quadsort_direct(
     inc_n_context: ?*anyopaque,
     inc_n_data: IncN,
     comptime indirect: bool,
-    roc_ops: *RocOps,
+    roc_ops: *ClawOps,
 ) void {
     const arr_ptr = array;
     if (len < 32) {

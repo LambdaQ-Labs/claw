@@ -46,7 +46,7 @@ pub const CompileConfig = struct {
     input_path: []const u8,
     output_path: []const u8,
     optimization: OptimizationLevel,
-    target: target.RocTarget,
+    target: target.ClawTarget,
     cpu: []const u8 = "",
     features: []const u8 = "",
     debug: bool = false, // Enable debug info generation in output
@@ -57,7 +57,7 @@ pub const CompileConfig = struct {
 
     /// Check if compiling for the current machine
     pub fn isNative(self: CompileConfig) bool {
-        return self.target == target.RocTarget.detectNative();
+        return self.target == target.ClawTarget.detectNative();
     }
 };
 
@@ -376,7 +376,7 @@ pub fn writeStaticArchive(
     gpa: Allocator,
     output_path: []const u8,
     input_paths: []const []const u8,
-    roc_target: target.RocTarget,
+    roc_target: target.ClawTarget,
 ) error{ OutOfMemory, ArchiveWriteFailed, LLVMNotAvailable }!void {
     if (comptime !llvm_available) {
         return error.LLVMNotAvailable;

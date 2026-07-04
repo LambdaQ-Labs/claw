@@ -10,13 +10,13 @@ const StructIdx = layout_mod.StructIdx;
 const TagUnionIdx = layout_mod.TagUnionIdx;
 
 /// Runtime ops table passed through shared RC helpers.
-pub const RocOps = builtins.utils.RocOps;
+pub const ClawOps = builtins.utils.ClawOps;
 /// ABI for compiled incref helpers.
-pub const RcIncrefFn = *const fn (?[*]u8, isize, *RocOps) callconv(.c) void;
+pub const RcIncrefFn = *const fn (?[*]u8, isize, *ClawOps) callconv(.c) void;
 /// ABI for compiled decref helpers.
-pub const RcDecrefFn = *const fn (?[*]u8, *RocOps) callconv(.c) void;
+pub const RcDecrefFn = *const fn (?[*]u8, *ClawOps) callconv(.c) void;
 /// ABI for compiled free helpers.
-pub const RcFreeFn = *const fn (?[*]u8, *RocOps) callconv(.c) void;
+pub const RcFreeFn = *const fn (?[*]u8, *ClawOps) callconv(.c) void;
 
 /// Shared RC helper operation kind.
 pub const RcOp = enum(u2) {

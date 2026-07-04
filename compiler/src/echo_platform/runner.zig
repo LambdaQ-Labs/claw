@@ -18,7 +18,7 @@ const reporting = @import("reporting");
 const Allocator = std.mem.Allocator;
 const BuildEnv = compile.BuildEnv;
 const Io = compile.CoreCtx;
-const RocTarget = roc_target.RocTarget;
+const ClawTarget = roc_target.ClawTarget;
 const HostedFn = echo_platform.host_abi.HostedFn;
 
 /// Errors that can occur while building and running the echo platform.
@@ -115,7 +115,7 @@ pub const RunOptions = struct {
     /// Target word width. `.u32` for wasm32 builds.
     target_usize: base.target.TargetUsize = .u32,
     /// Roc compilation target.
-    roc_target: RocTarget = .wasm32,
+    roc_target: ClawTarget = .wasm32,
 };
 
 /// Compile and execute a headerless Roc source through the echo platform.

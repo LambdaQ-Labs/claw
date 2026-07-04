@@ -59,13 +59,13 @@ pub fn classifyType(store: *const Store, idx: Idx) Class {
                 // f32/f64 pass directly in a SIMD register; Dec is an i128-backed value,
                 // so it is an integer-class scalar, not a float.
                 .frac => return .byval,
-                // RocStr is a three-word aggregate; classify it by size like any aggregate.
+                // ClawStr is a three-word aggregate; classify it by size like any aggregate.
                 .str => return classifyBySize(store, lay),
             }
         },
         // A Box is a single pointer.
         .box, .box_of_zst, .ptr => return .byval,
-        // RocList is a three-word aggregate.
+        // ClawList is a three-word aggregate.
         .list, .list_of_zst => return classifyBySize(store, lay),
         .struct_ => {
             var maybe_float_bits: ?u16 = null;
@@ -170,7 +170,7 @@ test "aarch64 classify: three-word aggregates go to memory" {
     var store = try Store.init(testing.allocator, .u64);
     defer store.deinit();
 
-    // RocStr and RocList are 24 bytes (> 16), so they pass in memory.
+    // ClawStr and ClawList are 24 bytes (> 16), so they pass in memory.
     try testing.expectEqual(Class.memory, classifyType(&store, .str));
     const list_idx = try store.insertLayout(Layout.list(.u8));
     try testing.expectEqual(Class.memory, classifyType(&store, list_idx));

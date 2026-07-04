@@ -4890,7 +4890,7 @@ const DraftExprData = union(enum(u8)) {
     int_lit: can.CIR.IntValue,
     frac_f32_lit: f32,
     frac_f64_lit: f64,
-    dec_lit: builtins.dec.RocDec,
+    dec_lit: builtins.dec.ClawDec,
     str_lit: DraftStringLiteralId,
     bytes_lit: DraftStringLiteralId,
     list: DraftSpan(DraftExprId),
@@ -4979,7 +4979,7 @@ const DraftPatData = union(enum(u8)) {
     },
     nominal: DraftPatId,
     int_lit: can.CIR.IntValue,
-    dec_lit: builtins.dec.RocDec,
+    dec_lit: builtins.dec.ClawDec,
     frac_f32_lit: f32,
     frac_f64_lit: f64,
     str_lit: DraftStringLiteralId,
@@ -23270,7 +23270,7 @@ const HashDeriver = struct {
 const FracLiteralValue = union(enum) {
     f32: f32,
     f64: f64,
-    dec: builtins.dec.RocDec,
+    dec: builtins.dec.ClawDec,
 
     fn asF64(self: FracLiteralValue) f64 {
         return switch (self) {
@@ -23288,11 +23288,11 @@ const FracLiteralValue = union(enum) {
         };
     }
 
-    fn asDec(self: FracLiteralValue) builtins.dec.RocDec {
+    fn asDec(self: FracLiteralValue) builtins.dec.ClawDec {
         return switch (self) {
-            .f32 => |v| builtins.dec.RocDec.fromF64(@floatCast(v)) orelse
+            .f32 => |v| builtins.dec.ClawDec.fromF64(@floatCast(v)) orelse
                 Common.invariant("f32 fractional literal could not be represented as Dec at its instantiated type"),
-            .f64 => |v| builtins.dec.RocDec.fromF64(v) orelse
+            .f64 => |v| builtins.dec.ClawDec.fromF64(v) orelse
                 Common.invariant("f64 fractional literal could not be represented as Dec at its instantiated type"),
             .dec => |v| v,
         };
@@ -23394,7 +23394,7 @@ fn restoreScalarBody(scalar: checked.ConstScalar) BodyExprData {
 
 /// Parse a numeral's decimal text into a constant literal of the
 /// concrete numeric `primitive`, mirroring the interpreter's `parseNumeralPayload`
-/// (`std.fmt.parseInt`/`parseFloat`/`RocDec.fromNonemptySlice`). Returns null
+/// (`std.fmt.parseInt`/`parseFloat`/`ClawDec.fromNonemptySlice`). Returns null
 /// when the value does not fit the target representation (out of range, or a
 /// fractional text parsed as an integer), so the caller can lower the Err branch.
 fn foldNumeralPrimitive(primitive: Type.Primitive, text: []const u8) ?BodyExprData {
@@ -23411,7 +23411,7 @@ fn foldNumeralPrimitive(primitive: Type.Primitive, text: []const u8) ?BodyExprDa
         .i128 => foldSignedNumeral(i128, text),
         .f32 => if (std.fmt.parseFloat(f32, text)) |v| .{ .frac_f32_lit = v } else |_| null,
         .f64 => if (std.fmt.parseFloat(f64, text)) |v| .{ .frac_f64_lit = v } else |_| null,
-        .dec => if (builtins.dec.RocDec.fromNonemptySlice(text)) |d| .{ .dec_lit = .{ .num = d.num } } else null,
+        .dec => if (builtins.dec.ClawDec.fromNonemptySlice(text)) |d| .{ .dec_lit = .{ .num = d.num } } else null,
         .bool, .str => Common.invariant("from_numeral target was a non-numeric primitive"),
     };
 }
@@ -23760,7 +23760,7 @@ fn checkedRecordFieldByName(
     Common.invariant("expected checked record field was absent");
 }
 
-fn intValueToDec(value: can.CIR.IntValue) builtins.dec.RocDec {
+fn intValueToDec(value: can.CIR.IntValue) builtins.dec.ClawDec {
     const whole = switch (value.kind) {
         .i128 => @as(i128, @bitCast(value.bytes)),
         .u128 => blk: {
@@ -23771,7 +23771,7 @@ fn intValueToDec(value: can.CIR.IntValue) builtins.dec.RocDec {
             break :blk @as(i128, @intCast(unsigned));
         },
     };
-    return builtins.dec.RocDec.fromWholeInt(whole) orelse {
+    return builtins.dec.ClawDec.fromWholeInt(whole) orelse {
         Common.invariant("integer pattern solved as Dec exceeded Dec range");
     };
 }

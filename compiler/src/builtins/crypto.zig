@@ -4,8 +4,8 @@ const std = @import("std");
 const list = @import("list.zig");
 const utils = @import("utils.zig");
 
-const RocList = list.RocList;
-const RocOps = utils.RocOps;
+const ClawList = list.ClawList;
+const ClawOps = utils.ClawOps;
 const Sha256 = std.crypto.hash.sha2.Sha256;
 const Blake3 = std.crypto.hash.Blake3;
 
@@ -18,19 +18,19 @@ const blake3_state_version: u8 = 1;
 const blake3_cv_stack_max = 55;
 const blake3_state_base_len = 1 + 8 * 4 + 8 * 4 + 8 + Blake3.block_length + 1 + 1 + 1 + 1;
 
-fn invariant(roc_ops: *RocOps, comptime message: []const u8) noreturn {
+fn invariant(roc_ops: *ClawOps, comptime message: []const u8) noreturn {
     roc_ops.crash("crypto builtin invariant violated: " ++ message);
     unreachable;
 }
 
-fn readInput(bytes: ?[*]const u8, len: usize, roc_ops: *RocOps) []const u8 {
+fn readInput(bytes: ?[*]const u8, len: usize, roc_ops: *ClawOps) []const u8 {
     if (bytes) |ptr| return ptr[0..len];
     if (len == 0) return &.{};
     invariant(roc_ops, "null pointer with nonzero byte length");
 }
 
-fn listFromBytes(bytes: []const u8, roc_ops: *RocOps) RocList {
-    return RocList.fromSlice(u8, bytes, false, roc_ops);
+fn listFromBytes(bytes: []const u8, roc_ops: *ClawOps) ClawList {
+    return ClawList.fromSlice(u8, bytes, false, roc_ops);
 }
 
 fn writeU32(out: []u8, value: u32) void {
@@ -50,7 +50,7 @@ fn readU64(bytes: []const u8) u64 {
 }
 
 /// Hash a byte slice with SHA-256 and return the 32 digest bytes as a Roc list.
-pub fn sha256HashBytes(input_bytes: ?[*]const u8, input_len: usize, roc_ops: *RocOps) RocList {
+pub fn sha256HashBytes(input_bytes: ?[*]const u8, input_len: usize, roc_ops: *ClawOps) ClawList {
     const input = readInput(input_bytes, input_len, roc_ops);
     var digest: [digest_len]u8 = undefined;
     Sha256.hash(input, &digest, .{});
@@ -58,14 +58,14 @@ pub fn sha256HashBytes(input_bytes: ?[*]const u8, input_len: usize, roc_ops: *Ro
 }
 
 /// Hash a byte slice with BLAKE3 and return the 32 digest bytes as a Roc list.
-pub fn blake3HashBytes(input_bytes: ?[*]const u8, input_len: usize, roc_ops: *RocOps) RocList {
+pub fn blake3HashBytes(input_bytes: ?[*]const u8, input_len: usize, roc_ops: *ClawOps) ClawList {
     const input = readInput(input_bytes, input_len, roc_ops);
     var digest: [digest_len]u8 = undefined;
     Blake3.hash(input, &digest, .{});
     return listFromBytes(&digest, roc_ops);
 }
 
-fn serializeSha256(hasher: *const Sha256, roc_ops: *RocOps) RocList {
+fn serializeSha256(hasher: *const Sha256, roc_ops: *ClawOps) ClawList {
     var state: [sha256_state_len]u8 = undefined;
     state[0] = sha256_state_version;
 
@@ -86,7 +86,7 @@ fn serializeSha256(hasher: *const Sha256, roc_ops: *RocOps) RocList {
     return listFromBytes(&state, roc_ops);
 }
 
-fn deserializeSha256(state: []const u8, roc_ops: *RocOps) Sha256 {
+fn deserializeSha256(state: []const u8, roc_ops: *ClawOps) Sha256 {
     if (state.len != sha256_state_len) invariant(roc_ops, "bad SHA256 state length");
     if (state[0] != sha256_state_version) invariant(roc_ops, "bad SHA256 state version");
 
@@ -111,13 +111,13 @@ fn deserializeSha256(state: []const u8, roc_ops: *RocOps) Sha256 {
 }
 
 /// Return a serialized empty SHA-256 hasher state.
-pub fn sha256HasherEmpty(roc_ops: *RocOps) RocList {
+pub fn sha256HasherEmpty(roc_ops: *ClawOps) ClawList {
     var hasher = Sha256.init(.{});
     return serializeSha256(&hasher, roc_ops);
 }
 
 /// Deserialize SHA-256 state, update it with bytes, and return serialized state.
-pub fn sha256HasherWrite(state_bytes: ?[*]const u8, state_len: usize, input_bytes: ?[*]const u8, input_len: usize, roc_ops: *RocOps) RocList {
+pub fn sha256HasherWrite(state_bytes: ?[*]const u8, state_len: usize, input_bytes: ?[*]const u8, input_len: usize, roc_ops: *ClawOps) ClawList {
     const state = readInput(state_bytes, state_len, roc_ops);
     const input = readInput(input_bytes, input_len, roc_ops);
     var hasher = deserializeSha256(state, roc_ops);
@@ -126,7 +126,7 @@ pub fn sha256HasherWrite(state_bytes: ?[*]const u8, state_len: usize, input_byte
 }
 
 /// Deserialize SHA-256 state and return its digest without mutating the input state bytes.
-pub fn sha256HasherFinish(state_bytes: ?[*]const u8, state_len: usize, roc_ops: *RocOps) RocList {
+pub fn sha256HasherFinish(state_bytes: ?[*]const u8, state_len: usize, roc_ops: *ClawOps) ClawList {
     const state = readInput(state_bytes, state_len, roc_ops);
     var hasher = deserializeSha256(state, roc_ops);
     var digest: [digest_len]u8 = undefined;
@@ -152,7 +152,7 @@ fn deserializeBlake3Words(bytes: []const u8) [8]u32 {
     return words;
 }
 
-fn serializeBlake3(hasher: *const Blake3, roc_ops: *RocOps) RocList {
+fn serializeBlake3(hasher: *const Blake3, roc_ops: *ClawOps) ClawList {
     if (hasher.cv_stack_len > blake3_cv_stack_max) invariant(roc_ops, "bad BLAKE3 stack length");
 
     const state_len = blake3_state_base_len + @as(usize, hasher.cv_stack_len) * digest_len;
@@ -191,7 +191,7 @@ fn serializeBlake3(hasher: *const Blake3, roc_ops: *RocOps) RocList {
     return listFromBytes(bytes, roc_ops);
 }
 
-fn deserializeBlake3(state: []const u8, roc_ops: *RocOps) Blake3 {
+fn deserializeBlake3(state: []const u8, roc_ops: *ClawOps) Blake3 {
     if (state.len < blake3_state_base_len) invariant(roc_ops, "bad BLAKE3 state length");
     if (state[0] != blake3_state_version) invariant(roc_ops, "bad BLAKE3 state version");
 
@@ -235,13 +235,13 @@ fn deserializeBlake3(state: []const u8, roc_ops: *RocOps) Blake3 {
 }
 
 /// Return a serialized empty BLAKE3 hasher state.
-pub fn blake3HasherEmpty(roc_ops: *RocOps) RocList {
+pub fn blake3HasherEmpty(roc_ops: *ClawOps) ClawList {
     var hasher = Blake3.init(.{});
     return serializeBlake3(&hasher, roc_ops);
 }
 
 /// Deserialize BLAKE3 state, update it with bytes, and return serialized state.
-pub fn blake3HasherWrite(state_bytes: ?[*]const u8, state_len: usize, input_bytes: ?[*]const u8, input_len: usize, roc_ops: *RocOps) RocList {
+pub fn blake3HasherWrite(state_bytes: ?[*]const u8, state_len: usize, input_bytes: ?[*]const u8, input_len: usize, roc_ops: *ClawOps) ClawList {
     const state = readInput(state_bytes, state_len, roc_ops);
     const input = readInput(input_bytes, input_len, roc_ops);
     var hasher = deserializeBlake3(state, roc_ops);
@@ -250,7 +250,7 @@ pub fn blake3HasherWrite(state_bytes: ?[*]const u8, state_len: usize, input_byte
 }
 
 /// Deserialize BLAKE3 state and return its digest without mutating the input state bytes.
-pub fn blake3HasherFinish(state_bytes: ?[*]const u8, state_len: usize, roc_ops: *RocOps) RocList {
+pub fn blake3HasherFinish(state_bytes: ?[*]const u8, state_len: usize, roc_ops: *ClawOps) ClawList {
     const state = readInput(state_bytes, state_len, roc_ops);
     var hasher = deserializeBlake3(state, roc_ops);
     var digest: [digest_len]u8 = undefined;
@@ -258,13 +258,13 @@ pub fn blake3HasherFinish(state_bytes: ?[*]const u8, state_len: usize, roc_ops: 
     return listFromBytes(&digest, roc_ops);
 }
 
-fn listBytes(roc_list: RocList) []const u8 {
+fn listBytes(roc_list: ClawList) []const u8 {
     if (roc_list.bytes) |ptr| return ptr[0..roc_list.length];
     if (roc_list.length == 0) return &.{};
     unreachable;
 }
 
-fn expectDigestEqual(actual: RocList, expected: []const u8) error{TestExpectedEqual}!void {
+fn expectDigestEqual(actual: ClawList, expected: []const u8) error{TestExpectedEqual}!void {
     try std.testing.expectEqualSlices(u8, expected, listBytes(actual));
 }
 

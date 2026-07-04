@@ -10,7 +10,7 @@ const parse = @import("parse");
 
 const TestEnv = @import("TestEnv.zig").TestEnv;
 
-const RocDec = builtins.dec.RocDec;
+const ClawDec = builtins.dec.ClawDec;
 const testing = std.testing;
 const ModuleEnv = @import("../ModuleEnv.zig");
 
@@ -49,7 +49,7 @@ test "fractional literal - scientific notation small" {
             try testing.expectEqual(@as(u8, 12), dec.value.denominator_power_of_ten);
         },
         .e_dec => {
-            // RocDec stores the value in a special format
+            // ClawDec stores the value in a special format
         },
         .e_frac_f64 => |frac| {
             try testing.expectApproxEqAbs(frac.value, 1.23e-10, 1e-20);
@@ -122,7 +122,7 @@ test "fractional literal - negative zero" {
         .e_dec => |frac| {
             try testing.expect(true); // -0.0 fits in Dec and F32
             const f64_val = frac.value.toF64();
-            // RocDec may not preserve the sign bit for -0.0, so just check it's zero
+            // ClawDec may not preserve the sign bit for -0.0, so just check it's zero
             try testing.expectEqual(@abs(f64_val), 0.0);
         },
         .e_frac_f64 => |frac| {
@@ -295,17 +295,17 @@ test "negative zero forced to f64 parsing" {
 }
 
 test "negative zero preservation in Dec" {
-    // Test if RocDec preserves negative zero when converting to f64
-    if (RocDec.fromNonemptySlice("-0.0")) |neg_zero_dec| {
+    // Test if ClawDec preserves negative zero when converting to f64
+    if (ClawDec.fromNonemptySlice("-0.0")) |neg_zero_dec| {
         const f64_val = neg_zero_dec.toF64();
 
-        // RocDec does NOT preserve negative zero - it becomes positive zero
+        // ClawDec does NOT preserve negative zero - it becomes positive zero
         try testing.expect(!std.math.signbit(f64_val));
         try testing.expectEqual(f64_val, 0.0);
     }
 
     // For comparison, positive zero
-    if (RocDec.fromNonemptySlice("0.0")) |pos_zero_dec| {
+    if (ClawDec.fromNonemptySlice("0.0")) |pos_zero_dec| {
         const f64_val = pos_zero_dec.toF64();
         try testing.expect(!std.math.signbit(f64_val));
         try testing.expectEqual(f64_val, 0.0);

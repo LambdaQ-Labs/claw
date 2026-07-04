@@ -4260,14 +4260,14 @@ fn numeralLiteralFitsDec(
     module_env: *const ModuleEnv,
     literal: ModuleEnv.NumeralLiteral,
 ) bool {
-    const decimal_places = builtins.dec.RocDec.decimal_places;
+    const decimal_places = builtins.dec.ClawDec.decimal_places;
     const after_count = literal.after_decimal_digit_count;
     if (after_count > decimal_places) return false;
 
     const before = base256BytesToU128(module_env.numeralDigitsBefore(literal)) orelse return false;
     const after = base256BytesToU128(module_env.numeralDigitsAfter(literal)) orelse return false;
 
-    const before_scaled = checkedMulU128(before, @intCast(builtins.dec.RocDec.one_point_zero_i128)) orelse return false;
+    const before_scaled = checkedMulU128(before, @intCast(builtins.dec.ClawDec.one_point_zero_i128)) orelse return false;
     const after_scale = pow10U128(decimal_places - after_count);
     const after_scaled = checkedMulU128(after, after_scale) orelse return false;
     const magnitude = checkedAddU128(before_scaled, after_scaled) orelse return false;
@@ -9725,7 +9725,7 @@ fn checkPatternHelp(
             } else {
                 // Unannotated decimal literal - create flex var with from_numeral constraint
                 const num_literal_info = types_mod.NumeralInfo.fromI128(
-                    dec.value.num, // RocDec has .num field which is i128 scaled by 10^18
+                    dec.value.num, // ClawDec has .num field which is i128 scaled by 10^18
                     dec.value.num < 0,
                     true, // Decimal literals are always fractional
                     pattern_region,

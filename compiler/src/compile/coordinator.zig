@@ -782,7 +782,7 @@ pub const Coordinator = struct {
     gpa: Allocator,
     mode: Mode,
     max_threads: usize,
-    target: roc_target.RocTarget,
+    target: roc_target.ClawTarget,
 
     /// All packages in the workspace
     packages: std.StringHashMap(*PackageState),
@@ -893,7 +893,7 @@ pub const Coordinator = struct {
         gpa: Allocator,
         mode: Mode,
         max_threads: usize,
-        target: roc_target.RocTarget,
+        target: roc_target.ClawTarget,
         builtin_modules: *const BuiltinModules,
         compiler_version: []const u8,
         cache_manager: ?*CacheManager,
@@ -4731,7 +4731,7 @@ fn compileAppWithCheckedModuleCache(
         allocator,
         .single_threaded,
         1,
-        roc_target.RocTarget.detectNative(),
+        roc_target.ClawTarget.detectNative(),
         &builtin_modules,
         build_options.compiler_version,
         &cache_manager,
@@ -5066,7 +5066,7 @@ test "Coordinator basic initialization" {
         allocator,
         .single_threaded,
         1,
-        roc_target.RocTarget.detectNative(),
+        roc_target.ClawTarget.detectNative(),
         undefined, // builtin_modules - not used in this test
         "test",
         null, // cache_manager
@@ -5086,7 +5086,7 @@ test "Coordinator package creation" {
         allocator,
         .single_threaded,
         1,
-        roc_target.RocTarget.detectNative(),
+        roc_target.ClawTarget.detectNative(),
         undefined,
         "test",
         null, // cache_manager
@@ -5112,7 +5112,7 @@ test "Coordinator collectWatchInputStates includes package root state" {
         allocator,
         .single_threaded,
         1,
-        roc_target.RocTarget.detectNative(),
+        roc_target.ClawTarget.detectNative(),
         undefined,
         "test",
         null,
@@ -5158,7 +5158,7 @@ test "Coordinator readModuleSource hashes raw CRLF source bytes" {
         allocator,
         .single_threaded,
         1,
-        roc_target.RocTarget.detectNative(),
+        roc_target.ClawTarget.detectNative(),
         undefined,
         "test",
         null,
@@ -5185,7 +5185,7 @@ test "Coordinator collectWatchInputStates includes module source file state" {
         allocator,
         .single_threaded,
         1,
-        roc_target.RocTarget.detectNative(),
+        roc_target.ClawTarget.detectNative(),
         undefined,
         "test",
         null,
@@ -5224,7 +5224,7 @@ test "Coordinator module creation" {
         allocator,
         .single_threaded,
         1,
-        roc_target.RocTarget.detectNative(),
+        roc_target.ClawTarget.detectNative(),
         undefined,
         "test",
         null, // cache_manager
@@ -5252,7 +5252,7 @@ test "Coordinator task queue" {
         allocator,
         .single_threaded,
         1,
-        roc_target.RocTarget.detectNative(),
+        roc_target.ClawTarget.detectNative(),
         undefined,
         "test",
         null, // cache_manager
@@ -5293,7 +5293,7 @@ test "Coordinator isComplete logic" {
         allocator,
         .single_threaded,
         1,
-        roc_target.RocTarget.detectNative(),
+        roc_target.ClawTarget.detectNative(),
         undefined,
         "test",
         null, // cache_manager
@@ -5343,7 +5343,7 @@ test "Coordinator isComplete with multi_threaded max_threads=0 (inline execution
         allocator,
         .multi_threaded,
         0, // auto — but <= 1, so no workers spawned
-        roc_target.RocTarget.detectNative(),
+        roc_target.ClawTarget.detectNative(),
         undefined,
         "test",
         null, // cache_manager
@@ -5383,7 +5383,7 @@ test "Coordinator shutdown does not drain buffered tasks" {
         allocator,
         .multi_threaded,
         2,
-        roc_target.RocTarget.detectNative(),
+        roc_target.ClawTarget.detectNative(),
         undefined,
         "test",
         null, // cache_manager
@@ -5435,7 +5435,7 @@ test "Coordinator shutdown stops spawned workers promptly" {
         allocator,
         .multi_threaded,
         2,
-        roc_target.RocTarget.detectNative(),
+        roc_target.ClawTarget.detectNative(),
         undefined,
         "test",
         null, // cache_manager
@@ -5484,7 +5484,7 @@ test "Channel in coordinator context" {
         allocator,
         .multi_threaded,
         2,
-        roc_target.RocTarget.detectNative(),
+        roc_target.ClawTarget.detectNative(),
         undefined,
         "test",
         null, // cache_manager
@@ -5519,7 +5519,7 @@ test "Coordinator enqueueParseTask flow" {
         allocator,
         .single_threaded,
         1,
-        roc_target.RocTarget.detectNative(),
+        roc_target.ClawTarget.detectNative(),
         undefined,
         "test",
         null, // cache_manager
@@ -5558,7 +5558,7 @@ test "platform root candidate comes from registration, not name probing" {
         allocator,
         .single_threaded,
         1,
-        roc_target.RocTarget.detectNative(),
+        roc_target.ClawTarget.detectNative(),
         undefined,
         "test",
         null, // cache_manager
@@ -5589,7 +5589,7 @@ test "Coordinator single-threaded loop with mock result" {
         allocator,
         .single_threaded,
         1,
-        roc_target.RocTarget.detectNative(),
+        roc_target.ClawTarget.detectNative(),
         undefined,
         "test",
         null, // cache_manager
@@ -5635,7 +5635,7 @@ test "Coordinator CI failure scenario - app with platform cross-package imports"
         allocator,
         .single_threaded,
         1,
-        roc_target.RocTarget.detectNative(),
+        roc_target.ClawTarget.detectNative(),
         undefined,
         "test",
         null, // cache_manager
@@ -5756,7 +5756,7 @@ test "Coordinator handleParseFailed advances module to Done" {
         allocator,
         .single_threaded,
         1,
-        roc_target.RocTarget.detectNative(),
+        roc_target.ClawTarget.detectNative(),
         undefined,
         "test",
         null, // cache_manager

@@ -3,7 +3,7 @@
 const std = @import("std");
 const base = @import("base");
 const lir = @import("lir");
-const RocTarget = @import("roc_target").RocTarget;
+const ClawTarget = @import("roc_target").ClawTarget;
 
 const StaticDataExport = @import("StaticDataExport.zig").StaticDataExport;
 const StaticDataRelocation = @import("StaticDataExport.zig").StaticDataRelocation;
@@ -49,7 +49,7 @@ pub const Table = struct {
 };
 
 /// Build readonly data exports for all string-store backings in a LIR store.
-pub fn build(allocator: Allocator, store: *const lir.LirStore, target: RocTarget) Allocator.Error!Table {
+pub fn build(allocator: Allocator, store: *const lir.LirStore, target: ClawTarget) Allocator.Error!Table {
     const word_size: u32 = @intCast(target.ptrBitWidth() / 8);
 
     var exports = std.ArrayList(StaticDataExport).empty;

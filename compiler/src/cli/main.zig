@@ -139,7 +139,7 @@ const cache_config_mod = compile.config;
 const backend = @import("backend");
 const layout = @import("layout");
 const docs = @import("docs");
-const RocTarget = @import("target.zig").RocTarget;
+const ClawTarget = @import("target.zig").ClawTarget;
 
 const CliMainError =
     cli_problem.ReportedError ||
@@ -178,8 +178,8 @@ const CliMainError =
     CoreCtx.MakePathError ||
     lsp.server.RunWithStdIoError ||
     glue.GlueError ||
-    RocCheckError ||
-    RocTestError ||
+    ClawCheckError ||
+    ClawTestError ||
     WatchCommandError ||
     std.Thread.SpawnError ||
     std.process.SpawnError ||
@@ -304,7 +304,7 @@ const ShimLibraries = struct {
     else
         @embedFile("libroc_machine_code_shim.a");
 
-    pub fn forTarget(kind: ShimLibraryKind, _: RocTarget) []const u8 {
+    pub fn forTarget(kind: ShimLibraryKind, _: ClawTarget) []const u8 {
         return switch (kind) {
             .lir => interpreter_native,
             .machine_code => machine_code_native,
@@ -312,14 +312,14 @@ const ShimLibraries = struct {
     }
 };
 
-fn shimLibraryBytes(kind: ShimLibraryKind, target: ?RocTarget) []const u8 {
+fn shimLibraryBytes(kind: ShimLibraryKind, target: ?ClawTarget) []const u8 {
     return if (target) |t| ShimLibraries.forTarget(kind, t) else switch (kind) {
         .lir => ShimLibraries.interpreter_native,
         .machine_code => ShimLibraries.machine_code_native,
     };
 }
 
-fn shimLibraryDigest(kind: ShimLibraryKind, target: ?RocTarget) [32]u8 {
+fn shimLibraryDigest(kind: ShimLibraryKind, target: ?ClawTarget) [32]u8 {
     var hasher = std.crypto.hash.sha2.Sha256.init(.{});
     updateHashBytes(&hasher, "roc-shim-library-cache-v1");
     updateHashBytes(&hasher, @tagName(kind));
@@ -329,7 +329,7 @@ fn shimLibraryDigest(kind: ShimLibraryKind, target: ?RocTarget) [32]u8 {
     return out;
 }
 
-fn shimLibraryCacheFilename(ctx: *CliCtx, kind: ShimLibraryKind, target: RocTarget) Allocator.Error![]const u8 {
+fn shimLibraryCacheFilename(ctx: *CliCtx, kind: ShimLibraryKind, target: ClawTarget) Allocator.Error![]const u8 {
     const digest = shimLibraryDigest(kind, target);
     const digest_hex = std.fmt.bytesToHex(digest, .lower);
     const stem = switch (kind) {
@@ -376,7 +376,7 @@ const BuiltinsObjects = struct {
     const arm64mac = if (builtin.is_test) &[_]u8{} else @embedFile("targets/arm64mac/roc_builtins.o");
 
     /// Extern-symbol-mode builtins: host operations are linker-resolved
-    /// symbols (the symbol ABI) instead of RocOps vtable calls.
+    /// symbols (the symbol ABI) instead of ClawOps vtable calls.
     const native_extern = if (builtin.is_test)
         &[_]u8{}
     else if (builtin.os.tag == .windows)
@@ -395,7 +395,7 @@ const BuiltinsObjects = struct {
     const arm64mac_extern = if (builtin.is_test) &[_]u8{} else @embedFile("targets/arm64mac/roc_builtins_extern.o");
 
     /// Get the appropriate builtins object bytes for the given target
-    pub fn forTarget(target: RocTarget) []const u8 {
+    pub fn forTarget(target: ClawTarget) []const u8 {
         return switch (target) {
             .x64musl => x64musl,
             .arm64musl => arm64musl,
@@ -412,7 +412,7 @@ const BuiltinsObjects = struct {
     }
 
     /// Get the extern-symbol-mode builtins object bytes for the given target
-    pub fn forTargetExtern(target: RocTarget) []const u8 {
+    pub fn forTargetExtern(target: ClawTarget) []const u8 {
         return switch (target) {
             .x64musl => x64musl_extern,
             .arm64musl => arm64musl_extern,
@@ -429,7 +429,7 @@ const BuiltinsObjects = struct {
     }
 
     /// Get the filename for builtins object on given target
-    pub fn filename(target: RocTarget) []const u8 {
+    pub fn filename(target: ClawTarget) []const u8 {
         return switch (target.toOsTag()) {
             .windows => "roc_builtins.obj",
             else => "roc_builtins.o",
@@ -437,7 +437,7 @@ const BuiltinsObjects = struct {
     }
 
     /// Get the filename for the extern-symbol-mode builtins object on given target
-    pub fn filenameExtern(target: RocTarget) []const u8 {
+    pub fn filenameExtern(target: ClawTarget) []const u8 {
         return switch (target.toOsTag()) {
             .windows => "roc_builtins_extern.obj",
             else => "roc_builtins_extern.o",
@@ -455,7 +455,7 @@ const DefaultPlatformRuntimeObjects = struct {
     const x64win = if (builtin.is_test) &[_]u8{} else @embedFile("targets/x64win/roc_default_platform.obj");
     const arm64win = if (builtin.is_test) &[_]u8{} else @embedFile("targets/arm64win/roc_default_platform.obj");
 
-    pub fn forTarget(target: RocTarget) ?[]const u8 {
+    pub fn forTarget(target: ClawTarget) ?[]const u8 {
         return switch (target) {
             .x64musl => x64musl,
             .arm64musl => arm64musl,
@@ -469,7 +469,7 @@ const DefaultPlatformRuntimeObjects = struct {
         };
     }
 
-    pub fn filename(target: RocTarget) []const u8 {
+    pub fn filename(target: ClawTarget) []const u8 {
         return if (target.isWindows()) "roc_default_platform.obj" else "roc_default_platform.o";
     }
 };
@@ -1203,7 +1203,7 @@ fn generatePlatformHostShimFromLirData(
     cache_dir: []const u8,
     entrypoint_names: []const []const u8,
     checked_hosted_symbols: ?[]const []const u8,
-    target: RocTarget,
+    target: ClawTarget,
     store: *const lir.LirStore,
     layouts: *const layout.Store,
     platform_entrypoints: []const lir.LirImage.PlatformEntrypoint,
@@ -1218,7 +1218,7 @@ fn generatePlatformHostShimFromLirData(
         return null;
     }
 
-    // Create std.Target for the target RocTarget.
+    // Create std.Target for the target ClawTarget.
     const std_target = stdTargetForLlvmBuild(ctx, target) catch |err| {
         return ctx.fail(.{ .shim_generation_failed = .{ .err = err } });
     };
@@ -1341,7 +1341,7 @@ fn generatePlatformHostShim(
     cache_dir: []const u8,
     entrypoint_names: []const []const u8,
     checked_hosted_symbols: ?[]const []const u8,
-    target: RocTarget,
+    target: ClawTarget,
     lir_image: []const u8,
     embed_image: bool,
     default_run_start: bool,
@@ -1441,7 +1441,7 @@ fn fileContentsDigest(ctx: *CliCtx, path: []const u8) CliError![32]u8 {
     return hasher.finalResult();
 }
 
-fn platformHostShimIdentity(target: RocTarget, entrypoint_names: []const []const u8, debug: bool) [32]u8 {
+fn platformHostShimIdentity(target: ClawTarget, entrypoint_names: []const []const u8, debug: bool) [32]u8 {
     var hasher = std.crypto.hash.sha2.Sha256.init(.{});
     updateHashBytes(&hasher, "roc-platform-host-shim-v1");
     updateHashBytes(&hasher, target.toTriple());
@@ -1854,7 +1854,7 @@ fn updateInterpreterExeFileLinkInput(
 fn updateInterpreterExeAppLinkInput(
     hasher: *std.crypto.hash.sha2.Sha256,
     shim_kind: ShimLibraryKind,
-    target: RocTarget,
+    target: ClawTarget,
     entrypoint_names: []const []const u8,
     debug: bool,
 ) void {
@@ -1876,7 +1876,7 @@ fn entrypointAbiDigestFromLirData(
     store: *const lir.LirStore,
     layouts: *const layout.Store,
     platform_entrypoints: []const lir.LirImage.PlatformEntrypoint,
-    target: RocTarget,
+    target: ClawTarget,
 ) (Allocator.Error || CliError)![32]u8 {
     const abi_target: layout.abi.Target = switch (target.toCpuArch()) {
         .aarch64 => .aarch64,
@@ -1938,7 +1938,7 @@ fn interpreterExeLinkInputsIdentity(
     link_spec: roc_target.TargetLinkSpec,
     platform_dir: []const u8,
     files_dir: []const u8,
-    target: RocTarget,
+    target: ClawTarget,
     entrypoint_names: []const []const u8,
     debug: bool,
 ) (Allocator.Error || CliError)![32]u8 {
@@ -1963,7 +1963,7 @@ fn interpreterExeLinkInputsIdentity(
 }
 
 fn defaultRunCheckedHostIdentity(
-    target: RocTarget,
+    target: ClawTarget,
     entrypoint_names: []const []const u8,
     hosted_symbols: []const []const u8,
 ) [32]u8 {
@@ -1988,7 +1988,7 @@ fn defaultRunCheckedHostIdentity(
 
 fn defaultRunLinkInputsIdentity(
     ctx: *CliCtx,
-    target: RocTarget,
+    target: ClawTarget,
     libc_info: ?libc_finder.LibcInfo,
 ) CliError!?[32]u8 {
     const runtime_bytes = DefaultPlatformRuntimeObjects.forTarget(target) orelse return null;
@@ -2017,7 +2017,7 @@ fn defaultRunLinkInputsIdentity(
 
 const ShimHostExeCacheInputs = struct {
     shim_kind: ShimLibraryKind,
-    target: RocTarget,
+    target: ClawTarget,
     debug: bool,
     checked_host_identity: [32]u8,
     link_inputs_identity: [32]u8,
@@ -2072,7 +2072,7 @@ fn testLinkInputsIdentityForFiles(
 ) [32]u8 {
     var hasher = std.crypto.hash.sha2.Sha256.init(.{});
     updateHashBytes(&hasher, "roc-run-link-inputs-v1");
-    updateHashBytes(&hasher, @tagName(RocTarget.x64linux));
+    updateHashBytes(&hasher, @tagName(ClawTarget.x64linux));
     updateInterpreterExeFileLinkInput(&hasher, first_declared, first_resolved, bytesDigest(first_contents));
     updateInterpreterExeFileLinkInput(&hasher, second_declared, second_resolved, bytesDigest(second_contents));
     return hasher.finalResult();
@@ -2132,8 +2132,8 @@ test "interpreter executable cache digest changes for platform host shim entrypo
     try std.testing.expect(!std.mem.eql(u8, &shim_a, &shim_b));
 }
 
-fn rejectRunTargetNotExecutable(ctx: *CliCtx, target: RocTarget) error{ WriteFailed, UnsupportedTarget }!void {
-    const native_target = RocTarget.detectNative();
+fn rejectRunTargetNotExecutable(ctx: *CliCtx, target: ClawTarget) error{ WriteFailed, UnsupportedTarget }!void {
+    const native_target = ClawTarget.detectNative();
     try ctx.io.stderr().print(
         "Error: unsupported target for the default roc command: {s} cannot be executed on this host ({s}).\n\nUse `roc build --target={s}` to produce an artifact for that target.\n",
         .{ @tagName(target), @tagName(native_target), @tagName(target) },
@@ -2998,10 +2998,10 @@ fn rocRunDefaultApp(ctx: *CliCtx, args: cli_args.RunArgs, original_source: []con
 fn rocRunDefaultAppSharedMemoryShim(ctx: *CliCtx, args: cli_args.RunArgs, original_source: []const u8) CliMainError!void {
     defer ctx.gpa.free(original_source);
 
-    const native_target = RocTarget.detectNative();
+    const native_target = ClawTarget.detectNative();
     const default_target = defaultRunShimTarget(native_target);
     const selected_target = if (args.target) |target_str| blk: {
-        const requested = RocTarget.fromString(target_str) orelse {
+        const requested = ClawTarget.fromString(target_str) orelse {
             try ctx.io.stderr().print("Error: invalid target for roc: {s}\n", .{target_str});
             return error.InvalidTarget;
         };
@@ -3734,7 +3734,7 @@ fn buildHotReloadChildArgv(
     ctx: *CliCtx,
     arg0: []const u8,
     args: cli_args.RunArgs,
-    selected_target: RocTarget,
+    selected_target: ClawTarget,
     shm_handle: SharedMemoryHandle,
     expected_host_identity: [32]u8,
     generation: u64,
@@ -3789,7 +3789,7 @@ fn spawnHotReloadRebuild(
     ctx: *CliCtx,
     arg0: []const u8,
     args: cli_args.RunArgs,
-    selected_target: RocTarget,
+    selected_target: ClawTarget,
     shm_handle: SharedMemoryHandle,
     expected_host_identity: [32]u8,
     generation: u64,
@@ -4262,7 +4262,7 @@ fn runHotReloadDevShim(
     exe_path: []const u8,
     shm_handle: SharedMemoryHandle,
     args: cli_args.RunArgs,
-    selected_target: RocTarget,
+    selected_target: ClawTarget,
     expected_host_identity: [32]u8,
     initial_watch_inputs: []const compile.watch_inputs.Input,
     source_rewrite: ?HotReloadSourceRewrite,
@@ -4917,7 +4917,7 @@ fn viewLirImageFromHandle(handle: SharedMemoryHandle, target_usize: base.target.
     return lir.LirImage.viewMappedImageWithAllocator(header, base_ptr, handle.size, target_usize, arena);
 }
 
-fn devShimTargetCompatible(selected: RocTarget, native: RocTarget) bool {
+fn devShimTargetCompatible(selected: ClawTarget, native: ClawTarget) bool {
     return selected.toCpuArch() == native.toCpuArch() and
         selected.toOsTag() == native.toOsTag() and
         selected.ptrBitWidth() == native.ptrBitWidth();
@@ -4927,14 +4927,14 @@ fn useDefaultAppSharedMemoryShim(args: cli_args.RunArgs) bool {
     if (args.opt != .dev) return false;
     if (args.target != null) return true;
 
-    const native_target = RocTarget.detectNative();
+    const native_target = ClawTarget.detectNative();
     const default_target = defaultRunShimTarget(native_target);
     return devShimTargetCompatible(default_target, native_target) and
         default_target.toOsTag() == .linux and
         DefaultPlatformRuntimeObjects.forTarget(default_target) != null;
 }
 
-fn defaultRunShimTarget(native: RocTarget) RocTarget {
+fn defaultRunShimTarget(native: ClawTarget) ClawTarget {
     return switch (native) {
         .x64musl, .x64glibc, .x64linux => .x64linux,
         .arm64musl, .arm64glibc, .arm64linux => .arm64linux,
@@ -5086,7 +5086,7 @@ fn rocInternalHotReloadDev(ctx: *CliCtx, raw_args: []const []const u8) CliMainEr
         return err;
     };
 
-    const selected_target = RocTarget.fromString(args.target) orelse {
+    const selected_target = ClawTarget.fromString(args.target) orelse {
         try ctx.io.stderr().print("Error: invalid internal hot-reload target: {s}\n", .{args.target});
         return error.InvalidTarget;
     };
@@ -5176,7 +5176,7 @@ fn rocInternalHotReloadDev(ctx: *CliCtx, raw_args: []const []const u8) CliMainEr
 fn writeDevRunImageToSharedMemory(
     ctx: *CliCtx,
     shm: *SharedMemoryAllocator,
-    selected_target: RocTarget,
+    selected_target: ClawTarget,
     entrypoint_names: []const []const u8,
     lowered: *const lir.CheckedPipeline.LoweredProgram,
     hot_reload_allocation: ?HotReloadImageAllocation,
@@ -5323,7 +5323,7 @@ fn writeDevRunImageToSharedMemory(
 
 fn publishDevRunImage(
     ctx: *CliCtx,
-    selected_target: RocTarget,
+    selected_target: ClawTarget,
     entrypoint_names: []const []const u8,
     lowered: *const lir.CheckedPipeline.LoweredProgram,
     enable_hot_reload: bool,
@@ -5382,7 +5382,7 @@ fn argLayoutsForProc(
     return arg_layouts;
 }
 
-fn reportCliInterpreterError(ops: *echo_platform.host_abi.RocOps, interpreter: *const eval.LirInterpreter, err: eval.LirInterpreter.Error) void {
+fn reportCliInterpreterError(ops: *echo_platform.host_abi.ClawOps, interpreter: *const eval.LirInterpreter, err: eval.LirInterpreter.Error) void {
     const message = switch (err) {
         error.OutOfMemory => "Roc interpreter ran out of memory",
         error.RuntimeError => interpreter.getRuntimeErrorMessage() orelse "Roc runtime error",
@@ -5400,7 +5400,7 @@ fn evaluateLirImageEntrypoint(
     allocator: Allocator,
     view: *const lir.LirImage.ProgramView,
     ordinal: u32,
-    ops: *echo_platform.host_abi.RocOps,
+    ops: *echo_platform.host_abi.ClawOps,
     ret_ptr: ?*anyopaque,
     arg_ptr: ?*anyopaque,
 ) Allocator.Error!void {
@@ -5489,7 +5489,7 @@ fn lowerLirWithCoordinator(
         ctx.gpa,
         mode,
         thread_count,
-        RocTarget.detectNative(),
+        ClawTarget.detectNative(),
         &builtin_modules,
         build_options.compiler_version,
         cache_manager,
@@ -6117,7 +6117,7 @@ fn resolveUrlPlatform(ctx: *CliCtx, url: []const u8) (CliError || error{OutOfMem
 }
 
 /// Extract the selected embedded shim library to the specified path for the given target.
-fn extractShimLibrary(ctx: *CliCtx, kind: ShimLibraryKind, output_path: []const u8, target: ?RocTarget) (std.Io.File.OpenError || std.Io.File.Writer.Error)!void {
+fn extractShimLibrary(ctx: *CliCtx, kind: ShimLibraryKind, output_path: []const u8, target: ?ClawTarget) (std.Io.File.OpenError || std.Io.File.Writer.Error)!void {
     if (builtin.is_test) {
         // In test mode, create an empty file to avoid embedding issues
         const shim_file = try std.Io.Dir.cwd().createFile(ctx.io.std_io, output_path, .{});
@@ -6208,7 +6208,7 @@ fn discoverAndAddBundleModules(
     // Create a BuildEnv to parse headers and discover modules via the Coordinator
     const cwd = try std.Io.Dir.cwd().realPathFileAlloc(ctx.io.std_io, ".", ctx.gpa);
     defer ctx.gpa.free(cwd);
-    var build_env = try BuildEnv.init(ctx.gpa, .single_threaded, 1, RocTarget.detectNative(), cwd, ctx.io.std_io);
+    var build_env = try BuildEnv.init(ctx.gpa, .single_threaded, 1, ClawTarget.detectNative(), cwd, ctx.io.std_io);
     defer build_env.deinit();
 
     // Run the build — the Coordinator discovers all transitive module dependencies
@@ -6765,7 +6765,7 @@ fn rocBuildDefaultApp(ctx: *CliCtx, args: cli_args.BuildArgs, original_source: [
 
 fn defaultBuildPlatformSource(args: cli_args.BuildArgs) []const u8 {
     if (args.target) |target_str| {
-        if (RocTarget.fromString(target_str)) |target| {
+        if (ClawTarget.fromString(target_str)) |target| {
             return switch (target) {
                 .x64mac, .arm64mac, .x64win, .arm64win => echo_platform.build_c_platform_main_source,
                 .wasm32 => echo_platform.build_wasm_archive_platform_main_source,
@@ -6776,7 +6776,7 @@ fn defaultBuildPlatformSource(args: cli_args.BuildArgs) []const u8 {
         return echo_platform.build_platform_main_source;
     }
 
-    return switch (RocTarget.detectNative().toOsTag()) {
+    return switch (ClawTarget.detectNative().toOsTag()) {
         .macos, .windows => echo_platform.build_c_platform_main_source,
         else => echo_platform.build_platform_main_source,
     };
@@ -6885,7 +6885,7 @@ fn selectBuildPlatformTarget(
                 }, ctx.io.stderr());
                 return error.UnsupportedTarget;
             }
-            const native_target = RocTarget.detectNative();
+            const native_target = ClawTarget.detectNative();
             try ctx.io.stderr().print(
                 "Error: roc build requires --target or a platform target for wasm32 or the detected native host ({s}).\n",
                 .{@tagName(native_target)},
@@ -6927,7 +6927,7 @@ fn selectRunPlatformTarget(
                 }, ctx.io.stderr());
                 return error.UnsupportedTarget;
             }
-            const native_target = RocTarget.detectNative();
+            const native_target = ClawTarget.detectNative();
             const result = platform_validation.createUnsupportedTargetResult(
                 platform_source orelse "<unknown>",
                 native_target,
@@ -7006,7 +7006,7 @@ fn verifyHostInputSymbols(
     }
 }
 
-fn writeDefaultPlatformRuntimeObject(ctx: *CliCtx, artifact_dir: []const u8, target: RocTarget) CliMainError!?[]const u8 {
+fn writeDefaultPlatformRuntimeObject(ctx: *CliCtx, artifact_dir: []const u8, target: ClawTarget) CliMainError!?[]const u8 {
     const bytes = DefaultPlatformRuntimeObjects.forTarget(target) orelse return null;
     const runtime_path = try std.fs.path.join(ctx.arena, &.{ artifact_dir, DefaultPlatformRuntimeObjects.filename(target) });
     backend.writeFileWindowsAvSafe(ctx.io.std_io, runtime_path, bytes) catch |err| {
@@ -7036,7 +7036,7 @@ fn linkerOutputKind(output: roc_target.OutputKind) linker.OutputKind {
     };
 }
 
-fn llvmBuildLinkAbi(target: RocTarget, synthetic_default_platform: bool) linker.TargetAbi {
+fn llvmBuildLinkAbi(target: ClawTarget, synthetic_default_platform: bool) linker.TargetAbi {
     if (synthetic_default_platform and target.toOsTag() == .linux) {
         return .musl;
     }
@@ -7047,7 +7047,7 @@ fn llvmBuildLinkAbi(target: RocTarget, synthetic_default_platform: bool) linker.
 /// the compiled objects, and the post inputs, with input archives flattened.
 fn writeArchiveOutput(
     ctx: *CliCtx,
-    target: RocTarget,
+    target: ClawTarget,
     final_output_path: []const u8,
     link_inputs: PlatformLinkInputs,
     object_files: []const []const u8,
@@ -7092,7 +7092,7 @@ fn collectPlatformLinkInputs(
     ctx: *CliCtx,
     platform_dir: []const u8,
     targets_config: roc_target.TargetsConfig,
-    target: RocTarget,
+    target: ClawTarget,
     link_type: roc_target.OutputKind,
 ) (Allocator.Error || error{ CliError, MissingTargetFile })!PlatformLinkInputs {
     const target_name = @tagName(target);
@@ -7448,7 +7448,7 @@ fn writeDevWasmObject(
 fn rocBuildWasmSurgical(
     ctx: *CliCtx,
     args: cli_args.BuildArgs,
-    target: RocTarget,
+    target: ClawTarget,
     link_type: roc_target.OutputKind,
     final_output_path: []const u8,
     build_cache_dir: []const u8,
@@ -7706,7 +7706,7 @@ fn llvmOptimizationLevel(opt: cli_args.OptLevel) builder.OptimizationLevel {
     };
 }
 
-fn stdTargetAbiForLlvmBuild(target: RocTarget) std.Target.Abi {
+fn stdTargetAbiForLlvmBuild(target: ClawTarget) std.Target.Abi {
     return switch (target) {
         .x64musl, .arm64musl, .arm32musl => .musl,
         .x64glibc, .x64linux, .arm64glibc, .arm64linux, .arm32linux => .gnu,
@@ -7715,15 +7715,15 @@ fn stdTargetAbiForLlvmBuild(target: RocTarget) std.Target.Abi {
     };
 }
 
-fn noTargetLibcallsForLlvmBuild(target: RocTarget) bool {
+fn noTargetLibcallsForLlvmBuild(target: ClawTarget) bool {
     return switch (target.toOsTag()) {
         .macos, .windows => false,
         else => true,
     };
 }
 
-fn stdTargetForLlvmBuild(ctx: *CliCtx, target: RocTarget) std.zig.system.DetectError!std.Target {
-    if (target == RocTarget.detectNative() and target.toOsTag() != .macos) return builtin.target;
+fn stdTargetForLlvmBuild(ctx: *CliCtx, target: ClawTarget) std.zig.system.DetectError!std.Target {
+    if (target == ClawTarget.detectNative() and target.toOsTag() != .macos) return builtin.target;
 
     var query = std.Target.Query{
         .cpu_arch = target.toCpuArch(),
@@ -7768,7 +7768,7 @@ fn llvmFeatureStringForTarget(allocator: Allocator, std_target: std.Target) Allo
 fn compileLlvmAppObject(
     ctx: *CliCtx,
     args: cli_args.BuildArgs,
-    target: RocTarget,
+    target: ClawTarget,
     link_type: roc_target.OutputKind,
     lowered: *const lir.CheckedPipeline.LoweredProgram,
     entrypoints: []const backend.Entrypoint,
@@ -7842,7 +7842,7 @@ fn compileLlvmAppObject(
         .link_builtins = true,
         .pic = pic,
         // Linked LLVM output uses the symbol ABI: builtins reach the host
-        // through extern symbols, never through a RocOps parameter.
+        // through extern symbols, never through a ClawOps parameter.
         .host_call_extern = true,
         .no_target_libcalls = noTargetLibcallsForLlvmBuild(target),
     };
@@ -8080,7 +8080,7 @@ fn rocBuildLlvm(ctx: *CliCtx, args: cli_args.BuildArgs) CliMainError!void {
 
     const cwd = try std.fs.path.resolve(ctx.gpa, &.{"."});
     defer ctx.gpa.free(cwd);
-    var build_env = try BuildEnv.init(ctx.gpa, mode, thread_count, RocTarget.detectNative(), cwd, ctx.io.std_io);
+    var build_env = try BuildEnv.init(ctx.gpa, mode, thread_count, ClawTarget.detectNative(), cwd, ctx.io.std_io);
     build_env.setWatchInputTracking(args.watch_inputs_file != null);
     if (args.source_dir_override) |source_dir| {
         build_env.setRootSourceDirOverride(source_dir);
@@ -8425,7 +8425,7 @@ fn rocBuildNative(ctx: *CliCtx, args: cli_args.BuildArgs) CliMainError!void {
 
     const cwd = try std.fs.path.resolve(ctx.gpa, &.{"."});
     defer ctx.gpa.free(cwd);
-    var build_env = try BuildEnv.init(ctx.gpa, mode, thread_count, RocTarget.detectNative(), cwd, ctx.io.std_io);
+    var build_env = try BuildEnv.init(ctx.gpa, mode, thread_count, ClawTarget.detectNative(), cwd, ctx.io.std_io);
     build_env.setWatchInputTracking(args.watch_inputs_file != null);
     if (args.source_dir_override) |source_dir| {
         build_env.setRootSourceDirOverride(source_dir);
@@ -8780,7 +8780,7 @@ fn rocBuildEmbedded(ctx: *CliCtx, args: cli_args.BuildArgs) CliMainError!void {
 
     const cwd = try std.fs.path.resolve(ctx.gpa, &.{"."});
     defer ctx.gpa.free(cwd);
-    var build_env = try BuildEnv.init(ctx.gpa, mode, thread_count, RocTarget.detectNative(), cwd, ctx.io.std_io);
+    var build_env = try BuildEnv.init(ctx.gpa, mode, thread_count, ClawTarget.detectNative(), cwd, ctx.io.std_io);
     build_env.setWatchInputTracking(args.watch_inputs_file != null);
     if (args.source_dir_override) |source_dir| {
         build_env.setRootSourceDirOverride(source_dir);
@@ -8831,7 +8831,7 @@ fn rocBuildEmbedded(ctx: *CliCtx, args: cli_args.BuildArgs) CliMainError!void {
     const target = selected.target;
     const link_type = selected.output;
 
-    const native_target = RocTarget.detectNative();
+    const native_target = ClawTarget.detectNative();
     if (target != native_target) {
         const stderr = ctx.io.stderr();
         try stderr.print("Error: The interpreter backend only supports building for the native target ({s}).\n\n", .{@tagName(native_target)});
@@ -9981,8 +9981,8 @@ const WatchChildOutputError = std.Io.File.MultiReader.UnendingError || std.Io.Ti
 const WatchCommandError = error{UnsupportedWatchMode} || WatchInputsPathError || WatchSpawnChildError || WatchCollectPathsError || WatchRefreshError || WatchReadInputsError || WatchChangeError || WatchChildOutputError || CliOutputWriteError;
 const ReportRenderError = Allocator.Error || CliOutputWriteError;
 const CheckFileWithBuildEnvPreservedError = compile.build.InitError || compile.build.BuildError || compile.build.CompileDiscoveredError || compile.build.BuildWithMainError || Allocator.Error || std.Io.Dir.RealPathFileAllocError || error{ ExpectedAppHeader, InvalidPackageName };
-const RocTestError = WatchCommandError || compile.build.InitError || compile.build.BuildError || compile.build.CompileDiscoveredError || compile.build.BuildWithMainError || WatchWriteInputsError || ReportRenderError || std.Io.Dir.RealPathFileAllocError || error{ CompilationFailed, TestsFailed, NoHomeDirectory };
-const RocCheckError = WatchCommandError || CheckFileWithBuildEnvPreservedError || WatchWriteInputsError || ReportRenderError || CliError || std.Io.Dir.CreateDirPathError || std.Io.Dir.WriteFileError || error{CheckFailed};
+const ClawTestError = WatchCommandError || compile.build.InitError || compile.build.BuildError || compile.build.CompileDiscoveredError || compile.build.BuildWithMainError || WatchWriteInputsError || ReportRenderError || std.Io.Dir.RealPathFileAllocError || error{ CompilationFailed, TestsFailed, NoHomeDirectory };
+const ClawCheckError = WatchCommandError || CheckFileWithBuildEnvPreservedError || WatchWriteInputsError || ReportRenderError || CliError || std.Io.Dir.CreateDirPathError || std.Io.Dir.WriteFileError || error{CheckFailed};
 
 const WatchEventSignal = struct {
     dirty: std.atomic.Value(bool) = std.atomic.Value(bool).init(false),
@@ -10966,7 +10966,7 @@ fn runWatchCommand(ctx: *CliCtx, arg0: []const u8, command: WatchCommand) WatchC
     }
 }
 
-fn rocTest(ctx: *CliCtx, args: cli_args.TestArgs, arg0: []const u8) RocTestError!void {
+fn rocTest(ctx: *CliCtx, args: cli_args.TestArgs, arg0: []const u8) ClawTestError!void {
     const trace = tracy.trace(@src());
     defer trace.end();
 
@@ -11000,7 +11000,7 @@ fn rocTest(ctx: *CliCtx, args: cli_args.TestArgs, arg0: []const u8) RocTestError
     };
     defer ctx.gpa.free(cwd);
 
-    var build_env = BuildEnv.init(ctx.gpa, mode, thread_count, RocTarget.detectNative(), cwd, ctx.io.std_io) catch |err| {
+    var build_env = BuildEnv.init(ctx.gpa, mode, thread_count, ClawTarget.detectNative(), cwd, ctx.io.std_io) catch |err| {
         return err;
     };
     build_env.setWatchInputTracking(args.watch_inputs_file != null);
@@ -11855,7 +11855,7 @@ fn checkFileWithBuildEnvPreserved(
 
     const cwd = try std.Io.Dir.cwd().realPathFileAlloc(ctx.io.std_io, ".", ctx.gpa);
     defer ctx.gpa.free(cwd);
-    var build_env = try BuildEnv.init(ctx.gpa, mode, thread_count, RocTarget.detectNative(), cwd, ctx.io.std_io);
+    var build_env = try BuildEnv.init(ctx.gpa, mode, thread_count, ClawTarget.detectNative(), cwd, ctx.io.std_io);
     build_env.setWatchInputTracking(track_watch_inputs);
     build_env.resolution_config = resolution_config;
     if (source_dir_override) |source_dir| {
@@ -12026,7 +12026,7 @@ fn checkFileWithBuildEnv(
 
     const cwd = try std.Io.Dir.cwd().realPathFileAlloc(ctx.io.std_io, ".", ctx.gpa);
     defer ctx.gpa.free(cwd);
-    var build_env = try BuildEnv.init(ctx.gpa, mode, thread_count, RocTarget.detectNative(), cwd, ctx.io.std_io);
+    var build_env = try BuildEnv.init(ctx.gpa, mode, thread_count, ClawTarget.detectNative(), cwd, ctx.io.std_io);
     build_env.resolution_config = resolution_config;
     if (source_dir_override) |source_dir| {
         build_env.setRootSourceDirOverride(source_dir);
@@ -12141,7 +12141,7 @@ fn finishRocCheck(
     stderr: *std.Io.Writer,
     timer_start_ns: i128,
     check_result: *CheckResult,
-) RocCheckError!void {
+) ClawCheckError!void {
     const elapsed = @as(u64, @intCast(std.Io.Timestamp.now(ctx.io.std_io, .real).nanoseconds - timer_start_ns));
 
     for (check_result.reports) |module| {
@@ -12226,7 +12226,7 @@ fn rocCheckDefaultApp(
     args: cli_args.CheckArgs,
     original_source: []const u8,
     cache_config: CacheConfig,
-) RocCheckError!CheckResult {
+) ClawCheckError!CheckResult {
     defer ctx.gpa.free(original_source);
 
     const temp_dir = createUniqueTempDir(ctx) catch |err| {
@@ -12276,7 +12276,7 @@ fn rocCheckDefaultAppPreserved(
     original_source: []const u8,
     cache_config: CacheConfig,
     track_watch_inputs: bool,
-) RocCheckError!DefaultAppCheckResultWithBuildEnv {
+) ClawCheckError!DefaultAppCheckResultWithBuildEnv {
     defer ctx.gpa.free(original_source);
 
     const temp_dir = createUniqueTempDir(ctx) catch |err| {
@@ -12325,7 +12325,7 @@ fn writeDefaultAppCheckWatchInputs(
     try writeWatchInputSetFile(ctx, file_path, &input_set);
 }
 
-fn rocCheck(ctx: *CliCtx, args: cli_args.CheckArgs, arg0: []const u8) RocCheckError!void {
+fn rocCheck(ctx: *CliCtx, args: cli_args.CheckArgs, arg0: []const u8) ClawCheckError!void {
     const trace = tracy.trace(@src());
     defer trace.end();
 
@@ -12734,7 +12734,7 @@ fn emitExprJson(gpa: Allocator, env: *ModuleEnv, expr_idx: CIR.Expr.Idx, w: anyt
 }
 
 /// Emit each top-level def as JSON: {"name","type","effectful","body"}.
-fn emitDefsJson(ctx: *CliCtx, build_env: *BuildEnv, args: cli_args.DefsArgs) RocCheckError!void {
+fn emitDefsJson(ctx: *CliCtx, build_env: *BuildEnv, args: cli_args.DefsArgs) ClawCheckError!void {
     const stdout = ctx.io.stdout();
     const env = getRootModuleEnv(build_env, args.path) orelse {
         stdout.writeAll("[]\n") catch {};
@@ -12774,7 +12774,7 @@ fn emitDefsJson(ctx: *CliCtx, build_env: *BuildEnv, args: cli_args.DefsArgs) Roc
     ctx.io.flush();
 }
 
-fn rocDefs(ctx: *CliCtx, args: cli_args.DefsArgs, arg0: []const u8) RocCheckError!void {
+fn rocDefs(ctx: *CliCtx, args: cli_args.DefsArgs, arg0: []const u8) ClawCheckError!void {
     _ = arg0;
     const stderr = ctx.io.stderr();
     const cache_config = CacheConfig{ .enabled = true, .verbose = false, .roc_ctx = ctx.coreCtx() };
