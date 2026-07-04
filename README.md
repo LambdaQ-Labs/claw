@@ -117,9 +117,10 @@ Or open [`playground/index.html`](playground/index.html) — an in-browser demo.
 | Print, compute, command-line args, `Str`/`Num`/`List` builtins | ✅ works |
 | AI guardrail over your **real** symbols (`claw index` + MCP: symbols/candidates/mask) | ✅ works |
 | Decode-time grammar that makes out-of-scope calls ungeneratable | ✅ works (Def-JSON protocol) |
+| HTTP server / networking via an explicit platform ([verified auth gateway](docs/networking.md)) | 🧪 works (macOS; not yet a first-class `claw new` target) |
 | Bundled fine-tuned model (0→98% hallucination-free, [P4 gate](docs/p4-gate-2026-07-04.md)) | 🧪 research (separate download) |
 | Contracts / effects / `emit-rust` | 🧪 experimental (synthetic AST) |
-| File / stdin / network I/O | 🗺️ roadmap (v0.1.1) |
+| Networking/file I/O as a bundled `claw new --platform` target | 🗺️ roadmap (v0.1.1) |
 | AI understands whole programs (bodies, call-graph, contracts on your code) | 🗺️ roadmap (v0.2) |
 | Windows | 🗺️ roadmap |
 

@@ -87,7 +87,9 @@ claw index
 ## What works today (v0.1)
 
 - **Compile & run** real programs, self-contained.
-- **Print + compute + args** (I/O for files/stdin/network is on the roadmap).
+- **Print + compute + args** with `claw run`.
+- **Networking** (a real HTTP server) via an explicit platform — see
+  [networking.md](networking.md). Bundling it as a `claw new` target is next.
 - **AI guardrail** over your real symbol table (via `claw index` + MCP).
 
 See the README's feature matrix for what's experimental vs planned.
