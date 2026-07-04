@@ -119,9 +119,9 @@ Or open [`playground/index.html`](playground/index.html) — an in-browser demo.
 | `claw new --platform cli` → stdin/stdout apps | ✅ works |
 | AI guardrail over your **real** symbols — names, **types, and effects** (`clawc defs --json` → `claw index` → MCP) | ✅ works |
 | **Real call graph on real code** — `claw db deps` / `callers` from lowered bodies (body-lowering: CIR → AST) | ✅ works |
+| **Run + property-check your real code** — `claw db eval` runs a def from the DB; `claw db check` property-tests a contract against it | ✅ works |
 | Decode-time grammar that makes out-of-scope calls ungeneratable | ✅ works (Def-JSON protocol) |
 | Bundled fine-tuned model (0→98% hallucination-free, [P4 gate](docs/p4-gate-2026-07-04.md)) | 🧪 research (separate download) |
-| Contracts run on your real bodies | 🧪 next (bodies are lowered; wiring the interpreter over the CDB) |
 | `emit-rust` on real bodies | 🧪 experimental |
 | Records / tag-unions / `match` in lowered bodies (currently opaque markers) | 🗺️ roadmap (needs AST + interp support) |
 | File / stdin platform I/O beyond print | 🗺️ roadmap (needs a new host) |
