@@ -124,6 +124,43 @@ pub enum Expr {
         value: Box<Expr>,
         body: Box<Expr>,
     },
+    /// A record literal: `{ field: expr, ... }`.
+    Record(Vec<(String, Expr)>),
+    /// Field access: `expr.field`.
+    Field(Box<Expr>, String),
+    /// A tag / variant constructor: `Tag` or `Tag(args)` (e.g. a pipeline
+    /// stage `Won`, or `Ok(x)`).
+    Tag(String, Vec<Expr>),
+    /// Pattern match: `match scrutinee { pat => body, ... }`.
+    Match(Box<Expr>, Vec<(Pat, Expr)>),
+}
+
+/// A match pattern (minimal: enough for tag-union state machines + guards).
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+pub enum Pat {
+    /// `_` — matches anything, binds nothing.
+    Wild,
+    /// A variable — matches anything, binds the value to this name.
+    Var(String),
+    /// A literal — matches by equality.
+    Lit(Lit),
+    /// A tag with sub-patterns: `Ok(x)`, `Stage(s)`, `Won`.
+    Tag(String, Vec<Pat>),
+}
+
+impl Pat {
+    /// Names this pattern binds (added to scope in the arm body).
+    fn binds(&self, out: &mut Vec<String>) {
+        match self {
+            Pat::Var(v) => out.push(v.clone()),
+            Pat::Tag(_, subs) => {
+                for s in subs {
+                    s.binds(out);
+                }
+            }
+            Pat::Wild | Pat::Lit(_) => {}
+        }
+    }
 }
 
 impl Expr {
@@ -154,6 +191,23 @@ impl Expr {
             Expr::Let { value, body, .. } => {
                 value.walk_refs(out);
                 body.walk_refs(out);
+            }
+            Expr::Record(fields) => {
+                for (_, e) in fields {
+                    e.walk_refs(out);
+                }
+            }
+            Expr::Field(e, _) => e.walk_refs(out),
+            Expr::Tag(_, args) => {
+                for a in args {
+                    a.walk_refs(out);
+                }
+            }
+            Expr::Match(scrut, arms) => {
+                scrut.walk_refs(out);
+                for (_, body) in arms {
+                    body.walk_refs(out);
+                }
             }
             Expr::Var(_) | Expr::Lit(_) => {}
         }
@@ -199,6 +253,29 @@ impl Expr {
                 bound.push(name.clone());
                 body.walk_free(bound, out);
                 bound.pop();
+            }
+            Expr::Record(fields) => {
+                for (_, e) in fields {
+                    e.walk_free(bound, out);
+                }
+            }
+            Expr::Field(e, _) => e.walk_free(bound, out),
+            Expr::Tag(_, args) => {
+                for a in args {
+                    a.walk_free(bound, out);
+                }
+            }
+            Expr::Match(scrut, arms) => {
+                scrut.walk_free(bound, out);
+                for (pat, body) in arms {
+                    // pattern bindings are in scope only in that arm's body
+                    let mut pat_binds = Vec::new();
+                    pat.binds(&mut pat_binds);
+                    let n = pat_binds.len();
+                    bound.extend(pat_binds);
+                    body.walk_free(bound, out);
+                    bound.truncate(bound.len() - n);
+                }
             }
             Expr::Ref(_) | Expr::Lit(_) => {}
         }

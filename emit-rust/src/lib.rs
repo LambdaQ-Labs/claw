@@ -99,6 +99,19 @@ pub fn emit_expr(e: &Expr, names: &NameMap) -> Result<String, EmitError> {
             emit_expr(value, names)?,
             emit_expr(body, names)?
         )),
+        Expr::Field(e, name) => Ok(format!("{}.{}", emit_expr(e, names)?, sanitize_ident(name))),
+        Expr::Tag(name, args) => {
+            if args.is_empty() {
+                Ok(name.clone())
+            } else {
+                let a: Result<Vec<String>, _> = args.iter().map(|x| emit_expr(x, names)).collect();
+                Ok(format!("{name}({})", a?.join(", ")))
+            }
+        }
+        // Records need a named struct; match needs pattern translation —
+        // both are honest gaps in the experimental emitter.
+        Expr::Record(_) => Err(EmitError::Unsupported("record literal".into())),
+        Expr::Match(_, _) => Err(EmitError::Unsupported("match expression".into())),
     }
 }
 

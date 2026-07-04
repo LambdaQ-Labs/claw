@@ -48,6 +48,47 @@ pub fn render_expr(e: &Expr) -> String {
         Expr::Let { name, value, body } => {
             format!("{name} = {}\n{}", render_expr(value), render_expr(body))
         }
+        Expr::Record(fields) => {
+            let fs: Vec<String> = fields
+                .iter()
+                .map(|(n, e)| format!("{n}: {}", render_expr(e)))
+                .collect();
+            format!("{{ {} }}", fs.join(", "))
+        }
+        Expr::Field(e, name) => format!("{}.{name}", render_expr(e)),
+        Expr::Tag(name, args) => {
+            if args.is_empty() {
+                name.clone()
+            } else {
+                let a: Vec<String> = args.iter().map(render_expr).collect();
+                format!("{name}({})", a.join(", "))
+            }
+        }
+        Expr::Match(scrut, arms) => {
+            let a: Vec<String> = arms
+                .iter()
+                .map(|(p, b)| format!("    {} => {}", render_pat(p), render_expr(b)))
+                .collect();
+            format!("match {} {{\n{}\n}}", render_expr(scrut), a.join("\n"))
+        }
+    }
+}
+
+fn render_pat(p: &crate::Pat) -> String {
+    use crate::{Lit, Pat};
+    match p {
+        Pat::Wild => "_".into(),
+        Pat::Var(v) => v.clone(),
+        Pat::Lit(Lit::Int(n)) => n.to_string(),
+        Pat::Lit(Lit::Str(s)) => format!("{s:?}"),
+        Pat::Tag(name, subs) => {
+            if subs.is_empty() {
+                name.clone()
+            } else {
+                let s: Vec<String> = subs.iter().map(render_pat).collect();
+                format!("{name}({})", s.join(", "))
+            }
+        }
     }
 }
 

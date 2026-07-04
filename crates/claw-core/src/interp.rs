@@ -26,6 +26,10 @@ pub enum Value {
     Builtin(String),
     Ok(Box<Value>),
     Err(Box<Value>),
+    /// A record: field name → value.
+    Record(BTreeMap<String, Value>),
+    /// A tag / variant: name + payload (e.g. a pipeline stage `Won`).
+    Tag(String, Vec<Value>),
 }
 
 pub type Env = BTreeMap<String, Value>;
@@ -142,6 +146,75 @@ fn eval_step(
             let mut env2 = env.clone();
             env2.insert(name.clone(), v);
             eval_inner(body, &env2, res, b)
+        }
+        Expr::Record(fields) => {
+            let mut map = BTreeMap::new();
+            for (name, e) in fields {
+                map.insert(name.clone(), eval_inner(e, env, res, b)?);
+            }
+            Ok(Value::Record(map))
+        }
+        Expr::Field(e, name) => match eval_inner(e, env, res, b)? {
+            Value::Record(map) => map
+                .get(name)
+                .cloned()
+                .ok_or_else(|| RunError::Builtin(format!("no field `{name}`"))),
+            _ => Err(RunError::Builtin(format!("field `{name}` on a non-record"))),
+        },
+        Expr::Tag(name, args) => {
+            let mut vals = Vec::with_capacity(args.len());
+            for a in args {
+                vals.push(eval_inner(a, env, res, b)?);
+            }
+            // Ok/Err map to the dedicated values so contracts see them.
+            Ok(match (name.as_str(), vals.len()) {
+                ("Ok", 1) => Value::Ok(Box::new(vals.into_iter().next().unwrap())),
+                ("Err", 1) => Value::Err(Box::new(vals.into_iter().next().unwrap())),
+                _ => Value::Tag(name.clone(), vals),
+            })
+        }
+        Expr::Match(scrut, arms) => {
+            let v = eval_inner(scrut, env, res, b)?;
+            for (pat, body) in arms {
+                let mut binds = Vec::new();
+                if match_pat(pat, &v, &mut binds) {
+                    let mut env2 = env.clone();
+                    for (k, val) in binds {
+                        env2.insert(k, val);
+                    }
+                    return eval_inner(body, &env2, res, b);
+                }
+            }
+            Err(RunError::Builtin("match: no arm matched".into()))
+        }
+    }
+}
+
+/// Try to match `pat` against `v`; on success, collect its bindings.
+fn match_pat(pat: &crate::Pat, v: &Value, binds: &mut Vec<(String, Value)>) -> bool {
+    use crate::{Lit, Pat};
+    match pat {
+        Pat::Wild => true,
+        Pat::Var(name) => {
+            binds.push((name.clone(), v.clone()));
+            true
+        }
+        Pat::Lit(Lit::Int(n)) => matches!(v, Value::Int(m) if m == n),
+        Pat::Lit(Lit::Str(s)) => matches!(v, Value::Str(t) if t == s),
+        Pat::Tag(name, subs) => {
+            // Ok/Err are dedicated values; other tags are Value::Tag.
+            let (vname, vargs): (&str, Vec<Value>) = match v {
+                Value::Ok(x) => ("Ok", vec![(**x).clone()]),
+                Value::Err(x) => ("Err", vec![(**x).clone()]),
+                Value::Tag(n, a) => (n.as_str(), a.clone()),
+                _ => return false,
+            };
+            if vname != name || vargs.len() != subs.len() {
+                return false;
+            }
+            subs.iter()
+                .zip(&vargs)
+                .all(|(sp, sv)| match_pat(sp, sv, binds))
         }
     }
 }
@@ -338,6 +411,37 @@ mod tests {
             eval(&Expr::Var("nope".into()), &Env::new(), &BuiltinResolver),
             Err(RunError::Unbound("nope".into()))
         );
+    }
+
+    #[test]
+    fn record_field_access() {
+        use crate::Expr;
+        // ({ x: 10, y: 20 }).y == 20
+        let rec = Expr::Record(vec![
+            ("x".into(), Expr::Lit(Lit::Int(10))),
+            ("y".into(), Expr::Lit(Lit::Int(20))),
+        ]);
+        let e = Expr::Field(Box::new(rec), "y".into());
+        assert_eq!(eval(&e, &Env::new(), &BuiltinResolver), Ok(Value::Int(20)));
+    }
+
+    #[test]
+    fn match_on_tag_union_binds_and_selects() {
+        use crate::{Expr, Pat};
+        // match Stage("open") { Won => 1, Stage(s) => 2, _ => 0 }  == 2, binds s
+        let scrut = Expr::Tag("Stage".into(), vec![Expr::Lit(Lit::Str("open".into()))]);
+        let e = Expr::Match(
+            Box::new(scrut),
+            vec![
+                (Pat::Tag("Won".into(), vec![]), Expr::Lit(Lit::Int(1))),
+                (
+                    Pat::Tag("Stage".into(), vec![Pat::Var("s".into())]),
+                    Expr::Lit(Lit::Int(2)),
+                ),
+                (Pat::Wild, Expr::Lit(Lit::Int(0))),
+            ],
+        );
+        assert_eq!(eval(&e, &Env::new(), &BuiltinResolver), Ok(Value::Int(2)));
     }
 
     #[test]

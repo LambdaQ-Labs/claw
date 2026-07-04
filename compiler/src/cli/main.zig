@@ -12553,6 +12553,37 @@ fn edBlock(gpa: Allocator, env: *ModuleEnv, stmts: []CIR.Statement.Idx, final_ex
     }
 }
 
+fn edPat(env: *ModuleEnv, pat_idx: CIR.Pattern.Idx, w: anytype) void {
+    switch (env.store.getPattern(pat_idx)) {
+        .underscore => w.writeAll("\"Wild\"") catch {},
+        .assign => |a| {
+            w.writeAll("{\"Var\":") catch {};
+            edJsonStr(w, env.getIdentText(a.ident));
+            w.writeAll("}") catch {};
+        },
+        .num_literal => |n| w.print("{{\"Lit\":{{\"Int\":{d}}}}}", .{std.math.cast(i64, n.value.toI128()) orelse 0}) catch {},
+        .str_literal => |s| {
+            w.writeAll("{\"Lit\":{\"Str\":") catch {};
+            edJsonStr(w, env.getString(s.literal));
+            w.writeAll("}}") catch {};
+        },
+        .applied_tag => |t| {
+            w.writeAll("{\"Tag\":[") catch {};
+            edJsonStr(w, env.getIdentText(t.name));
+            w.writeAll(",[") catch {};
+            var first = true;
+            for (env.store.slicePatterns(t.args)) |sp| {
+                if (!first) w.writeAll(",") catch {};
+                first = false;
+                edPat(env, sp, w);
+            }
+            w.writeAll("]]}") catch {};
+        },
+        // record-destructure / list / tuple / as → match anything (fallback)
+        else => w.writeAll("\"Wild\"") catch {},
+    }
+}
+
 fn emitExprJson(gpa: Allocator, env: *ModuleEnv, expr_idx: CIR.Expr.Idx, w: anytype) void {
     const ex = env.store.getExpr(expr_idx);
     switch (ex) {
@@ -12635,7 +12666,64 @@ fn emitExprJson(gpa: Allocator, env: *ModuleEnv, expr_idx: CIR.Expr.Idx, w: anyt
         },
         .e_method_call => |m| edMethodCall(gpa, env, m.receiver, env.getIdent(m.method_name), env.store.sliceExpr(m.args), w),
         .e_dispatch_call => |m| edMethodCall(gpa, env, m.receiver, env.getIdent(m.method_name), env.store.sliceExpr(m.args), w),
-        .e_field_access => |f| emitExprJson(gpa, env, f.receiver, w),
+        .e_field_access => |f| {
+            w.writeAll("{\"Field\":[") catch {};
+            emitExprJson(gpa, env, f.receiver, w);
+            w.writeAll(",") catch {};
+            edJsonStr(w, env.getIdentText(f.field_name));
+            w.writeAll("]}") catch {};
+        },
+        .e_record => |r| {
+            w.writeAll("{\"Record\":[") catch {};
+            var first = true;
+            for (env.store.sliceRecordFields(r.fields)) |fi| {
+                const f = env.store.getRecordField(fi);
+                if (!first) w.writeAll(",") catch {};
+                first = false;
+                w.writeAll("[") catch {};
+                edJsonStr(w, env.getIdentText(f.name));
+                w.writeAll(",") catch {};
+                emitExprJson(gpa, env, f.value, w);
+                w.writeAll("]") catch {};
+            }
+            w.writeAll("]}") catch {};
+        },
+        .e_tag => |t| {
+            w.writeAll("{\"Tag\":[") catch {};
+            edJsonStr(w, env.getIdentText(t.name));
+            w.writeAll(",[") catch {};
+            var first = true;
+            for (env.store.sliceExpr(t.args)) |a| {
+                if (!first) w.writeAll(",") catch {};
+                first = false;
+                emitExprJson(gpa, env, a, w);
+            }
+            w.writeAll("]]}") catch {};
+        },
+        .e_zero_argument_tag => |t| {
+            w.writeAll("{\"Tag\":[") catch {};
+            edJsonStr(w, env.getIdentText(t.name));
+            w.writeAll(",[]]}") catch {};
+        },
+        .e_match => |m| {
+            w.writeAll("{\"Match\":[") catch {};
+            emitExprJson(gpa, env, m.cond, w);
+            w.writeAll(",[") catch {};
+            var first = true;
+            for (env.store.sliceMatchBranches(m.branches)) |bi| {
+                const br = env.store.getMatchBranch(bi);
+                const pats = env.store.sliceMatchBranchPatterns(br.patterns);
+                if (pats.len == 0) continue;
+                if (!first) w.writeAll(",") catch {};
+                first = false;
+                w.writeAll("[") catch {};
+                edPat(env, env.store.getMatchBranchPattern(pats[0]).pattern, w);
+                w.writeAll(",") catch {};
+                emitExprJson(gpa, env, br.value, w);
+                w.writeAll("]") catch {};
+            }
+            w.writeAll("]]}") catch {};
+        },
         .e_unary_minus => |u| emitExprJson(gpa, env, u.expr, w),
         .e_unary_not => |u| emitExprJson(gpa, env, u.expr, w),
         .e_dbg => |u| emitExprJson(gpa, env, u.expr, w),
