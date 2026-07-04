@@ -9,28 +9,27 @@ env:
   CARGO_TERM_COLOR: always
 
 jobs:
-  build-test:
+  rust:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
       - uses: dtolnay/rust-toolchain@stable
+        with:
+          components: clippy, rustfmt
       - uses: Swatinem/rust-cache@v2
-      # Builds the workspace once the compiler is vendored in P0.
-      # Until then these are no-ops / allowed to be absent.
-      - name: fmt
-        run: cargo fmt --all --check || echo "no cargo workspace yet (pre-P0)"
-      - name: clippy
-        run: cargo clippy --all-targets -- -D warnings || echo "no cargo workspace yet (pre-P0)"
-      - name: test
-        run: cargo test --all || echo "no cargo workspace yet (pre-P0)"
+      - run: cargo fmt --all --check
+      - run: cargo clippy --workspace --all-targets -- -D warnings
+      - run: cargo test --workspace
 
-  benchmark-gate:
+  compiler:
     runs-on: ubuntu-latest
-    # The regression guard. Once WS-J lands, a drop in Pass@1 fails the build.
-    # Placeholder until the harness + a model endpoint exist.
     steps:
       - uses: actions/checkout@v4
-      - name: benchmark (arm A0 baseline)
-        run: |
-          echo "TODO(P0): claw-bench run --arm A0 --tasks bench/tasks"
-          echo "TODO(P2): claw-bench compare A0 A2 --gate compile-error-reduction>=30%"
+        with:
+          submodules: recursive
+      - name: Install Zig 0.16.0
+        uses: mlugg/setup-zig@v1
+        with:
+          version: 0.16.0
+      - name: Build the compiler (clawc)
+        run: cd compiler && zig build roc

@@ -18,7 +18,7 @@ members = [
 # compiler/ joins the workspace after the Roc vendor + rename pass (P0).
 
 [workspace.package]
-version = "0.0.1"
+version = "0.1.0"
 edition = "2021"
 license = "UPL-1.0"
 repository = "https://github.com/lambdaq-labs/claw"
