@@ -99,6 +99,18 @@ impl Cdb {
         Ok(hash)
     }
 
+    /// Record a call-graph edge caller → callee directly (both by hash).
+    /// Used when bodies reference dependencies by name rather than by
+    /// content hash (e.g. ingested real code, where a def and its mutual
+    /// recursion partner can't both be content-hashed first).
+    pub fn add_edge(&self, caller: &Hash, callee: &Hash) -> Result<()> {
+        self.conn.execute(
+            "INSERT OR IGNORE INTO edges (caller, callee) VALUES (?1, ?2)",
+            params![caller.0, callee.0],
+        )?;
+        Ok(())
+    }
+
     /// Point a name at a hash. Create, rename-target, or retarget —
     /// all the same O(1) metadata write.
     pub fn bind(&self, name: &str, hash: &Hash) -> Result<()> {
@@ -284,6 +296,31 @@ mod tests {
         let h2 = db.put(&nat_lit(1)).unwrap();
         assert_eq!(h1, h2);
         assert_eq!(db.symbols().unwrap().len(), 0, "no names bound yet");
+    }
+
+    #[test]
+    fn add_edge_builds_the_call_graph_by_hash() {
+        // Bodies that reference deps by NAME (ingested real code) can't be
+        // content-hashed into Ref edges up front; add_edge links them.
+        let mut db = Cdb::in_memory().unwrap();
+        let callee_h = db.put(&nat_lit(7)).unwrap();
+        db.bind("helper", &callee_h).unwrap();
+        // caller body references `helper` by name (a Var, not a Ref)
+        let caller = Def::new(
+            Expr::App {
+                func: Box::new(Expr::Var("helper".into())),
+                args: vec![],
+            },
+            named("Nat"),
+        );
+        let caller_h = db.put(&caller).unwrap();
+        db.bind("useHelper", &caller_h).unwrap();
+        // put recorded no edge (no Ref in the body)
+        assert!(db.deps(&caller_h).unwrap().is_empty());
+        // link it explicitly
+        db.add_edge(&caller_h, &callee_h).unwrap();
+        assert_eq!(db.deps(&caller_h).unwrap(), vec![callee_h.clone()]);
+        assert_eq!(db.callers(&callee_h).unwrap(), vec![caller_h]);
     }
 
     #[test]

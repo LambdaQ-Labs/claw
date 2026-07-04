@@ -285,8 +285,10 @@ fn index_cmd(db_path: &Path, args: &[String]) -> anyhow::Result<()> {
             Err(e) => eprintln!("  skip {}: {e}", f.display()),
         }
     }
+    // Link the call graph across all ingested files (by name).
+    let edges = link_edges(&cdb).unwrap_or(0);
     eprintln!(
-        "indexed {total} definition(s) from {ok}/{} file(s) → {}",
+        "indexed {total} definition(s) from {ok}/{} file(s), {edges} edge(s) → {}",
         files.len(),
         db_path.display()
     );
@@ -585,6 +587,10 @@ fn ingest(cdb: &mut Cdb, file: &Path) -> anyhow::Result<usize> {
         ty: String,
         #[serde(default)]
         effectful: bool,
+        /// The lowered body, if the compiler emitted one (references to
+        /// other defs are `Var(name)`; edges are linked by name afterward).
+        #[serde(default)]
+        body: Option<Expr>,
     }
 
     let clawc = find_clawc()?;
@@ -627,8 +633,11 @@ fn ingest(cdb: &mut Cdb, file: &Path) -> anyhow::Result<usize> {
         } else {
             vec![]
         };
-        // Body: opaque source marker until real body-lowering lands.
-        let body = Expr::Lit(Lit::Str(format!("{}::{}", file.display(), e.name)));
+        // Use the compiler-lowered body when present; else an opaque marker.
+        let body = e
+            .body
+            .clone()
+            .unwrap_or_else(|| Expr::Lit(Lit::Str(format!("{}::{}", file.display(), e.name))));
         let def = Def {
             expr: body,
             ty,
@@ -641,4 +650,27 @@ fn ingest(cdb: &mut Cdb, file: &Path) -> anyhow::Result<usize> {
         count += 1;
     }
     Ok(count)
+}
+
+/// Build call-graph edges over everything currently in the CDB: for each
+/// bound def, any free variable in its body that names another bound def
+/// becomes an edge (caller → callee). Bodies reference deps by name, so
+/// this resolves them to hashes — making `deps`/`callers` work on real,
+/// mutually-recursive code without content-hashing cycles.
+fn link_edges(cdb: &Cdb) -> anyhow::Result<usize> {
+    let names: std::collections::HashMap<String, Hash> = cdb.symbols()?.into_iter().collect();
+    let mut edges = 0;
+    for (name, caller_hash) in cdb.symbols()? {
+        let def = cdb.get(&caller_hash)?;
+        for free in def.expr.free_vars() {
+            if free == name {
+                continue; // self-reference (recursion) isn't a dependency edge
+            }
+            if let Some(callee_hash) = names.get(&free) {
+                cdb.add_edge(&caller_hash, callee_hash)?;
+                edges += 1;
+            }
+        }
+    }
+    Ok(edges)
 }
