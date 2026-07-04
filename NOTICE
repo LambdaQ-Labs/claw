@@ -1,0 +1,7 @@
+Claw
+Copyright © 2026 LambdaQ Labs and the Claw authors <clawlang.dev>
+
+Claw's compiler (compiler/) is a fork of the Roc programming language.
+Portions copyright © 2019 Richard Feldman and subsequent Roc authors
+<roc-lang.org/authors>, licensed under UPL-1.0. See compiler/UPSTREAM.md
+for the fork point and compiler/LICENSE for the original notice.
