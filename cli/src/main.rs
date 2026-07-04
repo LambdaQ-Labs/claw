@@ -61,6 +61,9 @@ fn real_main() -> anyhow::Result<()> {
         Some("corpus") if args.get(1).map(String::as_str) == Some("gen") => {
             corpus_gen_cmd(&db_path, args.iter().any(|a| a == "--stdlib"))
         }
+        // Index a whole project's .claw files into the CDB so the AI
+        // guardrail (candidates/mask/MCP) answers over the user's real code.
+        Some("index") => index_cmd(&db_path, &args[1..]),
         _ => {
             eprintln!(
                 "claw — the Claw toolchain\n\nusage:\n  claw new <name>                              scaffold a new project\n  claw run [file.claw]                         run a program (default: main.claw)\n  claw build|check|fmt|test|repl <file.claw>   compiler passthrough\n  claw [--db <file>] db <subcommand>           code-as-database\n  claw emit-rust <defs.json>                    transpile Def-JSON → Rust\n  claw [--db <file>] corpus gen [--stdlib]      synthetic SFT corpus → JSONL\n\ndb subcommands:\n  symbols | put | bind <name> <hash> | resolve <name> | ingest <file.claw>\n  candidates \"<type>\" | callers <ref> | deps <ref> | render <ref> | mask \"<type>\""
@@ -95,6 +98,11 @@ fn new_cmd(args: &[String]) -> anyhow::Result<()> {
         dir.join("README.md"),
         format!("# {name}\n\nA Claw project.\n\n```sh\nclaw run\n```\n"),
     )?;
+
+    // Best-effort initial index so the AI guardrail works immediately.
+    if let Ok(mut cdb) = Cdb::open(&dir.join("claw.cdb")) {
+        let _ = ingest(&mut cdb, &dir.join("main.claw"));
+    }
 
     eprintln!("created project `{name}`");
     eprintln!("  cd {name} && claw run");
@@ -196,6 +204,75 @@ fn corpus_gen_cmd(db_path: &Path, stdlib: bool) -> anyhow::Result<()> {
     println!();
     eprintln!("generated {} example(s)", examples.len());
     Ok(())
+}
+
+/// `claw index [dir]` — ingest every `.claw` file under a project into the
+/// CDB, so `candidates`/`mask`/MCP answer over the user's real symbols.
+/// Rebuilds the store fresh each run (idempotent).
+fn index_cmd(db_path: &Path, args: &[String]) -> anyhow::Result<()> {
+    let root = args
+        .first()
+        .map(PathBuf::from)
+        .unwrap_or_else(|| project_root().unwrap_or_else(|| PathBuf::from(".")));
+    let files = claw_files(&root);
+    anyhow::ensure!(!files.is_empty(), "no .claw files under {}", root.display());
+
+    // Fresh store each index.
+    let _ = std::fs::remove_file(db_path);
+    let mut cdb = Cdb::open(db_path)?;
+    let (mut ok, mut total) = (0usize, 0usize);
+    for f in &files {
+        match ingest(&mut cdb, f) {
+            Ok(n) => {
+                total += n;
+                ok += 1;
+            }
+            Err(e) => eprintln!("  skip {}: {e}", f.display()),
+        }
+    }
+    eprintln!(
+        "indexed {total} definition(s) from {ok}/{} file(s) → {}",
+        files.len(),
+        db_path.display()
+    );
+    Ok(())
+}
+
+/// Find the project root (nearest ancestor with `claw.toml`) or None.
+fn project_root() -> Option<PathBuf> {
+    let mut dir = std::env::current_dir().ok()?;
+    loop {
+        if dir.join("claw.toml").exists() {
+            return Some(dir);
+        }
+        if !dir.pop() {
+            return None;
+        }
+    }
+}
+
+/// All `.claw` files under `root` (recursive, skipping hidden/dist dirs).
+fn claw_files(root: &Path) -> Vec<PathBuf> {
+    let mut out = Vec::new();
+    let mut stack = vec![root.to_path_buf()];
+    while let Some(dir) = stack.pop() {
+        let Ok(entries) = std::fs::read_dir(&dir) else {
+            continue;
+        };
+        for e in entries.flatten() {
+            let p = e.path();
+            let name = p.file_name().and_then(|n| n.to_str()).unwrap_or("");
+            if p.is_dir() {
+                if !name.starts_with('.') && name != "dist" && name != "target" {
+                    stack.push(p);
+                }
+            } else if p.extension().and_then(|x| x.to_str()) == Some("claw") {
+                out.push(p);
+            }
+        }
+    }
+    out.sort();
+    out
 }
 
 /// Locate a vendored compiler tool binary. Order: $CLAW_COMPILER (for
