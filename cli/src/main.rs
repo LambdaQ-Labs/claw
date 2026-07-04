@@ -64,6 +64,9 @@ fn real_main() -> anyhow::Result<()> {
         // Index a whole project's .claw files into the CDB so the AI
         // guardrail (candidates/mask/MCP) answers over the user's real code.
         Some("index") => index_cmd(&db_path, &args[1..]),
+        // Register the MCP server with an agent (Claude Code) so it writes
+        // Claw grounded in the project's real symbols.
+        Some("mcp") if args.get(1).map(String::as_str) == Some("install") => mcp_install_cmd(),
         _ => {
             eprintln!(
                 "claw — the Claw toolchain\n\nusage:\n  claw new <name>                              scaffold a new project\n  claw run [file.claw]                         run a program (default: main.claw)\n  claw build|check|fmt|test|repl <file.claw>   compiler passthrough\n  claw [--db <file>] db <subcommand>           code-as-database\n  claw emit-rust <defs.json>                    transpile Def-JSON → Rust\n  claw [--db <file>] corpus gen [--stdlib]      synthetic SFT corpus → JSONL\n\ndb subcommands:\n  symbols | put | bind <name> <hash> | resolve <name> | ingest <file.claw>\n  candidates \"<type>\" | callers <ref> | deps <ref> | render <ref> | mask \"<type>\""
@@ -235,6 +238,47 @@ fn index_cmd(db_path: &Path, args: &[String]) -> anyhow::Result<()> {
         files.len(),
         db_path.display()
     );
+    Ok(())
+}
+
+/// `claw mcp install` — write a project-scoped `.mcp.json` so Claude Code
+/// (and any MCP client that reads it) auto-connects the Claw server, giving
+/// the agent the real-symbol guardrail. Merges into an existing file.
+fn mcp_install_cmd() -> anyhow::Result<()> {
+    let root = project_root().unwrap_or_else(|| PathBuf::from("."));
+    let cfg_path = root.join(".mcp.json");
+    let mcp_bin = find_tool("claw-mcp")
+        .map(|p| p.to_string_lossy().into_owned())
+        .unwrap_or_else(|_| "claw-mcp".into());
+
+    // Merge into an existing .mcp.json rather than clobber it.
+    let mut cfg: serde_json::Value = std::fs::read_to_string(&cfg_path)
+        .ok()
+        .and_then(|s| serde_json::from_str(&s).ok())
+        .unwrap_or_else(|| serde_json::json!({}));
+    if !cfg
+        .get("mcpServers")
+        .map(|v| v.is_object())
+        .unwrap_or(false)
+    {
+        cfg["mcpServers"] = serde_json::json!({});
+    }
+    cfg["mcpServers"]["claw"] = serde_json::json!({
+        "command": mcp_bin,
+        "args": ["--db", "claw.cdb"],
+    });
+    std::fs::write(&cfg_path, serde_json::to_string_pretty(&cfg)? + "\n")?;
+
+    // Make sure the store the server reads actually exists.
+    if project_root().is_some() {
+        let _ = index_cmd(
+            &root.join("claw.cdb"),
+            &[root.to_string_lossy().into_owned()],
+        );
+    }
+    eprintln!("wrote {}", cfg_path.display());
+    eprintln!("Claude Code will connect the `claw` MCP server in this project.");
+    eprintln!("Its tools (claw_symbols/claw_candidates/claw_mask) answer over your real code.");
     Ok(())
 }
 
