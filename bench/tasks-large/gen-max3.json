@@ -1,0 +1,46 @@
+{
+  "id": "gen-max3",
+  "category": "contract",
+  "prompt": "Define `max3` : Nat, Nat, Nat -> Nat (parameters p0, p1, p2 named a, b, c) that returns the maximum of three arguments using only in-scope symbols.",
+  "scope": [
+    {
+      "name": "Nat.add",
+      "ty": "Nat, Nat -> Nat"
+    },
+    {
+      "name": "Nat.mul",
+      "ty": "Nat, Nat -> Nat"
+    },
+    {
+      "name": "Nat.max",
+      "ty": "Nat, Nat -> Nat"
+    },
+    {
+      "name": "Nat.min",
+      "ty": "Nat, Nat -> Nat"
+    }
+  ],
+  "params": [
+    {
+      "name": "a"
+    },
+    {
+      "name": "b"
+    },
+    {
+      "name": "c"
+    }
+  ],
+  "grade": {
+    "compile": true,
+    "requires": [],
+    "contracts": [
+      "result >= a",
+      "result >= b",
+      "result >= c"
+    ],
+    "forbidden": [
+      "hallucinated-symbol"
+    ]
+  }
+}

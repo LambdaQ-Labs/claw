@@ -1,0 +1,27 @@
+{
+  "id": "gen-atleast4-v0",
+  "category": "contract",
+  "prompt": "Define `atleast4` : Nat -> Nat (parameter p0 named x) that computes Nat.max of x and 4.",
+  "scope": [
+    {
+      "name": "Nat.max",
+      "ty": "Nat, Nat -> Nat"
+    }
+  ],
+  "params": [
+    {
+      "name": "x"
+    }
+  ],
+  "grade": {
+    "compile": true,
+    "requires": [],
+    "contracts": [
+      "result >= x",
+      "result >= 4"
+    ],
+    "forbidden": [
+      "hallucinated-symbol"
+    ]
+  }
+}

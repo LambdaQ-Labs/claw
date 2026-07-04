@@ -1,0 +1,41 @@
+{
+  "id": "gen-nat_mul",
+  "category": "contract",
+  "prompt": "Define `nat_mul` : Nat, Nat -> Nat (parameters p0, p1 named a, b) that multiplies its two arguments using in-scope `Nat.mul`.",
+  "scope": [
+    {
+      "name": "Nat.add",
+      "ty": "Nat, Nat -> Nat"
+    },
+    {
+      "name": "Nat.mul",
+      "ty": "Nat, Nat -> Nat"
+    },
+    {
+      "name": "Nat.max",
+      "ty": "Nat, Nat -> Nat"
+    },
+    {
+      "name": "Nat.min",
+      "ty": "Nat, Nat -> Nat"
+    }
+  ],
+  "params": [
+    {
+      "name": "a"
+    },
+    {
+      "name": "b"
+    }
+  ],
+  "grade": {
+    "compile": true,
+    "requires": [],
+    "contracts": [
+      "result == a * b"
+    ],
+    "forbidden": [
+      "hallucinated-symbol"
+    ]
+  }
+}

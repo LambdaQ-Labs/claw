@@ -1,0 +1,27 @@
+{
+  "id": "gen-atmost2-v0",
+  "category": "contract",
+  "prompt": "Define `atmost2` : Nat -> Nat (parameter p0 named x) that computes Nat.min of x and 2.",
+  "scope": [
+    {
+      "name": "Nat.min",
+      "ty": "Nat, Nat -> Nat"
+    }
+  ],
+  "params": [
+    {
+      "name": "x"
+    }
+  ],
+  "grade": {
+    "compile": true,
+    "requires": [],
+    "contracts": [
+      "result <= x",
+      "result <= 2"
+    ],
+    "forbidden": [
+      "hallucinated-symbol"
+    ]
+  }
+}

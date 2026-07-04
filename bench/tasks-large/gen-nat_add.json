@@ -1,0 +1,42 @@
+{
+  "id": "gen-nat_add",
+  "category": "contract",
+  "prompt": "Define `nat_add` : Nat, Nat -> Nat (parameters p0, p1 named a, b) that adds its two arguments using in-scope `Nat.add`.",
+  "scope": [
+    {
+      "name": "Nat.add",
+      "ty": "Nat, Nat -> Nat"
+    },
+    {
+      "name": "Nat.mul",
+      "ty": "Nat, Nat -> Nat"
+    },
+    {
+      "name": "Nat.max",
+      "ty": "Nat, Nat -> Nat"
+    },
+    {
+      "name": "Nat.min",
+      "ty": "Nat, Nat -> Nat"
+    }
+  ],
+  "params": [
+    {
+      "name": "a"
+    },
+    {
+      "name": "b"
+    }
+  ],
+  "grade": {
+    "compile": true,
+    "requires": [],
+    "contracts": [
+      "result == a + b",
+      "result >= a"
+    ],
+    "forbidden": [
+      "hallucinated-symbol"
+    ]
+  }
+}

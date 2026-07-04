@@ -1,0 +1,26 @@
+{
+  "id": "gen-mul100-v2",
+  "category": "contract",
+  "prompt": "Write `mul100` : Nat -> Nat using only in-scope `Nat.mul`; parameter p0 is x, combine it with 100.",
+  "scope": [
+    {
+      "name": "Nat.mul",
+      "ty": "Nat, Nat -> Nat"
+    }
+  ],
+  "params": [
+    {
+      "name": "x"
+    }
+  ],
+  "grade": {
+    "compile": true,
+    "requires": [],
+    "contracts": [
+      "result == x * 100"
+    ],
+    "forbidden": [
+      "hallucinated-symbol"
+    ]
+  }
+}

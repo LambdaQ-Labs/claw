@@ -233,6 +233,16 @@ pub fn build_prompt(task: &Task, arm: Arm, prior_feedback: &[String]) -> String 
     p
 }
 
+/// Grade produced defs against a task by building its scope CDB — the
+/// convenience the distiller uses to verify a completion.
+pub fn grade_produced(
+    task: &Task,
+    produced: &[ProducedDef],
+) -> anyhow::Result<claw_bench_grader::GradeResult> {
+    let cdb = task.build_scope_cdb()?;
+    Ok(grade(task, produced, &cdb, 0, 0)?)
+}
+
 /// Parse the model's output into produced definitions. Tolerates code
 /// fences. The `name` field is optional so older name-less outputs still
 /// parse (they just can't self-reference).

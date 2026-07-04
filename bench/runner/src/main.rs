@@ -35,6 +35,7 @@ fn real_main() -> anyhow::Result<()> {
     let mut tasks_dir = PathBuf::from("bench/tasks");
     let mut retries: u32 = 3;
     let mut json_out: Option<PathBuf> = None;
+    let mut distill_out: Option<PathBuf> = None;
 
     let mut i = 1;
     while i < args.len() {
@@ -68,6 +69,14 @@ fn real_main() -> anyhow::Result<()> {
                 );
                 i += 2;
             }
+            "--distill" => {
+                distill_out = Some(
+                    args.get(i + 1)
+                        .ok_or_else(|| anyhow::anyhow!("--distill needs a value"))?
+                        .into(),
+                );
+                i += 2;
+            }
             other => anyhow::bail!("unknown flag `{other}`"),
         }
     }
@@ -97,6 +106,16 @@ fn real_main() -> anyhow::Result<()> {
         retries
     );
 
+    let use_cmd = std::env::var("CLAW_MODEL_CMD").is_ok();
+
+    // Distillation: generate with a strong model, keep only grader-VERIFIED
+    // completions (compiled ∧ no hallucination), write as SFT corpus. This
+    // is how HuggingFace-sourced (or procedural) prompts become training
+    // data — the completions are Claw, machine-checked, never hallucinated.
+    if let Some(out) = &distill_out {
+        return distill(&tasks, out, use_cmd);
+    }
+
     let cfg = RunConfig {
         arm,
         max_retries: retries,
@@ -104,7 +123,6 @@ fn real_main() -> anyhow::Result<()> {
     let mut results = Vec::new();
     let mut errored: Vec<(String, String)> = Vec::new();
 
-    let use_cmd = std::env::var("CLAW_MODEL_CMD").is_ok();
     if use_cmd && arm == Arm::A2 {
         anyhow::bail!(
             "arm A2 needs a grammar-honoring HTTP endpoint; CLI generators can't take logit masks"
@@ -143,5 +161,58 @@ fn real_main() -> anyhow::Result<()> {
         std::fs::write(&path, serde_json::to_string_pretty(&report)?)?;
         eprintln!("report written to {}", path.display());
     }
+    Ok(())
+}
+
+/// Distill a verified SFT corpus: for each task, generate with the model,
+/// grade, and keep the (prompt, completion) pair only if it compiled with
+/// no hallucinated symbols. Output is JSONL matching claw-corpus::Example.
+fn distill(tasks: &[Task], out: &std::path::Path, use_cmd: bool) -> anyhow::Result<()> {
+    use claw_bench_runner::{build_prompt, grade_produced, parse_output, Arm};
+    use std::io::Write;
+
+    let mut file = std::fs::File::create(out)?;
+    let (mut kept, mut tried) = (0usize, 0usize);
+
+    for task in tasks {
+        tried += 1;
+        let mut generator: Box<dyn Generate> = if use_cmd {
+            Box::new(CmdGenerator::from_env()?)
+        } else {
+            Box::new(HttpGenerator::from_env()?)
+        };
+        // A1-style prompt (scope shown), single shot.
+        let prompt = build_prompt(task, Arm::A1, &[]);
+        let raw = match generator.generate(&prompt) {
+            Ok(r) => r,
+            Err(e) => {
+                eprintln!("  {} gen error: {e}", task.id);
+                continue;
+            }
+        };
+        let defs = match parse_output(&raw) {
+            Ok(d) => d,
+            Err(_) => continue, // unparseable → not verified
+        };
+        // Verify with the grader (compiled ∧ no hallucination).
+        match grade_produced(task, &defs) {
+            Ok(r) if r.compiled && r.hallucinated_symbols.is_empty() => {
+                let normalized = serde_json::to_string(&defs)?;
+                let ex = serde_json::json!({
+                    "prompt": task.prompt,
+                    "completion": normalized,
+                    "uses": [],
+                });
+                writeln!(file, "{ex}")?;
+                kept += 1;
+                eprintln!("  {} ✓ kept", task.id);
+            }
+            _ => eprintln!("  {} ✗ not verified", task.id),
+        }
+    }
+    eprintln!(
+        "distilled {kept}/{tried} verified examples → {}",
+        out.display()
+    );
     Ok(())
 }

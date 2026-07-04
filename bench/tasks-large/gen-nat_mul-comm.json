@@ -1,0 +1,39 @@
+{
+  "id": "gen-nat_mul-comm",
+  "category": "contract",
+  "prompt": "Define `nat_mul_comm` : Nat, Nat -> Nat (parameters p0, p1 named a, b) that multiplies the arguments (order may matter) using `Nat.mul`.",
+  "scope": [
+    {
+      "name": "Nat.add",
+      "ty": "Nat, Nat -> Nat"
+    },
+    {
+      "name": "Nat.mul",
+      "ty": "Nat, Nat -> Nat"
+    },
+    {
+      "name": "Nat.max",
+      "ty": "Nat, Nat -> Nat"
+    },
+    {
+      "name": "Nat.min",
+      "ty": "Nat, Nat -> Nat"
+    }
+  ],
+  "params": [
+    {
+      "name": "a"
+    },
+    {
+      "name": "b"
+    }
+  ],
+  "grade": {
+    "compile": true,
+    "requires": [],
+    "contracts": [],
+    "forbidden": [
+      "hallucinated-symbol"
+    ]
+  }
+}

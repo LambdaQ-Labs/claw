@@ -1,0 +1,27 @@
+{
+  "id": "gen-add5-v0",
+  "category": "contract",
+  "prompt": "Define `add5` : Nat -> Nat (parameter p0 named x) that computes Nat.add of x and 5.",
+  "scope": [
+    {
+      "name": "Nat.add",
+      "ty": "Nat, Nat -> Nat"
+    }
+  ],
+  "params": [
+    {
+      "name": "x"
+    }
+  ],
+  "grade": {
+    "compile": true,
+    "requires": [],
+    "contracts": [
+      "result == x + 5",
+      "result >= x"
+    ],
+    "forbidden": [
+      "hallucinated-symbol"
+    ]
+  }
+}

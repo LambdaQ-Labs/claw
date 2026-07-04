@@ -1,0 +1,27 @@
+{
+  "id": "gen-atleast1-v2",
+  "category": "contract",
+  "prompt": "Write `atleast1` : Nat -> Nat using only in-scope `Nat.max`; parameter p0 is x, combine it with 1.",
+  "scope": [
+    {
+      "name": "Nat.max",
+      "ty": "Nat, Nat -> Nat"
+    }
+  ],
+  "params": [
+    {
+      "name": "x"
+    }
+  ],
+  "grade": {
+    "compile": true,
+    "requires": [],
+    "contracts": [
+      "result >= x",
+      "result >= 1"
+    ],
+    "forbidden": [
+      "hallucinated-symbol"
+    ]
+  }
+}

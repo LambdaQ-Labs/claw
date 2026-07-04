@@ -10,6 +10,7 @@ members = [
     "emit-rust",
     "corpus",
     "cli",
+    "mcp",
     "bench/grader",
     "bench/runner",
 ]

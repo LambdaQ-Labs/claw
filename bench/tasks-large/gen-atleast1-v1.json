@@ -1,0 +1,27 @@
+{
+  "id": "gen-atleast1-v1",
+  "category": "contract",
+  "prompt": "In Claw, define `atleast1` (parameter p0 = x) : Nat -> Nat applying `Nat.max` to x and the constant 1.",
+  "scope": [
+    {
+      "name": "Nat.max",
+      "ty": "Nat, Nat -> Nat"
+    }
+  ],
+  "params": [
+    {
+      "name": "x"
+    }
+  ],
+  "grade": {
+    "compile": true,
+    "requires": [],
+    "contracts": [
+      "result >= x",
+      "result >= 1"
+    ],
+    "forbidden": [
+      "hallucinated-symbol"
+    ]
+  }
+}

@@ -1,0 +1,27 @@
+{
+  "id": "gen-add5-v2",
+  "category": "contract",
+  "prompt": "Write `add5` : Nat -> Nat using only in-scope `Nat.add`; parameter p0 is x, combine it with 5.",
+  "scope": [
+    {
+      "name": "Nat.add",
+      "ty": "Nat, Nat -> Nat"
+    }
+  ],
+  "params": [
+    {
+      "name": "x"
+    }
+  ],
+  "grade": {
+    "compile": true,
+    "requires": [],
+    "contracts": [
+      "result == x + 5",
+      "result >= x"
+    ],
+    "forbidden": [
+      "hallucinated-symbol"
+    ]
+  }
+}

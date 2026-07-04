@@ -1,0 +1,47 @@
+{
+  "id": "gen-clamp-hilo",
+  "category": "contract",
+  "prompt": "Define `clamp` : Nat, Nat, Nat -> Nat (parameters p0, p1, p2 named x, lo, hi) that clamps x into [lo, hi]. Assume lo <= hi. Use only in-scope symbols.",
+  "scope": [
+    {
+      "name": "Nat.add",
+      "ty": "Nat, Nat -> Nat"
+    },
+    {
+      "name": "Nat.mul",
+      "ty": "Nat, Nat -> Nat"
+    },
+    {
+      "name": "Nat.max",
+      "ty": "Nat, Nat -> Nat"
+    },
+    {
+      "name": "Nat.min",
+      "ty": "Nat, Nat -> Nat"
+    }
+  ],
+  "params": [
+    {
+      "name": "x"
+    },
+    {
+      "name": "lo"
+    },
+    {
+      "name": "hi"
+    }
+  ],
+  "grade": {
+    "compile": true,
+    "requires": [
+      "lo <= hi"
+    ],
+    "contracts": [
+      "result >= lo",
+      "result <= hi"
+    ],
+    "forbidden": [
+      "hallucinated-symbol"
+    ]
+  }
+}

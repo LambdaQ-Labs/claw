@@ -1,0 +1,42 @@
+{
+  "id": "gen-nat_max",
+  "category": "contract",
+  "prompt": "Define `nat_max` : Nat, Nat -> Nat (parameters p0, p1 named a, b) that takes the maximum of its two arguments using in-scope `Nat.max`.",
+  "scope": [
+    {
+      "name": "Nat.add",
+      "ty": "Nat, Nat -> Nat"
+    },
+    {
+      "name": "Nat.mul",
+      "ty": "Nat, Nat -> Nat"
+    },
+    {
+      "name": "Nat.max",
+      "ty": "Nat, Nat -> Nat"
+    },
+    {
+      "name": "Nat.min",
+      "ty": "Nat, Nat -> Nat"
+    }
+  ],
+  "params": [
+    {
+      "name": "a"
+    },
+    {
+      "name": "b"
+    }
+  ],
+  "grade": {
+    "compile": true,
+    "requires": [],
+    "contracts": [
+      "result >= a",
+      "result >= b"
+    ],
+    "forbidden": [
+      "hallucinated-symbol"
+    ]
+  }
+}

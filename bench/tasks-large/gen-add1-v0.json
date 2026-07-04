@@ -1,0 +1,27 @@
+{
+  "id": "gen-add1-v0",
+  "category": "contract",
+  "prompt": "Define `add1` : Nat -> Nat (parameter p0 named x) that computes Nat.add of x and 1.",
+  "scope": [
+    {
+      "name": "Nat.add",
+      "ty": "Nat, Nat -> Nat"
+    }
+  ],
+  "params": [
+    {
+      "name": "x"
+    }
+  ],
+  "grade": {
+    "compile": true,
+    "requires": [],
+    "contracts": [
+      "result == x + 1",
+      "result >= x"
+    ],
+    "forbidden": [
+      "hallucinated-symbol"
+    ]
+  }
+}

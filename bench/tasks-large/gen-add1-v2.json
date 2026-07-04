@@ -1,0 +1,27 @@
+{
+  "id": "gen-add1-v2",
+  "category": "contract",
+  "prompt": "Write `add1` : Nat -> Nat using only in-scope `Nat.add`; parameter p0 is x, combine it with 1.",
+  "scope": [
+    {
+      "name": "Nat.add",
+      "ty": "Nat, Nat -> Nat"
+    }
+  ],
+  "params": [
+    {
+      "name": "x"
+    }
+  ],
+  "grade": {
+    "compile": true,
+    "requires": [],
+    "contracts": [
+      "result == x + 1",
+      "result >= x"
+    ],
+    "forbidden": [
+      "hallucinated-symbol"
+    ]
+  }
+}

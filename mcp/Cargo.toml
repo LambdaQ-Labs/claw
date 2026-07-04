@@ -1,0 +1,17 @@
+[package]
+name = "claw-mcp"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+
+[[bin]]
+name = "claw-mcp"
+path = "src/main.rs"
+
+[dependencies]
+claw-core = { path = "../crates/claw-core" }
+claw-cdb = { path = "../cdb" }
+claw-constraint = { path = "../constraint-server" }
+serde = { workspace = true }
+serde_json = { workspace = true }
+anyhow = { workspace = true }

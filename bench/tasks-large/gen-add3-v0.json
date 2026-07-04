@@ -1,0 +1,27 @@
+{
+  "id": "gen-add3-v0",
+  "category": "contract",
+  "prompt": "Define `add3` : Nat -> Nat (parameter p0 named x) that computes Nat.add of x and 3.",
+  "scope": [
+    {
+      "name": "Nat.add",
+      "ty": "Nat, Nat -> Nat"
+    }
+  ],
+  "params": [
+    {
+      "name": "x"
+    }
+  ],
+  "grade": {
+    "compile": true,
+    "requires": [],
+    "contracts": [
+      "result == x + 3",
+      "result >= x"
+    ],
+    "forbidden": [
+      "hallucinated-symbol"
+    ]
+  }
+}

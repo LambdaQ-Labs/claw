@@ -1,0 +1,27 @@
+{
+  "id": "gen-atmost3-v1",
+  "category": "contract",
+  "prompt": "In Claw, define `atmost3` (parameter p0 = x) : Nat -> Nat applying `Nat.min` to x and the constant 3.",
+  "scope": [
+    {
+      "name": "Nat.min",
+      "ty": "Nat, Nat -> Nat"
+    }
+  ],
+  "params": [
+    {
+      "name": "x"
+    }
+  ],
+  "grade": {
+    "compile": true,
+    "requires": [],
+    "contracts": [
+      "result <= x",
+      "result <= 3"
+    ],
+    "forbidden": [
+      "hallucinated-symbol"
+    ]
+  }
+}

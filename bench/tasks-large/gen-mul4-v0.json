@@ -1,0 +1,26 @@
+{
+  "id": "gen-mul4-v0",
+  "category": "contract",
+  "prompt": "Define `mul4` : Nat -> Nat (parameter p0 named x) that computes Nat.mul of x and 4.",
+  "scope": [
+    {
+      "name": "Nat.mul",
+      "ty": "Nat, Nat -> Nat"
+    }
+  ],
+  "params": [
+    {
+      "name": "x"
+    }
+  ],
+  "grade": {
+    "compile": true,
+    "requires": [],
+    "contracts": [
+      "result == x * 4"
+    ],
+    "forbidden": [
+      "hallucinated-symbol"
+    ]
+  }
+}
