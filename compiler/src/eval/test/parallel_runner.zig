@@ -1701,7 +1701,7 @@ fn collectTests() []const TestCase {
 
 fn printHelp() void {
     const help =
-        \\Roc Eval Test Runner
+        \\Claw Eval Test Runner
         \\
         \\Runs eval tests across enabled backends (interpreter, dev, wasm, and
         \\opt-in llvm) in parallel

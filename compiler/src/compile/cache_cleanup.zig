@@ -115,7 +115,7 @@ fn runCleanup(bases: Bases, std_io: Io) void {
     const now_ns = nowNs(std_io);
 
     // TODO: REMOVE THIS FOR THE 0.1.0 RELEASE - NOT NEEDED ANYMORE
-    // This is just to clean up people who have old stale Roc caches from before
+    // This is just to clean up people who have old stale Claw caches from before
     // we restructured the cache directories to use roc/{version}/ structure.
     // The legacy temp layout lived directly in the system temp dir (the parent
     // of `<tmp>/roc`), so walk that parent.

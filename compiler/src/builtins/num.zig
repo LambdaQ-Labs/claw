@@ -1,9 +1,9 @@
-//! Builtin numeric operations and data structures for the Roc runtime.
+//! Builtin numeric operations and data structures for the Claw runtime.
 //!
-//! This module provides the core implementation of Roc's numeric types and
+//! This module provides the core implementation of Claw's numeric types and
 //! operations, including integer and floating-point arithmetic, parsing,
 //! overflow detection, and conversions. It defines numeric parsing utilities
-//! and functions that are called from compiled Roc code to handle numeric
+//! and functions that are called from compiled Claw code to handle numeric
 //! operations efficiently and safely.
 const std = @import("std");
 const i128h = @import("compiler_rt_128.zig");
@@ -639,7 +639,7 @@ pub fn remTruncU128(a: u128, b: u128, roc_ops: *ClawOps) callconv(.c) u128 {
 
 /// Result type for checked integer conversions.
 pub fn ToIntCheckedResult(comptime T: type) type {
-    // On the Roc side we sort by alignment; putting the errorcode last
+    // On the Claw side we sort by alignment; putting the errorcode last
     // always works out (no number with smaller alignment than 1).
     return extern struct {
         value: T,

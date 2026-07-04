@@ -1,4 +1,4 @@
-//! Evaluation module for the Roc compiler.
+//! Evaluation module for the Claw compiler.
 //!
 //! Provides interpreter-based evaluation support.
 
@@ -6,7 +6,7 @@ const std = @import("std");
 const builtin = @import("builtin");
 const backend = @import("backend");
 
-/// Backends available for evaluating Roc code.
+/// Backends available for evaluating Claw code.
 pub const EvalBackend = enum {
     interpreter,
     dev,

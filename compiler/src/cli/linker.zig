@@ -99,7 +99,7 @@ pub const LinkConfig = struct {
 
     /// Host-declared symbols to force-include and place in the shared library's
     /// export table. Only consulted for shared-library output. Generalizes the
-    /// wasm `--export` model to native formats so a Roc-built shared library
+    /// wasm `--export` model to native formats so a Claw-built shared library
     /// exports the host's public API on every target rather than relying on the
     /// platform linker's implicit default-visibility auto-export (which COFF
     /// does not do).
@@ -447,7 +447,7 @@ fn buildLinkArgs(ctx: *CliCtx, config: LinkConfig) LinkError!std.array_list.Mana
                 else => try args.append("arm64"), // default to arm64
             }
 
-            // Roc rewrites the ad-hoc code signature after patching Mach-O
+            // Claw rewrites the ad-hoc code signature after patching Mach-O
             // load commands. Suppress lld's content-derived LC_UUID so the
             // final executable bytes do not depend on lld's pre-patch view of
             // the output, which includes the output basename in the signature.
@@ -469,7 +469,7 @@ fn buildLinkArgs(ctx: *CliCtx, config: LinkConfig) LinkError!std.array_list.Mana
             }
 
             // Try to find a platform-provided sysroot first (for cross-compilation with bundled frameworks)
-            // Falls back to Roc's bundled darwin sysroot (minimal, only has libSystem.tbd)
+            // Falls back to Claw's bundled darwin sysroot (minimal, only has libSystem.tbd)
             try args.append("-syslibroot");
             if (try findPlatformSysroot(ctx.arena, ctx.io.std_io, config.platform_files_dir)) |platform_sysroot| {
                 try args.append(platform_sysroot);
@@ -622,7 +622,7 @@ fn buildLinkArgs(ctx: *CliCtx, config: LinkConfig) LinkError!std.array_list.Mana
                 try args.append("/subsystem:console");
             }
             try args.append("/opt:ref");
-            // Roc objects carry DWARF (not CodeView); this keeps the .debug_*
+            // Claw objects carry DWARF (not CodeView); this keeps the .debug_*
             // sections in the PE for gdb/lldb instead of dropping them.
             try args.append("/debug:dwarf");
 
@@ -636,7 +636,7 @@ fn buildLinkArgs(ctx: *CliCtx, config: LinkConfig) LinkError!std.array_list.Mana
 
             // Set stack size to 64 MiB. Windows default is 1 MiB. Zig 0.16 codegen
             // produces bigger frames (e.g. std.fs PathSpace buffers ~64 KiB each) than
-            // 0.15, and recursion-heavy Roc programs blow past 16 MiB before the
+            // 0.15, and recursion-heavy Claw programs blow past 16 MiB before the
             // platform host's overflow handler can run. Match eval-test-runner.exe
             // and roc.exe. (The loading process owns the stack for DLLs.)
             if (!is_shared_lib) {
@@ -780,7 +780,7 @@ fn buildLinkArgs(ctx: *CliCtx, config: LinkConfig) LinkError!std.array_list.Mana
         }
     }
 
-    // Add object files (Roc shim libraries - don't need --whole-archive)
+    // Add object files (Claw shim libraries - don't need --whole-archive)
     for (config.object_files) |obj_file| {
         try args.append(obj_file);
     }
@@ -838,7 +838,7 @@ pub fn link(ctx: *CliCtx, config: LinkConfig) LinkError!void {
     // arg (zig's own MachO linker does, but we link via the LLVM ld64.lld C
     // API). Patch it ourselves so the main thread gets 64 MiB instead of the
     // 8 MiB default. The host's embedded interpreter shim recurses one Zig
-    // frame per Roc call (max_call_depth = 1024), and with Zig 0.16 frame
+    // frame per Claw call (max_call_depth = 1024), and with Zig 0.16 frame
     // sizes 1024 frames overflows 8 MiB before the interpreter's depth check
     // can crash cleanly. Matches /stack:67108864 used for Windows above.
     if (config.target_format == .macho and config.output_kind == .exe) {

@@ -1,4 +1,4 @@
-//! HTML documentation renderer for Roc modules.
+//! HTML documentation renderer for Claw modules.
 //!
 //! Generates a standalone HTML documentation site from `PackageDocs`.
 //! Each module gets its own page with linked type signatures, and an
@@ -1960,7 +1960,7 @@ fn writeDocRefHref(w: Writer, ctx: *const RenderContext, label: []const u8, brac
 
 /// Report `label` as broken when its resolved anchor isn't in `all_anchors`.
 /// Anchors longer than the stack buffer (`overflow`) are skipped — those are
-/// far longer than any real Roc identifier path, so a false negative there
+/// far longer than any real Claw identifier path, so a false negative there
 /// is preferable to truncating and reporting a phantom mismatch.
 fn validateAnchor(
     ctx: *const RenderContext,

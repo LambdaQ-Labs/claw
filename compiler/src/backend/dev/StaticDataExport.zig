@@ -7,7 +7,7 @@ const lir = @import("lir");
 pub const StaticDataExport = struct {
     /// The exported symbol name, for example `roc__answer`.
     symbol_name: []const u8,
-    /// Fully materialized Roc ABI bytes for the constant.
+    /// Fully materialized Claw ABI bytes for the constant.
     bytes: []const u8,
     /// Offset inside `bytes` where `symbol_name` points.
     symbol_offset: u32 = 0,

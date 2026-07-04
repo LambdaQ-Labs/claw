@@ -101,5 +101,5 @@ fn testing_roc_dealloc(c_ptr: *anyopaque, _: u32) callconv(.c) void {
 }
 
 fn testing_roc_panic(_: *anyopaque, _: u32) callconv(.c) void {
-    @panic("Roc panicked");
+    @panic("Claw panicked");
 }

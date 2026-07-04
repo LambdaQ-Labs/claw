@@ -529,7 +529,7 @@ test "fromTypeVar - type alias inside Try nominal (issue #8708)" {
     // but never removed (because alias handling just continues to the backing type).
     // This caused spurious cycle detection when the alias was encountered again.
     //
-    // Example Roc code that triggered the bug:
+    // Example Claw code that triggered the bug:
     //   TokenContents : [EndOfFileToken]
     //   get_val : {} -> Try(TokenContents, Str)
 
@@ -619,7 +619,7 @@ test "fromTypeVar - recursive nominal type with nested Box at depth 2+ (issue #8
     // but the raw_layout_placeholders cache was missing, causing the placeholder lookup
     // to fail when we encountered the recursive type at depth 2+.
     //
-    // Example Roc code that triggered the bug:
+    // Example Claw code that triggered the bug:
     //   RichDoc := [PlainText(Str), Wrapped(Box(RichDoc))]
     //   depth2 = RichDoc.Wrapped(Box.box(RichDoc.Wrapped(Box.box(RichDoc.PlainText("two")))))
 
@@ -712,7 +712,7 @@ test "layoutSizeAlign - recursive nominal type with record containing List (issu
     // The fix was to use pre-computed sizes from RecordData.size, TupleData.size,
     // and TagUnionData.size instead of dynamically computing them.
     //
-    // Example Roc code that triggered the bug:
+    // Example Claw code that triggered the bug:
     //   Statement := [
     //       FuncCall({ name: Str, args: List(U64) }),
     //       ForLoop({ identifiers: List(Str), block: List(Statement) }),  # Recursive!

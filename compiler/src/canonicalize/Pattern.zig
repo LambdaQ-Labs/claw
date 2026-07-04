@@ -1,4 +1,4 @@
-//! Pattern matching constructs used in Roc's canonicalization phase.
+//! Pattern matching constructs used in Claw's canonicalization phase.
 //!
 //! This module defines the `Pattern` union which represents all possible patterns
 //! that can appear in match expressions, function parameters, and variable bindings.
@@ -144,7 +144,7 @@ pub const Pattern = union(enum) {
         kind: CIR.NumKind,
     },
     /// Pattern that matches a small decimal literal (represented as rational number).
-    /// This is Roc's preferred approach for exact decimal matching, avoiding
+    /// This is Claw's preferred approach for exact decimal matching, avoiding
     /// floating-point precision issues by using numerator/denominator representation.
     ///
     /// ```roc

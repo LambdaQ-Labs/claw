@@ -535,7 +535,7 @@ pub fn roc_builtins_roc_expect_failed(msg_bytes: [*]const u8, msg_len: usize, ro
     roc_ops.expectFailed(msg_bytes[0..msg_len]);
 }
 
-/// Report a Roc crash using static message bytes owned by generated code.
+/// Report a Claw crash using static message bytes owned by generated code.
 pub fn roc_builtins_roc_crashed(msg_bytes: [*]const u8, msg_len: usize, roc_ops: *ClawOps) callconv(.c) void {
     roc_ops.crash(msg_bytes[0..msg_len]);
 }
@@ -910,7 +910,7 @@ pub fn roc_builtins_list_decref_flat_list(
     );
 }
 
-/// Decref a Roc list and optionally run an element decref callback when unique.
+/// Decref a Claw list and optionally run an element decref callback when unique.
 pub fn roc_builtins_list_decref_with(
     list_bytes: ?[*]u8,
     list_len: usize,
@@ -1064,7 +1064,7 @@ pub fn roc_builtins_list_free_flat_list(
     freeDataPtrC(l.getAllocationDataPtr(roc_ops), @alignOf(ClawList), true, roc_ops);
 }
 
-/// Free a Roc list and optionally run an element decref callback first.
+/// Free a Claw list and optionally run an element decref callback first.
 pub fn roc_builtins_list_free_with(
     list_bytes: ?[*]u8,
     list_len: usize,
@@ -1870,7 +1870,7 @@ fn writeIntParseResult(comptime T: type, out: [*]u8, disc_offset: u32, roc_str: 
     const r = num.parseIntFromStr(T, roc_str);
     const value_bytes = std.mem.asBytes(&r.value);
     @memcpy(out[0..value_bytes.len], value_bytes);
-    // Roc discriminants: Err=0, Ok=1 (alphabetically sorted)
+    // Claw discriminants: Err=0, Ok=1 (alphabetically sorted)
     // parseIntFromStr errorcode: 0=success, 1=failure
     // So: Ok discriminant = 1 - errorcode
     out[disc_offset] = 1 - r.errorcode;

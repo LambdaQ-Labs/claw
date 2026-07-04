@@ -1,4 +1,4 @@
-//! Cache configuration and directory management for the Roc compiler cache system.
+//! Cache configuration and directory management for the Claw compiler cache system.
 //!
 //! This module provides platform-specific cache directory logic that matches
 //! the Rust implementation, ensuring consistency across the codebase.
@@ -38,7 +38,7 @@ pub const Constants = struct {
     pub const CACHE_VERSION = 12;
 };
 
-/// Configuration for the Roc cache system.
+/// Configuration for the Claw cache system.
 ///
 /// This struct controls cache behavior including storage location,
 /// size limits, and cleanup policies.
@@ -56,8 +56,8 @@ pub const CacheConfig = struct {
     ///
     /// This implementation matches the Rust roc_cache_dir() function:
     /// - Respects XDG_CACHE_HOME if set
-    /// - Falls back to ~/.cache/roc on Unix and %APPDATA%\Roc on Windows
-    /// - Uses "roc" on Unix and "Roc" on Windows as the cache dir name
+    /// - Falls back to ~/.cache/roc on Unix and %APPDATA%\Claw on Windows
+    /// - Uses "roc" on Unix and "Claw" on Windows as the cache dir name
     pub fn getDefaultCacheDir(self: Self, allocator: Allocator) (Allocator.Error || error{NoHomeDirectory})![]u8 {
         // ROC_CACHE_DIR selects the cache root ahead of platform defaults.
         // Useful for test isolation and CI on any OS.

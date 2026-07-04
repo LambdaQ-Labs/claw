@@ -61,7 +61,7 @@ fn printUsageAndExit() noreturn {
     const msg =
         \\Usage: echo_native <path/to/app.roc> [--with-file Name=path/to/Module.roc]...
         \\
-        \\Compiles & runs a headerless Roc app through the echo platform pipeline.
+        \\Compiles & runs a headerless Claw app through the echo platform pipeline.
         \\Each --with-file registers an extra module accessible as `import Name`.
         \\
     ;
@@ -72,7 +72,7 @@ fn printUsageAndExit() noreturn {
 
 /// CLI entry point. Parses argv, reads the app source (and any
 /// `--with-file` modules), then drives `runner.runEcho` against a
-/// 128 MiB FixedBufferAllocator. Exits with the Roc program's exit code.
+/// 128 MiB FixedBufferAllocator. Exits with the Claw program's exit code.
 pub fn main(init: std.process.Init) EchoNativeError!void {
     process_io = init.io;
     const io = init.io;

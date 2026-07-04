@@ -90,7 +90,7 @@ fn ensureRuntimeState(ops: *ClawOps) ShimError!*RuntimeState {
     if (runtime_state_initialized) return &runtime_state;
 
     runtime_state = openRuntimeState(allocator()) catch {
-        ops.crash("LIR shim could not map the compiled Roc image");
+        ops.crash("LIR shim could not map the compiled Claw image");
         return error.ImageUnavailable;
     };
     runtime_state_initialized = true;
@@ -123,8 +123,8 @@ fn argLayoutsForProc(
 
 fn reportEvalError(ops: *ClawOps, interpreter: *const eval.LirInterpreter, err: eval.LirInterpreter.Error) void {
     const message = switch (err) {
-        error.OutOfMemory => "Roc interpreter ran out of memory",
-        error.RuntimeError => interpreter.getRuntimeErrorMessage() orelse "Roc runtime error",
+        error.OutOfMemory => "Claw interpreter ran out of memory",
+        error.RuntimeError => interpreter.getRuntimeErrorMessage() orelse "Claw runtime error",
         error.DivisionByZero => interpreter.getRuntimeErrorMessage() orelse "Division by zero",
         error.ComptimeExhaustiveness => "compile-time exhaustiveness failure reached runtime code",
         error.Crash => return,

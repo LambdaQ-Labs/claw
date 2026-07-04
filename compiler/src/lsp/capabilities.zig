@@ -1,6 +1,6 @@
-//! LSP server capability definitions for the Roc language server.
+//! LSP server capability definitions for the Claw language server.
 
-/// Semantic token types supported by the Roc LSP.
+/// Semantic token types supported by the Claw LSP.
 /// Order matters - indices into this array are used in token data.
 pub const TOKEN_TYPES = [_][]const u8{
     "namespace", // 0 - module names
@@ -20,7 +20,7 @@ pub const TOKEN_TYPES = [_][]const u8{
 /// Semantic token modifiers (currently unused).
 pub const TOKEN_MODIFIERS = [_][]const u8{};
 
-/// Aggregates all server capabilities supported by the Roc LSP.
+/// Aggregates all server capabilities supported by the Claw LSP.
 pub const ServerCapabilities = struct {
     positionEncoding: []const u8 = "utf-16",
     textDocumentSync: ?TextDocumentSyncOptions = null,

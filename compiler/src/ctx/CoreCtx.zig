@@ -1,4 +1,4 @@
-//! Unified context for the Roc compiler.
+//! Unified context for the Claw compiler.
 //!
 //! Bundles allocators (gpa + arena) with a VTable-based I/O abstraction
 //! so compiler-core code is decoupled from `std.fs`/`std.io`/`std.posix`.

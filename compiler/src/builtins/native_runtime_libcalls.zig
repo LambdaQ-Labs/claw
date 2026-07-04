@@ -84,7 +84,7 @@ fn __floatuntidf(a: u128) callconv(.c) f64 {
 }
 
 // The closed set of compiler-rt symbols x86_64/aarch64 instruction selection
-// emits for Roc's 128-bit integer and 128-bit<->float operations, paired with
+// emits for Claw's 128-bit integer and 128-bit<->float operations, paired with
 // their host implementation. (8-, 16-, 32- and 64-bit arithmetic all have
 // native instructions and never become libcalls.)
 const entries = .{

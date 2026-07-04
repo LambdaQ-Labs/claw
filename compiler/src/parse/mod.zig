@@ -1,4 +1,4 @@
-//! Converts Roc source code into an Abstract Syntax Tree (AST) through tokenization and parsing.
+//! Converts Claw source code into an Abstract Syntax Tree (AST) through tokenization and parsing.
 //!
 //! This module provides the entry point for the parsing phase of compilation, transforming
 //! raw source text into a structured AST representation that subsequent compiler phases can process.
@@ -29,7 +29,7 @@ pub const DeclIndex = @import("DeclIndex.zig");
 /// Parser-owned numeric literal facts.
 pub const NumericLiteral = @import("NumericLiteral.zig");
 
-/// Represents the intermediate representation or Abstract Syntax Tree (AST) of a parsed Roc file.
+/// Represents the intermediate representation or Abstract Syntax Tree (AST) of a parsed Claw file.
 pub const AST = @import("AST.zig");
 
 /// Internal parsing implementation.
@@ -72,7 +72,7 @@ fn runTokenDispatch(gpa: Allocator, env: *CommonEnv, parserCall: *const fn (*Par
     return ast;
 }
 
-/// Parses a single Roc file.
+/// Parses a single Claw file.
 ///
 /// The caller must call `ast.deinit()` when done, which frees all internal
 /// allocations AND the AST struct itself.
@@ -90,7 +90,7 @@ fn exprRootNode(parser: *Parser) Allocator.Error!u32 {
     return @intFromEnum(id);
 }
 
-/// Parses a Roc expression - for use in REPL and snapshots.
+/// Parses a Claw expression - for use in REPL and snapshots.
 ///
 /// The caller must call `ast.deinit()` when done, which frees all internal
 /// allocations AND the AST struct itself.
@@ -103,7 +103,7 @@ fn headerRootNode(parser: *Parser) Allocator.Error!u32 {
     return @intFromEnum(id);
 }
 
-/// Parses a Roc header - for use in snapshots.
+/// Parses a Claw header - for use in snapshots.
 ///
 /// The caller must call `ast.deinit()` when done, which frees all internal
 /// allocations AND the AST struct itself.
@@ -116,7 +116,7 @@ fn statementRootNode(parser: *Parser) Allocator.Error!u32 {
     return @intFromEnum(idx);
 }
 
-/// Parses a single Roc statement - for use in REPL and snapshots.
+/// Parses a single Claw statement - for use in REPL and snapshots.
 ///
 /// The caller must call `ast.deinit()` when done, which frees all internal
 /// allocations AND the AST struct itself.

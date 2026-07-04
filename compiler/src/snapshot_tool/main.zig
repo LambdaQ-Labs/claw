@@ -1,10 +1,10 @@
-//! Snapshot testing infrastructure for the Roc compiler.
+//! Snapshot testing infrastructure for the Claw compiler.
 //!
 //! This module provides functionality to generate and validate snapshot tests
 //! that capture the compiler's behavior at each stage of compilation. Snapshots
 //! help ensure the compiler continues to behave as expected by showing the
 //! output of tokenization, parsing, canonicalization, type checking etc for
-//! the given Roc code snippet.
+//! the given Claw code snippet.
 
 const std = @import("std");
 
@@ -2490,7 +2490,7 @@ fn getDefaultedTypeStringWithSeen(
     const resolved = can_ir.types.resolveVar(type_var);
 
     // Check for cycle - use "_" (type wildcard) for cyclic references
-    // This is valid Roc syntax, unlike "..." which was causing parse errors
+    // This is valid Claw syntax, unlike "..." which was causing parse errors
     for (seen.items) |seen_var| {
         if (seen_var == resolved.var_) {
             return allocator.dupe(u8, "_");
@@ -2517,7 +2517,7 @@ fn getDefaultedTypeStringWithSeen(
                         // Fall through to TypeWriter at the end
                     } else {
                         // For nested function types (e.g., in record fields), build manually
-                        // Use Roc syntax: a, b -> c (not curried a -> b -> c)
+                        // Use Claw syntax: a, b -> c (not curried a -> b -> c)
                         var result = std.array_list.Managed(u8).init(allocator);
                         errdefer result.deinit();
 
@@ -2713,7 +2713,7 @@ fn getMonoTypeString(allocator: std.mem.Allocator, can_ir: *ModuleEnv, expr_idx:
                     try getDefaultedTypeString(allocator, can_ir, func.ret);
                 defer allocator.free(ret_type);
 
-                // Nested function types need parens in Roc
+                // Nested function types need parens in Claw
                 if (is_nested_function) try result.appendSlice("(");
                 try result.appendSlice(ret_type);
                 if (is_nested_function) try result.appendSlice(")");
@@ -2728,7 +2728,7 @@ fn getMonoTypeString(allocator: std.mem.Allocator, can_ir: *ModuleEnv, expr_idx:
     return getDefaultedTypeString(allocator, can_ir, expr_var);
 }
 
-/// Validate that the MONO output is valid Roc code by parsing, canonicalizing, and type-checking it.
+/// Validate that the MONO output is valid Claw code by parsing, canonicalizing, and type-checking it.
 /// Returns true if validation passed, false if there were errors.
 fn validateMonoOutput(allocator: Allocator, mono_source: []const u8, source_path: []const u8, config: *const Config) bool {
     // Create a module environment for validation
@@ -2926,7 +2926,7 @@ fn validateMonoFormatting(allocator: Allocator, mono_source: []const u8, source_
     return false;
 }
 
-/// Parse Roc source and return formatted output.
+/// Parse Claw source and return formatted output.
 fn parseAndFormat(gpa: std.mem.Allocator, input: []const u8) SnapshotError![]const u8 {
     var module_env = try ModuleEnv.init(gpa, input);
     defer module_env.deinit();
@@ -3117,7 +3117,7 @@ fn generateHtmlWrapper(output: *DualOutput, content: *const Content) error{Write
         \\<head>
         \\    <meta charset="UTF-8">
         \\    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-        \\    <title>Roc Snapshot:
+        \\    <title>Claw Snapshot:
     );
     try writer.writer.writeAll(content.meta.description);
     try writer.writer.writeAll(

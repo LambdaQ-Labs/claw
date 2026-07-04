@@ -1,11 +1,11 @@
-//! Utility functions for processing Roc source code.
+//! Utility functions for processing Claw source code.
 
 const std = @import("std");
 
 /// Normalizes line endings in source code by converting CRLF (\r\n) to LF (\n).
 ///
 /// This ensures consistent behavior across different operating systems. On Windows,
-/// text files often have CRLF line endings, but Roc source code should be processed
+/// text files often have CRLF line endings, but Claw source code should be processed
 /// with LF-only line endings for consistent parsing and formatting.
 ///
 /// The normalization is done in-place, modifying the input buffer and returning
@@ -208,7 +208,7 @@ test "normalizeLineEndings - standalone CR preserved" {
 test "normalizeLineEndings - multiline strings" {
     const allocator = std.testing.allocator;
 
-    // Test with Roc multiline string syntax
+    // Test with Claw multiline string syntax
     {
         const source = try allocator.dupe(u8, "lines =\r\n    \\\\first line\r\nOk(lines)\r\n");
         defer allocator.free(source);

@@ -325,7 +325,7 @@ fn rocReallocFn(ops: *ClawOps, ptr: *anyopaque, new_length: usize, alignment: us
     return @ptrCast(new_base_ptr);
 }
 
-// Use a non-tracing allocator for Roc runtime bytes. On Windows the
+// Use a non-tracing allocator for Claw runtime bytes. On Windows the
 // dev-backend JIT emits code without unwind data, so a stack-capturing
 // allocator (e.g. DebugAllocator/testing.allocator) crashes inside
 // walkStackWindows when an alloc happens from JIT'd code. RuntimeHostEnv

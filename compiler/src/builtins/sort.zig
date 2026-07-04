@@ -1,6 +1,6 @@
-//! Builtin sorting operations and algorithms for the Roc runtime.
+//! Builtin sorting operations and algorithms for the Claw runtime.
 //!
-//! This module provides efficient sorting implementations for Roc's List type,
+//! This module provides efficient sorting implementations for Claw's List type,
 //! including comparison-based sorting with custom compare functions. It handles
 //! both direct sorting for small lists and indirect pointer-based sorting for
 //! larger lists to optimize memory usage and cache performance.

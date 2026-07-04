@@ -1,7 +1,7 @@
-//! Internal implementation for Roc's float tangent builtin.
+//! Internal implementation for Claw's float tangent builtin.
 //!
 //! The algorithm is ported from Zig compiler_rt, which is in turn ported from
-//! musl. This module intentionally exports only Roc-facing helpers; it does not
+//! musl. This module intentionally exports only Claw-facing helpers; it does not
 //! provide libm/ compiler-rt symbols such as `tan` or `tanf`.
 
 const std = @import("std");

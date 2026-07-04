@@ -170,7 +170,7 @@ fn placementSysV(arena: std.mem.Allocator, store: *const Store, idx: Idx, ctx: C
         switch (classes[i]) {
             .integer => try pieces.append(arena, .{ .class = .integer, .offset = offset, .size = piece_size }),
             .sse, .float, .float_combine => try pieces.append(arena, .{ .class = .float, .offset = offset, .size = piece_size }),
-            // x87/sseup/win_i128 do not occur for Roc types under System V.
+            // x87/sseup/win_i128 do not occur for Claw types under System V.
             else => return .indirect,
         }
     }

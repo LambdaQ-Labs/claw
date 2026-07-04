@@ -1,8 +1,8 @@
-//! Per-target C-ABI parameter/return classification for Roc layouts.
+//! Per-target C-ABI parameter/return classification for Claw layouts.
 //!
 //! These classifiers are adapted from the Zig compiler (MIT License, "Copyright (c) Zig
 //! contributors"), `src/codegen/<arch>/abi.zig` @ 24fdd5b7a4 (Release 0.16.0), rewritten to
-//! read Roc's layout store instead of Zig's `Type`/`Zcu`. They decide, per the published
+//! read Claw's layout store instead of Zig's `Type`/`Zcu`. They decide, per the published
 //! platform C ABI, whether a value is passed/returned in registers or in memory, which the
 //! backends and glue then lower into actual calls.
 
@@ -27,9 +27,9 @@ pub const Target = call.Target;
 pub const lower = call.lower;
 
 /// Whether a hosted function with these argument and return layouts must be passed a leading
-/// `*ClawOps` — i.e. whether it could allocate or free Roc-managed memory. True exactly when
+/// `*ClawOps` — i.e. whether it could allocate or free Claw-managed memory. True exactly when
 /// its return type or any argument type transitively contains a heap-allocated (refcounted)
-/// Roc value (List, Str, Box, recursive union), which is when the host needs the allocator
+/// Claw value (List, Str, Box, recursive union), which is when the host needs the allocator
 /// vtable. A function over only flat scalars/structs is a bare C call with no `*ClawOps`.
 ///
 /// Both the backends (deciding whether to thread `roc_ops` at a hosted call site) and glue

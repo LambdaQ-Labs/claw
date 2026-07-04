@@ -164,7 +164,7 @@ pub const GenerationMode = enum {
     /// The compiled code calls builtins via absolute addresses embedded in the code.
     native_execution,
     /// Code runs in the linked shim child process from bytes produced by the
-    /// parent compiler. Internal Roc procs receive ClawOps, while builtin and
+    /// parent compiler. Internal Claw procs receive ClawOps, while builtin and
     /// readonly-data references are explicit relocation records.
     shim_execution,
     /// Generating relocatable object files for linking.
@@ -2531,7 +2531,7 @@ pub fn LirCodeGen(comptime target: ClawTarget) type {
                     } else {
                         // x86_64 CVTTSD2SI: handles i64 range correctly for values in range.
                         // Out-of-range returns 0x8000000000000000 (indefinite). For the dev
-                        // backend this is acceptable — Roc programs shouldn't rely on
+                        // backend this is acceptable — Claw programs shouldn't rely on
                         // saturating behavior for out-of-range float-to-int conversions.
                         try self.codegen.emit.cvttsd2siRegReg(.w64, dst_reg, freg);
                     }
@@ -3385,7 +3385,7 @@ pub fn LirCodeGen(comptime target: ClawTarget) type {
                         try self.emitStore(.w32, frame_ptr, layout_slot + 40, layout_reg);
                         self.codegen.freeGeneral(layout_reg);
 
-                        // Call C builtin that writes the Roc tag union directly.
+                        // Call C builtin that writes the Claw tag union directly.
                         var builder = try Builder.init(&self.codegen.emit, &self.codegen.stack_offset);
                         try builder.addLeaArg(frame_ptr, result_slot);
                         try builder.addMemArg(frame_ptr, list_off);
@@ -13947,7 +13947,7 @@ pub fn LirCodeGen(comptime target: ClawTarget) type {
             }
         }
 
-        /// Internal Roc proc calls use at most two general-purpose return registers.
+        /// Internal Claw proc calls use at most two general-purpose return registers.
         /// Larger runtime values use a hidden return pointer instead.
         const max_internal_return_words: u32 = 2;
         const max_internal_return_size: u32 = max_internal_return_words * 8;
@@ -16435,13 +16435,13 @@ pub fn LirCodeGen(comptime target: ClawTarget) type {
             }
         }
 
-        /// Generate an ABI-compliant entrypoint wrapper for calling a compiled Roc proc.
+        /// Generate an ABI-compliant entrypoint wrapper for calling a compiled Claw proc.
         ///
         /// The wrapper:
         /// 1. Receives `(roc_ops, ret_ptr, args_ptr)` in the platform C ABI
         /// 2. Saves the incoming pointers in callee-saved registers
-        /// 3. Unpacks argument bytes from `args_ptr` according to Roc layout alignment
-        /// 4. Calls the already-compiled Roc proc body
+        /// 3. Unpacks argument bytes from `args_ptr` according to Claw layout alignment
+        /// 4. Calls the already-compiled Claw proc body
         /// 5. Stores the result into `ret_ptr`
         /// 6. Returns `void`
         pub fn generateEntrypointWrapper(
@@ -18375,7 +18375,7 @@ test "generate unary minus" {
     try std.testing.expectEqual(@as(i64, -42), try runRootI64(&store, &test_state.layout_store, proc));
 }
 
-test "entrypoint arg offsets preserve Roc alignment order" {
+test "entrypoint arg offsets preserve Claw alignment order" {
     if (comptime builtin.cpu.arch != .x86_64 and builtin.cpu.arch != .aarch64) {
         return error.SkipZigTest;
     }

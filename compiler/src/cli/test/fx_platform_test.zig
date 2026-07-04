@@ -1,7 +1,7 @@
 //! Integration tests for the fx platform with effectful functions.
 //!
 //! Tests that platform-provided hosted functions (like Stdout.line! and Stderr.line!)
-//! can be properly invoked from Roc applications.
+//! can be properly invoked from Claw applications.
 //!
 //! NOTE: These tests depend on the roc binary being built via build.zig. The test step
 //! has a dependency on roc, so the binary will be built automatically before tests run.
@@ -203,8 +203,8 @@ fn expectInterpreterRuntimeStackOverflow() FxPlatformTestError!void {
                 std.debug.print("STDERR: {s}\n", .{run_result.stderr});
                 return error.UnexpectedExitCode;
             }
-            try testing.expect(std.mem.find(u8, run_result.stderr, "Roc crashed:") != null);
-            try testing.expect(std.mem.find(u8, run_result.stderr, "This Roc program overflowed its stack memory") != null);
+            try testing.expect(std.mem.find(u8, run_result.stderr, "Claw crashed:") != null);
+            try testing.expect(std.mem.find(u8, run_result.stderr, "This Claw program overflowed its stack memory") != null);
             try testing.expect(std.mem.find(u8, run_result.stderr, "divided by zero") == null);
         },
         else => {
@@ -233,9 +233,9 @@ fn expectDevRuntimeStackOverflow() FxPlatformTestError!void {
                 std.debug.print("STDERR: {s}\n", .{run_result.stderr});
                 return error.UnexpectedExitCode;
             }
-            try testing.expect(std.mem.find(u8, run_result.stderr, "This Roc application overflowed its stack memory and crashed.") != null);
+            try testing.expect(std.mem.find(u8, run_result.stderr, "This Claw application overflowed its stack memory and crashed.") != null);
             try testing.expect(std.mem.find(u8, run_result.stderr, "divided by zero") == null);
-            try testing.expect(std.mem.find(u8, run_result.stderr, "Roc crashed:") == null);
+            try testing.expect(std.mem.find(u8, run_result.stderr, "Claw crashed:") == null);
             try testing.expect(std.mem.find(u8, run_result.stderr, "panic:") == null);
         },
         .signal => |sig| {
@@ -264,7 +264,7 @@ fn expectInterpreterRuntimeDivisionByZero() FxPlatformTestError!void {
                 std.debug.print("STDERR: {s}\n", .{run_result.stderr});
                 return error.UnexpectedExitCode;
             }
-            try testing.expect(std.mem.find(u8, run_result.stderr, "Roc crashed:") != null);
+            try testing.expect(std.mem.find(u8, run_result.stderr, "Claw crashed:") != null);
             try testing.expect(std.mem.find(u8, run_result.stderr, "I64 division by zero") != null);
             try testing.expect(std.mem.find(u8, run_result.stderr, "overflowed its stack memory") == null);
         },
@@ -296,7 +296,7 @@ fn expectDevRuntimeDivisionByZero() FxPlatformTestError!void {
                 std.debug.print("STDERR: {s}\n", .{run_result.stderr});
                 return error.UnexpectedExitCode;
             }
-            try testing.expect(std.mem.find(u8, run_result.stderr, "Roc crashed:") != null);
+            try testing.expect(std.mem.find(u8, run_result.stderr, "Claw crashed:") != null);
             try testing.expect(std.mem.find(u8, run_result.stderr, "I64 division by zero") != null);
             try testing.expect(std.mem.find(u8, run_result.stderr, "overflowed its stack memory") == null);
             try testing.expect(std.mem.find(u8, run_result.stderr, "panic:") == null);
@@ -861,7 +861,7 @@ test "str seamless slice rc uses original allocation pointer" {
 
     try util.checkSuccess(run_result);
     try testing.expectEqualStrings("abcdefghijklmnopqrstuvwxyz0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ\n", run_result.stdout);
-    if (std.mem.find(u8, run_result.stderr, "[Roc Memory Info]") != null) {
+    if (std.mem.find(u8, run_result.stderr, "[Claw Memory Info]") != null) {
         std.debug.print("Detected leaked allocation in seamless-slice RC regression:\n{s}\n", .{run_result.stderr});
         return error.SeamlessSliceRcLeak;
     }
@@ -1277,7 +1277,7 @@ test "fx platform runtime stack overflow" {
 }
 
 test "fx platform runtime division by zero" {
-    // The divisor is mutable in the Roc app, so this covers runtime execution
+    // The divisor is mutable in the Claw app, so this covers runtime execution
     // rather than compile-time finalization.
     try expectInterpreterRuntimeDivisionByZero();
     try expectDevRuntimeDivisionByZero();
@@ -1285,7 +1285,7 @@ test "fx platform runtime division by zero" {
 
 test "fx platform inline expect fails as expected (interpreter)" {
     // Regression test: inline expect inside main! should fail via the
-    // normal crash handler (Roc crashed: ...) instead of overflowing
+    // normal crash handler (Claw crashed: ...) instead of overflowing
     // the stack and triggering the stack overflow handler.
     const allocator = testing.allocator;
     const run_result = try util.runRoc(std.testing.io, allocator, &.{"--opt=interpreter"}, "test/fx/issue8517.roc");

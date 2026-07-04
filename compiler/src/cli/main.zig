@@ -1,19 +1,19 @@
-//! Roc command line interface for the new compiler. Entrypoint of the Roc binary.
+//! Claw command line interface for the new compiler. Entrypoint of the Claw binary.
 //! Build with `zig build -Dfuzz -Dsystem-afl=false`.
 //! Result is at `./zig-out/bin/roc`
 //!
 //! ## Module Data Modes
 //!
-//! The CLI supports two modes for passing compiled Roc programs to the interpreter:
+//! The CLI supports two modes for passing compiled Claw programs to the interpreter:
 //!
 //! ### IPC Interpreter Mode (`roc --opt=interpreter path/to/app.roc`)
-//! - Compiles Roc source through ARC-inserted LIR and publishes a viewable LIR image in shared memory
+//! - Compiles Claw source through ARC-inserted LIR and publishes a viewable LIR image in shared memory
 //! - Spawns interpreter host as child process that maps the shared memory
 //! - Fast startup, same-architecture only
 //! - See: `buildLirImageWithCoordinator`
 //!
 //! ### Embedded Interpreter Mode (`roc build --opt=interpreter path/to/app.roc`)
-//! - Compiles Roc source through the same checked-artifact to LIR path as IPC mode
+//! - Compiles Claw source through the same checked-artifact to LIR path as IPC mode
 //! - Embeds the viewable LIR image directly in the output binary
 //! - The interpreter shim receives only the LIR image pointer and length
 //!
@@ -908,7 +908,7 @@ fn renderDiagnostics(build_env: *BuildEnv, stderr: anytype) Allocator.Error!void
     if (diag.errors > 0) {} else {}
 }
 
-/// The CLI entrypoint for the Roc compiler.
+/// The CLI entrypoint for the Claw compiler.
 pub fn main(init: std.process.Init) Allocator.Error!void {
     // Initialize the debug IO with a real allocator so std.Options.debug_io
     // can spawn processes, create directories, etc.
@@ -976,7 +976,7 @@ pub fn main(init: std.process.Init) Allocator.Error!void {
             error.OutOfMemory => {
                 // Use std.debug.print to stderr since we don't have access to ctx.io here
                 // TODO: if virtual address allocation fails at 4gb, fall back on doing `roc build` followed by manually running the executable
-                std.debug.print("The Roc compiler ran out of memory trying to preallocate virtual address space for compiling and running this program. Try using `roc build` to build the executable separately, then run it manually.\n", .{});
+                std.debug.print("The Claw compiler ran out of memory trying to preallocate virtual address space for compiling and running this program. Try using `roc build` to build the executable separately, then run it manually.\n", .{});
             },
             else => {
                 // All other errors: problems were already recorded/rendered by the
@@ -2537,7 +2537,7 @@ fn rocRunSharedMemoryShim(ctx: *CliCtx, args: cli_args.RunArgs, arg0: []const u8
                     };
                 },
                 .app => {
-                    // Add the compiled Roc application (shim)
+                    // Add the compiled Claw application (shim)
                     std.log.debug("Adding app (shim): {s}", .{shim_path});
                     object_files.append(shim_path) catch {
                         return error.OutOfMemory;
@@ -5384,8 +5384,8 @@ fn argLayoutsForProc(
 
 fn reportCliInterpreterError(ops: *echo_platform.host_abi.ClawOps, interpreter: *const eval.LirInterpreter, err: eval.LirInterpreter.Error) void {
     const message = switch (err) {
-        error.OutOfMemory => "Roc interpreter ran out of memory",
-        error.RuntimeError => interpreter.getRuntimeErrorMessage() orelse "Roc runtime error",
+        error.OutOfMemory => "Claw interpreter ran out of memory",
+        error.RuntimeError => interpreter.getRuntimeErrorMessage() orelse "Claw runtime error",
         error.DivisionByZero => interpreter.getRuntimeErrorMessage() orelse "Division by zero",
         error.ComptimeExhaustiveness => "compile-time exhaustiveness failure reached runtime code",
         error.Crash => return,
@@ -5768,7 +5768,7 @@ pub const PlatformPaths = struct {
     platform_source_path: ?[]const u8, // Optional - may not exist for some platforms
 };
 
-/// Resolve platform specification from a Roc file to find both host library and platform source.
+/// Resolve platform specification from a Claw file to find both host library and platform source.
 /// Returns PlatformPaths with arena-allocated paths (no need to free).
 pub fn resolvePlatformPaths(ctx: *CliCtx, roc_file_path: []const u8) CliError!PlatformPaths {
     // Use the parser to extract the platform spec
@@ -9656,7 +9656,7 @@ fn interpreterTestFailureMessage(
 ) std.mem.Allocator.Error![]const u8 {
     const message = switch (err) {
         error.OutOfMemory => return error.OutOfMemory,
-        error.RuntimeError => interpreter.getRuntimeErrorMessage() orelse "Roc runtime error",
+        error.RuntimeError => interpreter.getRuntimeErrorMessage() orelse "Claw runtime error",
         error.DivisionByZero => interpreter.getRuntimeErrorMessage() orelse "Division by zero",
         error.ComptimeExhaustiveness => "compile-time exhaustiveness failure reached runtime code",
         error.Crash => interpreter.getCrashMessage() orelse "Test crashed",
@@ -10902,7 +10902,7 @@ fn replayWatchChildOutput(ctx: *CliCtx, child: *WatchChild, print_separator: boo
 
 fn runWatchCommand(ctx: *CliCtx, arg0: []const u8, command: WatchCommand) WatchCommandError!void {
     if (comptime builtin.target.cpu.arch == .wasm32) {
-        ctx.io.stderr().writeAll("Error: --watch is not supported in WebAssembly builds of the Roc CLI.\n") catch {};
+        ctx.io.stderr().writeAll("Error: --watch is not supported in WebAssembly builds of the Claw CLI.\n") catch {};
         return error.UnsupportedWatchMode;
     }
 
@@ -11443,8 +11443,8 @@ fn rocGlue(ctx: *CliCtx, args: cli_args.GlueArgs) glue.GlueError!void {
     }, temp_dir, ctx.io.std_io);
 }
 
-/// Reads, parses, formats, and overwrites all Roc files at the given paths.
-/// Recurses into directories to search for Roc files.
+/// Reads, parses, formats, and overwrites all Claw files at the given paths.
+/// Recurses into directories to search for Claw files.
 fn rocFormat(ctx: *CliCtx, args: cli_args.FormatArgs) CliMainError!void {
     const trace = tracy.trace(@src());
     defer trace.end();
@@ -11833,7 +11833,7 @@ fn isCompilerOwnedBuiltinSourcePath(gpa: Allocator, io: std.Io, filepath: []cons
         std.mem.find(u8, source, "Str ::") != null;
 }
 
-/// Check a Roc file using BuildEnv and preserve the BuildEnv for further processing
+/// Check a Claw file using BuildEnv and preserve the BuildEnv for further processing
 fn checkFileWithBuildEnvPreserved(
     ctx: *CliCtx,
     filepath: []const u8,
@@ -12007,7 +12007,7 @@ fn checkFileWithBuildEnvPreserved(
     };
 }
 
-/// Check a Roc file using the ordinary BuildEnv path.
+/// Check a Claw file using the ordinary BuildEnv path.
 fn checkFileWithBuildEnv(
     ctx: *CliCtx,
     filepath: []const u8,

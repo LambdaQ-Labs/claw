@@ -561,7 +561,7 @@ fn lowerEvalAndFinishRoots(
                         break :blk .{ .const_node = try appendCrashConst(module, "compile-time exhaustiveness failure") };
                     },
                     error.Crash => {
-                        const message = interpreter.getCrashMessage() orelse host.crash_message orelse "Roc crashed";
+                        const message = interpreter.getCrashMessage() orelse host.crash_message orelse "Claw crashed";
                         break :blk .{ .const_node = try appendCrashConst(module, message) };
                     },
                     // expect_err statements only occur in top-level expect
@@ -1052,7 +1052,7 @@ fn lowerDevEvalAndFinishRoots(
                 module,
                 job.compile_time_root,
                 job.root.request,
-                job.host.crashMessage() orelse "Roc crashed",
+                job.host.crashMessage() orelse "Claw crashed",
                 job.host.failed_region,
                 &had_problem,
             ),
@@ -1413,7 +1413,7 @@ fn evalCompileTimeRoot(
         error.RuntimeError => try reportCompileTimeCrash(allocator, problem_store, module, root, interpreter, interpreter.getRuntimeErrorMessage() orelse "compile-time evaluation failed"),
         error.ComptimeExhaustiveness => try reportCompileTimeExhaustiveness(allocator, problem_store, module, root, lir_result, interpreter, proc),
         error.DivisionByZero => try reportCompileTimeCrash(allocator, problem_store, module, root, interpreter, interpreter.getRuntimeErrorMessage() orelse "Division by zero"),
-        error.Crash => try reportCompileTimeCrash(allocator, problem_store, module, root, interpreter, interpreter.getCrashMessage() orelse "Roc crashed"),
+        error.Crash => try reportCompileTimeCrash(allocator, problem_store, module, root, interpreter, interpreter.getCrashMessage() orelse "Claw crashed"),
         error.ExpectErr => finalizationInvariant("compile-time root reached an expect_err statement"),
     };
 }

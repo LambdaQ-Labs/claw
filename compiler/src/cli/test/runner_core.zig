@@ -1,7 +1,7 @@
 //! Shared execution logic for the test platform runner.
 //!
 //! This module provides common functions for:
-//! - Cross-compilation of Roc apps
+//! - Cross-compilation of Claw apps
 //! - Native build and execution
 //! - Valgrind memory testing
 //! - Result formatting and summary printing
@@ -51,7 +51,7 @@ fn runRocChildWithOutputLimit(allocator: Allocator, std_io: std.Io, argv: []cons
     var env_map = try environ.createMap(allocator);
     defer env_map.deinit();
 
-    // Give every child build/run its own Roc and Zig local cache roots so test
+    // Give every child build/run its own Claw and Zig local cache roots so test
     // runner processes cannot share module/build artifacts or observe one
     // another's cache state.
     const cache_dirs = try util.createIsolatedTestCacheDirs(std_io, allocator);
@@ -69,7 +69,7 @@ fn runRocChild(allocator: Allocator, std_io: std.Io, argv: []const []const u8) R
     return runRocChildWithOutputLimit(allocator, std_io, argv, 50 * 1024);
 }
 
-/// Cross-compile a Roc app to a specific target.
+/// Cross-compile a Claw app to a specific target.
 /// Returns true if compilation succeeded.
 pub fn crossCompile(
     allocator: Allocator,
@@ -117,7 +117,7 @@ pub fn crossCompile(
     return handleProcessResult(std_io, result, output_name, expectedStderrForBackend(backend, expected_stderr_contains));
 }
 
-/// Build a Roc app natively (no cross-compilation).
+/// Build a Claw app natively (no cross-compilation).
 /// Does NOT clean up the output file - caller is responsible for cleanup.
 pub fn buildNative(
     allocator: Allocator,
@@ -174,7 +174,7 @@ pub fn runNative(
     defer allocator.free(result.stdout);
     defer allocator.free(result.stderr);
 
-    // Check for memory errors in stderr (GPA errors or Roc runtime leak detection)
+    // Check for memory errors in stderr (GPA errors or Claw runtime leak detection)
     if (hasMemoryErrors(result.stderr)) |msg| {
         std.debug.print("FAIL ({s})\n", .{msg});
         printTruncatedOutput(result.stderr, 10, "       ");
@@ -211,7 +211,7 @@ pub fn runNative(
     }
 }
 
-/// Run a Roc app with --test mode and IO spec verification.
+/// Run a Claw app with --test mode and IO spec verification.
 /// When backend is set, builds the executable first with `roc build --opt=<name>`
 /// then runs the resulting binary with `--test <spec>`.
 /// When backend is null, uses the default `roc` command with `--test=<spec>` (interpreter).
@@ -242,7 +242,7 @@ pub fn runWithIoSpec(
     defer allocator.free(result.stdout);
     defer allocator.free(result.stderr);
 
-    // Check for memory errors in stderr (GPA errors or Roc runtime leak detection)
+    // Check for memory errors in stderr (GPA errors or Claw runtime leak detection)
     if (hasMemoryErrors(result.stderr)) |msg| {
         std.debug.print("FAIL ({s})\n", .{msg});
         printTruncatedOutput(result.stderr, 10, "       ");
@@ -275,7 +275,7 @@ pub fn runWithIoSpec(
     }
 }
 
-/// Build a Roc app with a specific backend, then run the resulting executable
+/// Build a Claw app with a specific backend, then run the resulting executable
 /// with `--test <spec>` for IO spec verification.
 fn runWithIoSpecBuildAndExec(
     allocator: Allocator,
@@ -317,7 +317,7 @@ fn runWithIoSpecBuildAndExec(
     // Clean up the built executable
     cleanup(std_io, output_name);
 
-    // Check for memory errors in stderr (GPA errors or Roc runtime leak detection)
+    // Check for memory errors in stderr (GPA errors or Claw runtime leak detection)
     if (hasMemoryErrors(result.stderr)) |msg| {
         std.debug.print("FAIL ({s})\n", .{msg});
         printTruncatedOutput(result.stderr, 10, "       ");
@@ -350,7 +350,7 @@ fn runWithIoSpecBuildAndExec(
     }
 }
 
-/// Run a Roc app under valgrind.
+/// Run a Claw app under valgrind.
 /// Only works on Linux x86_64.
 pub fn runWithValgrind(
     allocator: Allocator,
@@ -480,7 +480,7 @@ pub fn printResultLine(status: []const u8, target: []const u8, message: []const 
 
 /// Check stderr for memory-related errors:
 /// - GPA (General Purpose Allocator) errors: alignment mismatches, double frees, etc.
-/// - Roc runtime leak detection: allocations not freed
+/// - Claw runtime leak detection: allocations not freed
 /// Returns a description string if an error is found, null otherwise.
 fn hasMemoryErrors(stderr: []const u8) ?[]const u8 {
     if (std.mem.find(u8, stderr, "error(gpa):") != null) {
@@ -518,7 +518,7 @@ fn handleProcessResult(
     output_name: []const u8,
     expected_stderr_contains: []const []const u8,
 ) TestResult {
-    // Check for memory errors in stderr (GPA errors or Roc runtime leak detection)
+    // Check for memory errors in stderr (GPA errors or Claw runtime leak detection)
     if (hasMemoryErrors(result.stderr)) |msg| {
         std.debug.print("FAIL ({s})\n", .{msg});
         printTruncatedOutput(result.stderr, 10, "       ");
@@ -571,7 +571,7 @@ fn handleProcessResult(
 }
 
 fn handleProcessResultNoCleanup(std_io: std.Io, result: std.process.RunResult, output_name: []const u8) TestResult {
-    // Check for memory errors in stderr (GPA errors or Roc runtime leak detection)
+    // Check for memory errors in stderr (GPA errors or Claw runtime leak detection)
     if (hasMemoryErrors(result.stderr)) |msg| {
         std.debug.print("FAIL ({s})\n", .{msg});
         printTruncatedOutput(result.stderr, 10, "       ");

@@ -1,7 +1,7 @@
 //!
-//! This file implements the Intermediate Representation (IR) for Roc's parser.
+//! This file implements the Intermediate Representation (IR) for Claw's parser.
 //!
-//! The IR provides a structured, tree-based representation of Roc source code after parsing
+//! The IR provides a structured, tree-based representation of Claw source code after parsing
 //!
 //! The design uses an arena-based memory allocation strategy with a "multi-list" approach where nodes
 //! are stored in a flat list but cross-referenced via indices rather than pointers. This improves
@@ -159,15 +159,15 @@ pub fn tokenizeDiagnosticToReport(self: *AST, diagnostic: tokenize.Diagnostic, a
     };
 
     const body = switch (diagnostic.tag) {
-        .MisplacedCarriageReturn => "Carriage return characters (\\r) are not allowed in Roc source code.",
-        .AsciiControl => "ASCII control characters are not allowed in Roc source code.",
+        .MisplacedCarriageReturn => "Carriage return characters (\\r) are not allowed in Claw source code.",
+        .AsciiControl => "ASCII control characters are not allowed in Claw source code.",
         .LeadingZero => "Numbers cannot have leading zeros.",
         .UppercaseBase => "Number base prefixes must be lowercase (0x, 0o, 0b).",
         .InvalidUnicodeEscapeSequence => "This Unicode escape sequence is not valid.",
         .InvalidEscapeSequence => "This escape sequence is not recognized.",
         .UnclosedString => "This string is missing a closing quote.",
         .NonPrintableUnicodeInStrLiteral => "Non-printable Unicode characters are not allowed in string-like literals.",
-        .InvalidUtf8InSource => "Invalid UTF-8 encoding found in source code. Roc source files must be valid UTF-8.",
+        .InvalidUtf8InSource => "Invalid UTF-8 encoding found in source code. Claw source files must be valid UTF-8.",
         .DollarInMiddleOfIdentifier => "Dollar sign ($) is only allowed at the very beginning of a name, not in the middle or at the end.",
         .SingleQuoteTooLong, .SingleQuoteEmpty => "Single-quoted literals must contain exactly one valid UTF-8 codepoint.",
         .SingleQuoteUnclosed => "This single-quoted literal is missing a closing quote.",
@@ -1750,7 +1750,7 @@ pub const Collection = struct {
     pub const Idx = enum(u32) { _ };
 };
 
-/// Represents a Roc file.
+/// Represents a Claw file.
 pub const File = struct {
     header: Header.Idx,
     statements: Statement.Span,

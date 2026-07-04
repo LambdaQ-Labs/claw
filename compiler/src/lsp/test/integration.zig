@@ -2,11 +2,11 @@
 //!
 //! This root intentionally lists the compiler-backed LSP specs consumed by the
 //! parallel integration harness. It is expected to be slower than unit.zig
-//! because these specs create SyntaxChecker, BuildEnv, real Roc source files,
+//! because these specs create SyntaxChecker, BuildEnv, real Claw source files,
 //! compiled builtins, and platform/app checking state.
 //!
 //! Completion, hover, definition, document symbol, document highlight, parse
-//! error, and diagnostic behavior that depends on checked Roc modules belongs
+//! error, and diagnostic behavior that depends on checked Claw modules belongs
 //! here. Keeping those tests separate makes the unit root a precise signal that
 //! no compiler build environment is required.
 

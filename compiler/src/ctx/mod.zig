@@ -1,4 +1,4 @@
-//! Unified context for the Roc compiler.
+//! Unified context for the Claw compiler.
 //!
 //! This module provides allocators, I/O, and other cross-cutting concerns
 //! in a single context object, allowing easy testing and alternative

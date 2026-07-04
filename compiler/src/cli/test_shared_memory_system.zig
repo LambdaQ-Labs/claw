@@ -43,7 +43,7 @@ test "platform resolution - basic cli platform" {
     ctx.initIo();
     defer ctx.deinit();
 
-    // Create a temporary Roc file with cli platform
+    // Create a temporary Claw file with cli platform
     var temp_dir = testing.tmpDir(.{});
     defer temp_dir.cleanup();
 
@@ -82,7 +82,7 @@ test "platform resolution - no platform in file" {
     ctx.initIo();
     defer ctx.deinit();
 
-    // Create a temporary Roc file without platform specification
+    // Create a temporary Claw file without platform specification
     var temp_dir = testing.tmpDir(.{});
     defer temp_dir.cleanup();
 
@@ -134,7 +134,7 @@ test "platform resolution - insecure HTTP URL rejected" {
     ctx.initIo();
     defer ctx.deinit();
 
-    // Create a temporary Roc file with insecure HTTP URL (not localhost)
+    // Create a temporary Claw file with insecure HTTP URL (not localhost)
     // This should be rejected for security - only HTTPS or localhost HTTP allowed
     var temp_dir = testing.tmpDir(.{});
     defer temp_dir.cleanup();

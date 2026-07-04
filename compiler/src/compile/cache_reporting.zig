@@ -1,4 +1,4 @@
-//! Cache statistics reporting using the Roc reporting framework.
+//! Cache statistics reporting using the Claw reporting framework.
 //!
 //! This module provides functions to create structured cache statistics reports
 //! that can be rendered to different output formats consistently with the rest
@@ -82,7 +82,7 @@ pub fn getUnitString(unit: DataSizeUnit) []const u8 {
     };
 }
 
-/// Create a cache statistics report using the Roc reporting framework.
+/// Create a cache statistics report using the Claw reporting framework.
 pub fn createCacheStatsReport(allocator: Allocator, stats: CacheStats) Allocator.Error!Report {
     const total_ops = stats.getTotalOps();
     if (total_ops == 0) {

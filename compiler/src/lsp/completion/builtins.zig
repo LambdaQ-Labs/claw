@@ -1,12 +1,12 @@
-//! Roc builtin types for the completion system.
+//! Claw builtin types for the completion system.
 //!
 //! This module provides constants and utilities for working with
-//! Roc's builtin types (Str, List, Bool, numeric types, etc.).
+//! Claw's builtin types (Str, List, Bool, numeric types, etc.).
 
 const std = @import("std");
 
 /// Known builtin type names that are part of the Builtin module.
-/// These are the core types provided by the Roc language runtime.
+/// These are the core types provided by the Claw language runtime.
 pub const BUILTIN_TYPES = [_][]const u8{
     // Collection types
     "Str",
@@ -50,7 +50,7 @@ const builtin_set = std.StaticStringMap(void).initComptime(blk: {
 
 /// Check if a type name is a known builtin type.
 ///
-/// Returns true if the given type name matches one of Roc's
+/// Returns true if the given type name matches one of Claw's
 /// builtin types (Str, List, Bool, numeric types, etc.).
 pub fn isBuiltinType(type_name: []const u8) bool {
     return builtin_set.has(type_name);

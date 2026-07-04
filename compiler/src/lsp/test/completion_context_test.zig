@@ -2,7 +2,7 @@
 //!
 //! These tests exercise token and cursor classification only. They must stay
 //! out of the integration root because they do not require SyntaxChecker,
-//! BuildEnv, compiled builtins, or checked Roc modules.
+//! BuildEnv, compiled builtins, or checked Claw modules.
 
 const std = @import("std");
 const completion_context = @import("lsp").completion;

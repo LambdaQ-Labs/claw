@@ -801,9 +801,9 @@ pub const NumKind = enum {
 };
 
 /// Base-256 digit storage for Numeral values.
-/// Used to construct Roc Numeral values during compile-time evaluation.
+/// Used to construct Claw Numeral values during compile-time evaluation.
 ///
-/// Numeral in Roc stores:
+/// Numeral in Claw stores:
 /// - is_negative: Bool (whether there was a minus sign)
 /// - digits_before_pt: List(U8) (base-256 digits before decimal point)
 /// - digits_after_pt: List(U8) (base-256 digits after decimal point)

@@ -1,4 +1,4 @@
-//! Glue code generation for Roc platforms.
+//! Glue code generation for Claw platforms.
 //!
 //! This module handles the `roc glue` command, which generates platform-specific
 //! binding code (e.g., Zig structs) from a platform's type information.
@@ -8,7 +8,7 @@
 //! 2. Compile the platform via BuildEnv with a synthetic app, publishing checked artifacts
 //! 3. Collect hosted functions and module type info from checked artifacts
 //! 4. Build the glue input type table from artifact-owned checked type data
-//! 5. Materialize the glue input as Roc C-ABI values
+//! 5. Materialize the glue input as Claw C-ABI values
 //! 6. Compile the glue spec through checked artifacts, lower to LIR, and run it with the requested backend
 
 const std = @import("std");
@@ -1644,7 +1644,7 @@ const TypeTable = struct {
             field_names[i] = try std.fmt.allocPrint(self.gpa, "_{d}", .{i});
         }
 
-        // Sort by sort key descending, then name ascending (matching Roc ABI). The
+        // Sort by sort key descending, then name ascending (matching Claw ABI). The
         // sort key is target-independent (a pointer sorts between 4- and 8-byte
         // alignment), so the element order matches the layout store on both targets.
         const field_sort_keys = try self.gpa.alloc(layout.SortKey, elems.len);
@@ -1965,7 +1965,7 @@ const GlueRocValueWriter = struct {
 
         const elem_alignment = self.alignmentOf(elem_layout);
         if (elem_alignment > std.math.maxInt(u32)) {
-            glueInvariant("glue list element alignment {d} exceeds Roc allocation ABI", .{elem_alignment});
+            glueInvariant("glue list element alignment {d} exceeds Claw allocation ABI", .{elem_alignment});
         }
         const bytes = builtins.utils.allocateWithRefcount(
             len * elem_size,
@@ -2359,7 +2359,7 @@ fn buildProvidesEntryList(
     return allocated.list;
 }
 
-/// Construct the List(Types) Roc value from collected module type info.
+/// Construct the List(Types) Claw value from collected module type info.
 fn constructTypesRocList(
     writer: *const GlueRocValueWriter,
     collected_modules: []const CollectedModuleTypeInfo,
@@ -3068,7 +3068,7 @@ fn printTypeAnnoToBuf(gpa: std.mem.Allocator, env: *ModuleEnv, ast: *const parse
 }
 
 /// Generate a stub expression from a type annotation.
-/// This produces valid Roc expressions that will crash at runtime rather than compile-time.
+/// This produces valid Claw expressions that will crash at runtime rather than compile-time.
 /// Uses `...` inside lambdas to defer the crash to runtime.
 fn generateStubExprFromTypeAnno(gpa: std.mem.Allocator, env: *ModuleEnv, ast: *const parse.AST, type_anno_idx: parse.AST.TypeAnno.Idx, buf: *std.ArrayList(u8)) Allocator.Error!void {
     const type_anno = ast.store.getTypeAnno(type_anno_idx);

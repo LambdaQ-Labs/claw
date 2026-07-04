@@ -1377,7 +1377,7 @@ pub const ReportBuilder = struct {
             &.{
                 &.{
                     D.bytes("Note:").withAnnotation(.underline),
-                    D.bytes("Roc does not have \"truthiness\". You must convert values to bools yourself."),
+                    D.bytes("Claw does not have \"truthiness\". You must convert values to bools yourself."),
                 },
             },
         );
@@ -1990,7 +1990,7 @@ pub const ReportBuilder = struct {
         try report.document.addLineBreak();
 
         try D.renderSlice(&.{
-            D.bytes("This syntax was used for abilities, which have been removed from Roc. Use method constraints like"),
+            D.bytes("This syntax was used for abilities, which have been removed from Claw. Use method constraints like"),
             D.bytes("where [a.methodName(args) -> ret]").withAnnotation(.inline_code),
             D.bytes("instead."),
         }, self, &report);
@@ -2979,7 +2979,7 @@ pub const ReportBuilder = struct {
 
         try report.document.addLineBreak();
         try D.renderSlice(&.{
-            D.bytes("The nominal type declaration variable did not resolve to a nominal type structure. This indicates a bug in the Roc compiler. Please report this issue at"),
+            D.bytes("The nominal type declaration variable did not resolve to a nominal type structure. This indicates a bug in the Claw compiler. Please report this issue at"),
             D.link("https://github.com/roc-lang/roc/issues"),
         }, self, &report);
 
@@ -3525,7 +3525,7 @@ pub const ReportBuilder = struct {
                 D.bytes("The platform header uses the linker symbol"),
                 D.bytes(name).withAnnotation(.inline_code),
                 D.bytes(",").withNoPrecedingSpace(),
-                D.bytes("but that name is reserved for the Roc runtime. Pick a different symbol."),
+                D.bytes("but that name is reserved for the Claw runtime. Pick a different symbol."),
             }, self, &report, &report.headline),
             .reserved_prefix => try D.renderSliceInto(&.{
                 D.bytes("The platform header uses the linker symbol"),
@@ -3533,7 +3533,7 @@ pub const ReportBuilder = struct {
                 D.bytes(",").withNoPrecedingSpace(),
                 D.bytes("but the"),
                 D.bytes("roc__").withAnnotation(.inline_code),
-                D.bytes("prefix is reserved for symbols the Roc compiler generates internally. Pick a different symbol."),
+                D.bytes("prefix is reserved for symbols the Claw compiler generates internally. Pick a different symbol."),
             }, self, &report, &report.headline),
         }
 

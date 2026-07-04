@@ -4313,7 +4313,7 @@ test "check type - bool diagnostic - lambda negation applied to Bool.True" {
 }
 
 // --- Nominal Bool vs structural tag union tests ---
-// CRITICAL DISTINCTION: In Roc, bare tags like `True` and `False` are structural tag unions,
+// CRITICAL DISTINCTION: In Claw, bare tags like `True` and `False` are structural tag unions,
 // NOT Bool primitives. They only become nominal `Bool` when unified with a Bool annotation
 // or a qualified reference like `Bool.True`. This is by design.
 // See also: corresponding lowering coverage in eval/backend integration tests.
@@ -7036,7 +7036,7 @@ test "check type - exhaustive match close with value reuse after match" {
     // Exhaustively matching `val` without a wildcard closes its tag union
     // to [Red]. When `val` is then passed to `accept_broad` (which expects
     // [Blue, Red]), the closed [Red] can't unify with [Blue, Red].
-    // This is the correct Roc semantics (confirmed by the Rust compiler).
+    // This is the correct Claw semantics (confirmed by the Rust compiler).
     const source =
         \\Maker := {}.{
         \\  get = |_maker| Red

@@ -1,7 +1,7 @@
-//! Echo platform module for headerless Roc app modules.
+//! Echo platform module for headerless Claw app modules.
 //!
 //! Provides the echo! hosted function and utilities for building CLI arguments
-//! as Roc types. This module exists as a separate build module to break the
+//! as Claw types. This module exists as a separate build module to break the
 //! dependency cycle: main.zig → builtins → host_abi → @import("root") → main.zig.
 
 const std = @import("std");
@@ -21,7 +21,7 @@ pub const echo_module_source = @embedFile("platform/Echo.roc");
 
 /// Default `roc` command platform source used by the shared-memory shim path.
 /// The process entrypoint lives in the generated shim host, so this platform
-/// only exposes the Roc entrypoint and binds echo! to the default runtime
+/// only exposes the Claw entrypoint and binds echo! to the default runtime
 /// object's hosted symbol.
 pub const run_shim_platform_main_source =
     \\platform ""
@@ -144,7 +144,7 @@ pub const EchoEnv = struct {
 
 /// The ClawOps the echo platform's hosted functions use for refcounting and
 /// reaching the EchoEnv. Hosted functions have natural C ABIs with no ops
-/// parameter, so the runner stores its ClawOps here before running any Roc code.
+/// parameter, so the runner stores its ClawOps here before running any Claw code.
 pub var g_roc_ops: ?*host_abi.ClawOps = null;
 
 /// Echo host function: reads a ClawStr arg and prints it + newline to stdout.
@@ -327,7 +327,7 @@ pub fn makeDefaultRocOps(env: *EchoEnv, hosted_fns: []host_abi.HostedFn) host_ab
                 const echo_env: *EchoEnv = @ptrCast(@alignCast(ops.env));
                 const msg = bytes[0..len];
                 const stderr_file: std.Io.File = .stderr();
-                stderr_file.writeStreamingAll(echo_env.std_io, "Roc application crashed with this message:\n\n\t") catch {};
+                stderr_file.writeStreamingAll(echo_env.std_io, "Claw application crashed with this message:\n\n\t") catch {};
                 stderr_file.writeStreamingAll(echo_env.std_io, msg) catch {};
                 stderr_file.writeStreamingAll(echo_env.std_io, "\n\n") catch {};
                 std.process.exit(1);
@@ -360,7 +360,7 @@ pub fn buildCliArgs(app_args: []const []const u8, roc_ops: *host_abi.ClawOps) st
     for (app_args, 0..) |arg, i| {
         const sanitized = try sanitizeUtf8(arg, allocator);
         roc_strs[i] = ClawStr.fromSlice(sanitized, roc_ops);
-        // fromSlice copied the bytes into Roc memory, so the host scratch is done.
+        // fromSlice copied the bytes into Claw memory, so the host scratch is done.
         if (sanitized.ptr != arg.ptr) allocator.free(sanitized);
     }
 

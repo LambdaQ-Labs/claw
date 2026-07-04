@@ -1,4 +1,4 @@
-//! Strings written inline in Roc code, e.g. `x = "abc"`.
+//! Strings written inline in Claw code, e.g. `x = "abc"`.
 
 const std = @import("std");
 const Allocator = std.mem.Allocator;

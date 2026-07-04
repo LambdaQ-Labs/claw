@@ -1,6 +1,6 @@
 //! Runtime ABI for boxed erased callables.
 //!
-//! A boxed erased callable is one ordinary Roc refcounted allocation. The Roc
+//! A boxed erased callable is one ordinary Claw refcounted allocation. The Claw
 //! value is the allocation's data pointer, like `Box(T)`. The allocation payload
 //! starts with `Payload`, and the erased callable's hidden capture bytes live
 //! inline at a fixed aligned offset after that header.
@@ -34,7 +34,7 @@ pub const CallableFnPtr = ErasedCallableFn;
 /// the erased callable allocation; the erased callable runtime does that after
 /// this callback returns.
 ///
-/// The ops argument is whatever the final release passed along. Compiled Roc
+/// The ops argument is whatever the final release passed along. Compiled Claw
 /// code carries no ClawOps under the symbol ABI and passes null here, so a
 /// host-installed callback must reach the host's ClawOps through the host's
 /// own storage, never through this parameter.
@@ -46,7 +46,7 @@ pub const Payload = extern struct {
     on_drop: ?OnDropFn,
 };
 
-/// Shim-only metadata stored at the beginning of a Roc-created erased
+/// Shim-only metadata stored at the beginning of a Claw-created erased
 /// callable's capture bytes while the dev machine-code shim is running in hot
 /// reload mode. The public erased-callable payload ABI remains unchanged:
 /// hosts still see `Payload` followed by bytes at `capturePtr`.
@@ -55,18 +55,18 @@ pub const HotReloadCaptureHeader = extern struct {
     original_on_drop: ?OnDropFn,
 };
 
-/// Captures are aligned to this boundary so any legal Roc capture layout can be
+/// Captures are aligned to this boundary so any legal Claw capture layout can be
 /// copied inline without an extra descriptor or runtime offset field.
 pub const capture_alignment: u32 = 16;
 
-/// Alignment used for the single Roc allocation that stores `Payload` plus the
+/// Alignment used for the single Claw allocation that stores `Payload` plus the
 /// inline capture bytes.
 pub const payload_alignment: u32 = capture_alignment;
 
 /// Fixed byte offset from the start of `Payload` to the first capture byte.
 pub const capture_offset: u32 = @intCast(std.mem.alignForward(usize, @sizeOf(Payload), capture_alignment));
 
-/// Bytes reserved before the ordinary Roc capture in shim-execution erased
+/// Bytes reserved before the ordinary Claw capture in shim-execution erased
 /// callables. This is aligned like captures so the adjusted capture pointer
 /// keeps the same alignment guarantees as `capturePtr`.
 pub const hot_reload_capture_prefix_size: u32 = @intCast(std.mem.alignForward(usize, @sizeOf(HotReloadCaptureHeader), capture_alignment));
@@ -77,7 +77,7 @@ comptime {
     std.debug.assert(hot_reload_capture_prefix_size % capture_alignment == 0);
 }
 
-/// The runtime allocation never relies on Roc's list-style element-count header.
+/// The runtime allocation never relies on Claw's list-style element-count header.
 /// Nested data in the capture is handled solely by `Payload.on_drop`.
 pub const allocation_has_refcounted_children = false;
 
@@ -139,7 +139,7 @@ pub fn hotReloadCaptureHeader(capture_ptr: ?[*]u8) ?*HotReloadCaptureHeader {
     return @ptrCast(@alignCast(ptr));
 }
 
-/// Return the ordinary Roc capture pointer after the shim-only hot-reload
+/// Return the ordinary Claw capture pointer after the shim-only hot-reload
 /// prefix.
 pub fn hotReloadAdjustedCapturePtr(capture_ptr: ?[*]u8) ?[*]u8 {
     const ptr = capture_ptr orelse return null;

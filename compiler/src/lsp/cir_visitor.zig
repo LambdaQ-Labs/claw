@@ -1,5 +1,5 @@
 //! Generic CIR (Canonicalized Intermediate Representation) visitor module
-//! for traversing the Roc compiler's CIR tree structure.
+//! for traversing the Claw compiler's CIR tree structure.
 //!
 //! This module provides a comptime-generic visitor pattern that eliminates
 //! duplicated traversal code across multiple LSP functions that need to

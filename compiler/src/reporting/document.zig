@@ -821,12 +821,12 @@ test "Document addReflowingTextWithBackticks - multiple inline code" {
     var document = Document.init(gpa);
     defer document.deinit();
 
-    try document.addReflowingTextWithBackticks("Roc uses `and` instead of `&&`.");
+    try document.addReflowingTextWithBackticks("Claw uses `and` instead of `&&`.");
 
     // Should have 5 elements
     try std.testing.expectEqual(@as(usize, 5), document.elements.items.len);
 
-    try std.testing.expectEqualStrings("Roc uses ", document.elements.items[0].reflowing_text);
+    try std.testing.expectEqualStrings("Claw uses ", document.elements.items[0].reflowing_text);
     try std.testing.expectEqualStrings("and", document.elements.items[1].annotated.content);
     try std.testing.expectEqualStrings(" instead of ", document.elements.items[2].reflowing_text);
     try std.testing.expectEqualStrings("&&", document.elements.items[3].annotated.content);

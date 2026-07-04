@@ -1,6 +1,6 @@
 //! Handler for LSP `textDocument/formatting` requests.
 //!
-//! Formats Roc source code using the built-in formatter.
+//! Formats Claw source code using the built-in formatter.
 
 const std = @import("std");
 const Allocator = std.mem.Allocator;

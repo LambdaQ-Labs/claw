@@ -7,7 +7,7 @@
 //!
 //! Tests in this root must not create SyntaxChecker or BuildEnv. Compiler-backed
 //! tests live in integration.zig so pure LSP behavior can be run without paying
-//! for Roc source checking, compiled builtins, platform resolution, or app
+//! for Claw source checking, compiled builtins, platform resolution, or app
 //! checking setup.
 
 const std = @import("std");

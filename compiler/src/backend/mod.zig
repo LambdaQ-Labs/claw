@@ -1,4 +1,4 @@
-//! Code generation backends for the Roc compiler.
+//! Code generation backends for the Claw compiler.
 //!
 //! This module provides various code generation backends:
 //! - LLVM: Full-featured backend that generates native code via LLVM

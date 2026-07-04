@@ -632,7 +632,7 @@ requires_types: RequiredType.SafeList,
 /// Type alias mappings from for-clauses in requires declarations.
 /// Stores (alias_name, rigid_name) pairs like (Model, model).
 for_clause_aliases: ForClauseAlias.SafeList,
-/// Platform provides entries mapping Roc identifiers to FFI symbols.
+/// Platform provides entries mapping Claw identifiers to FFI symbols.
 /// Populated during canonicalization for platform modules. Empty for non-platform modules.
 provides_entries: ProvidesEntry.SafeList,
 /// Platform hosted entries in header declaration order (defines dispatch order)
@@ -714,12 +714,12 @@ pub const ForClauseAlias = struct {
     pub const SafeList = collections.SafeList(@This());
 };
 
-/// Platform provides entry mapping a Roc identifier to its FFI symbol.
+/// Platform provides entry mapping a Claw identifier to its FFI symbol.
 /// Populated during canonicalization for platform modules from the provides clause.
 /// For example, `{ main_for_host!: "main" }` creates an entry with ident="main_for_host!"
 /// and ffi_symbol pointing to the interned string "main".
 pub const ProvidesEntry = struct {
-    /// The Roc identifier (e.g., "main_for_host!")
+    /// The Claw identifier (e.g., "main_for_host!")
     ident: Ident.Idx,
     /// The FFI symbol string (e.g., "main")
     ffi_symbol: StringLiteral.Idx,
@@ -842,7 +842,7 @@ pub fn init(gpa: std.mem.Allocator, source: []const u8) std.mem.Allocator.Error!
     const idents = try CommonIdents.insert(gpa, &common);
 
     // Use source-based heuristics for initial capacities
-    // Typical Roc code generates ~1 node per 20 bytes
+    // Typical Claw code generates ~1 node per 20 bytes
     // Use generous minimums to avoid too many reallocations for small files
     const source_len = source.len;
     const node_capacity = @max(1024, @min(100_000, source_len / 20));
@@ -1772,7 +1772,7 @@ pub fn diagnosticToReport(self: *Self, diagnostic: CIR.Diagnostic, allocator: st
                 self.getLineStartsAll(),
             );
             try report.document.addLineBreak();
-            try report.document.addReflowingText("This error doesn't have a proper diagnostic report yet. Let us know if you want to help improve Roc's error messages!");
+            try report.document.addReflowingText("This error doesn't have a proper diagnostic report yet. Let us know if you want to help improve Claw's error messages!");
             try report.document.addLineBreak();
             break :blk report;
         },
@@ -1981,7 +1981,7 @@ pub fn diagnosticToReport(self: *Self, diagnostic: CIR.Diagnostic, allocator: st
             try report.headline.addInlineCode(owned_literal);
             try report.headline.addReflowingText(".");
 
-            try report.document.addReflowingText("This number exceeds the precision range of Roc's ");
+            try report.document.addReflowingText("This number exceeds the precision range of Claw's ");
             try report.document.addInlineCode("Dec");
             try report.document.addReflowingText(" type and would require F64 representation. ");
             try report.document.addReflowingText("Floating-point numbers (F64) cannot be used in patterns because they don't have reliable equality comparison.");
@@ -2232,7 +2232,7 @@ pub fn diagnosticToReport(self: *Self, diagnostic: CIR.Diagnostic, allocator: st
             const module_name = try report.addOwnedString(module_name_bytes);
             try report.headline.addText("The module ");
             try report.headline.addInlineCode(module_name);
-            try report.headline.addReflowingText(" was not found in this Roc project.");
+            try report.headline.addReflowingText(" was not found in this Claw project.");
 
             const owned_filename = try report.addOwnedString(filename);
             try report.document.addSourceRegion(
@@ -2254,7 +2254,7 @@ pub fn diagnosticToReport(self: *Self, diagnostic: CIR.Diagnostic, allocator: st
             const module_name = try report.addOwnedString(module_name_bytes);
             try report.headline.addText("There is no module with the name ");
             try report.headline.addInlineCode(module_name);
-            try report.headline.addReflowingText(" imported into this Roc file.");
+            try report.headline.addReflowingText(" imported into this Claw file.");
 
             const owned_filename = try report.addOwnedString(filename);
             try report.document.addSourceRegion(

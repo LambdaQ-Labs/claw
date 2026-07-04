@@ -1,6 +1,6 @@
-//! Memory layout representations and stores for values in running Roc programs.
+//! Memory layout representations and stores for values in running Claw programs.
 //!
-//! This module provides the core layout system used by the Roc compiler to determine
+//! This module provides the core layout system used by the Claw compiler to determine
 //! how values are represented in memory. It includes:
 //!
 //! - Layout definitions for scalars, containers, structs (records/tuples), and closures

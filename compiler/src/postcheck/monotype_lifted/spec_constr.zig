@@ -56,12 +56,12 @@
 //! - the loop uses `n` and `acc` directly instead of reading record fields;
 //! - later compiler stages have simple values to keep in registers.
 //!
-//! This is Roc's version of the optimization described in
+//! This is Claw's version of the optimization described in
 //! "Call-pattern Specialisation for Haskell Programs" by Simon Peyton Jones:
 //!
 //! https://www.microsoft.com/en-us/research/wp-content/uploads/2016/07/spec-constr.pdf
 //!
-//! The important Roc case is collection from `Iter` and `Stream`. Source code is
+//! The important Claw case is collection from `Iter` and `Stream`. Source code is
 //! compact:
 //!
 //! ```roc
@@ -80,7 +80,7 @@
 //! ```
 //!
 //! After wrapper inlining exposes the `Stream` operations, the lifted program has
-//! the same shape as this Roc code. The range is wrapped in a stream record; map
+//! the same shape as this Claw code. The range is wrapped in a stream record; map
 //! wraps that stream in another stream record; collect loops over that mapped
 //! stream by calling the carried step thunk:
 //!
@@ -149,7 +149,7 @@
 //! closure before immediately reading them again.
 //!
 //! This pass specializes the collect worker for the known stream shape. Written
-//! in pure Roc terms, the optimized shape is:
+//! in pure Claw terms, the optimized shape is:
 //!
 //! ```roc
 //! starting_plants! = || {

@@ -1,4 +1,4 @@
-//! Test environment for canonicalization testing, providing utilities to parse, canonicalize, and inspect Roc expressions.
+//! Test environment for canonicalization testing, providing utilities to parse, canonicalize, and inspect Claw expressions.
 
 const std = @import("std");
 const Allocator = std.mem.Allocator;

@@ -1,4 +1,4 @@
-//! Formatting logic for Roc modules.
+//! Formatting logic for Claw modules.
 
 const std = @import("std");
 const Allocator = std.mem.Allocator;
@@ -18,7 +18,7 @@ const tokenize = parse.tokenize;
 
 /// Errors that can occur while formatting an already-parsed AST.
 pub const FormatAstError = Allocator.Error || std.Io.Writer.Error;
-/// Errors that can occur while formatting a Roc source file.
+/// Errors that can occur while formatting a Claw source file.
 pub const FormatFileError = Allocator.Error || std.Io.File.OpenError || std.Io.File.ReadPositionalError || FormatAstError || error{ NotRocFile, FileSizeChangedDuringRead, ReadFailed, ParsingFailed };
 /// Errors that can occur while walking and formatting a path.
 pub const FormatPathError = FormatFileError || std.Io.Dir.SelectiveWalker.Error;
@@ -34,7 +34,7 @@ const FormatFlags = enum {
     no_debug,
 };
 
-/// Report of the result of formatting Roc files including the count of successes, failures, and any files that need to be reformatted
+/// Report of the result of formatting Claw files including the count of successes, failures, and any files that need to be reformatted
 pub const FormattingResult = struct {
     success: usize,
     failure: usize,
@@ -295,13 +295,13 @@ fn formatIRNode(ast: AST, writer: *std.Io.Writer, formatter: *const fn (*Formatt
     try fmt.flush();
 }
 
-/// Formats and writes out well-formed source of a Roc parse IR (AST) when the root node is a file.
+/// Formats and writes out well-formed source of a Claw parse IR (AST) when the root node is a file.
 /// Only returns an error if the underlying writer returns an error.
 pub fn formatAst(ast: AST, writer: *std.Io.Writer) FormatAstError!void {
     return formatIRNode(ast, writer, Formatter.formatFile);
 }
 
-/// Formats and writes out well-formed source of a Roc parse IR (AST) when the root node is a header.
+/// Formats and writes out well-formed source of a Claw parse IR (AST) when the root node is a header.
 /// Only returns an error if the underlying writer returns an error.
 pub fn formatHeader(ast: AST, writer: *std.Io.Writer) FormatAstError!void {
     return formatIRNode(ast, writer, formatHeaderInner);
@@ -311,7 +311,7 @@ fn formatHeaderInner(fmt: *Formatter) FormatAstError!void {
     return fmt.formatHeader(@enumFromInt(fmt.ast.root_node_idx));
 }
 
-/// Formats and writes out well-formed source of a Roc parse IR (AST) when the root node is a statement.
+/// Formats and writes out well-formed source of a Claw parse IR (AST) when the root node is a statement.
 /// Only returns an error if the underlying writer returns an error.
 pub fn formatStatement(ast: AST, writer: *std.Io.Writer) FormatAstError!void {
     return formatIRNode(ast, writer, formatStatementInner);
@@ -321,7 +321,7 @@ fn formatStatementInner(fmt: *Formatter) FormatAstError!void {
     return fmt.formatStatement(@enumFromInt(fmt.ast.root_node_idx));
 }
 
-/// Formats and writes out well-formed source of a Roc parse IR (AST) when the root node is an expression.
+/// Formats and writes out well-formed source of a Claw parse IR (AST) when the root node is an expression.
 /// Only returns an error if the underlying writer returns an error.
 pub fn formatExpr(ast: AST, writer: *std.Io.Writer) FormatAstError!void {
     return formatIRNode(ast, writer, formatExprNode);
@@ -354,7 +354,7 @@ const Formatter = struct {
         try fmt.writer.flush();
     }
 
-    /// Emits a string containing the well-formed source of a Roc parse IR (AST).
+    /// Emits a string containing the well-formed source of a Claw parse IR (AST).
     /// The resulting string is owned by the caller.
     pub fn formatFile(fmt: *Formatter) FormatAstError!void {
         fmt.ast.store.emptyScratch();

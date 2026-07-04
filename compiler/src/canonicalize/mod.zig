@@ -21,7 +21,7 @@ pub const HostedCompiler = @import("HostedCompiler.zig");
 pub const BuiltinLowLevel = @import("BuiltinLowLevel.zig");
 /// Static embedded Builtin module views and validation
 pub const BuiltinStatic = @import("BuiltinStatic.zig");
-/// Roc code emitter - converts CIR to valid Roc source code
+/// Claw code emitter - converts CIR to valid Claw source code
 pub const ClawEmitter = @import("ClawEmitter.zig");
 /// Node storage for CIR nodes (used internally by ModuleEnv)
 pub const NodeStore = @import("NodeStore.zig");
@@ -118,7 +118,7 @@ test "compile tests" {
     std.testing.refAllDecls(@import("test/uninitialized_var_test.zig"));
     std.testing.refAllDecls(@import("test/while_loop_test.zig"));
 
-    // Backend tests (Roc emitter)
+    // Backend tests (Claw emitter)
     std.testing.refAllDecls(@import("ClawEmitter.zig"));
     std.testing.refAllDecls(@import("test/roc_emitter_test.zig"));
 }

@@ -25,7 +25,7 @@ pub const Relocation = union(enum) {
     },
 
     /// Reference to a function that will be linked.
-    /// Used for calls to external functions or other Roc procedures.
+    /// Used for calls to external functions or other Claw procedures.
     linked_function: struct {
         /// Offset in the code where the function address should be patched
         offset: u64,

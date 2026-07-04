@@ -8343,7 +8343,7 @@ fn generateStaticDispatchConstraintFromWhere(self: *Self, where_idx: CIR.WhereCl
         },
         .w_alias => |alias| {
             // Alias syntax in where clauses (e.g., `where [a.Decode]`) was used for abilities,
-            // which have been removed from Roc. Emit an error.
+            // which have been removed from Claw. Emit an error.
             _ = try self.problems.appendProblem(self.gpa, .{ .unsupported_alias_where_clause = .{
                 .alias_name = alias.alias_name,
                 .region = where_region,
@@ -16119,7 +16119,7 @@ fn commitLiteralDefaultHead(self: *Self, literal_var: Var, env: *Env) Allocator.
 
 /// Candidate order for numeral defaulting (first satisfier wins). `Dec` (the
 /// canonical default) heads the list; then integers — signed before unsigned,
-/// `I64` first (Roc's historical integer default), wider before narrower so a tie
+/// `I64` first (Claw's historical integer default), wider before narrower so a tie
 /// never lands on a type that overflows sooner than it must; floats last. Order
 /// past `Dec` only matters when the constraints refute `Dec` yet accept several
 /// candidates — a pinned concrete arg or return admits exactly one regardless of

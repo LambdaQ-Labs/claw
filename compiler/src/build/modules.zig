@@ -284,7 +284,7 @@ pub const ModuleTestsResult = struct {
     forced_passes: usize,
 };
 
-/// Enumerates the different modules in the Roc compiler codebase.
+/// Enumerates the different modules in the Claw compiler codebase.
 pub const ModuleType = enum {
     collections,
     base,
@@ -368,7 +368,7 @@ pub const ModuleType = enum {
     }
 };
 
-/// Manages all Roc compiler modules and their dependencies
+/// Manages all Claw compiler modules and their dependencies
 pub const ClawModules = struct {
     collections: *Module,
     base: *Module,

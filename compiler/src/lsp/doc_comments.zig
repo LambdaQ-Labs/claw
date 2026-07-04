@@ -1,7 +1,7 @@
 //! Doc Comment Extraction Utility
 //!
-//! This module provides utilities for extracting documentation comments from Roc source code.
-//! In Roc, doc comments use the `##` prefix (not `###` which is a section header comment).
+//! This module provides utilities for extracting documentation comments from Claw source code.
+//! In Claw, doc comments use the `##` prefix (not `###` which is a section header comment).
 //! Multiple consecutive doc comment lines are joined together.
 //!
 //! Since the tokenizer strips all comments, this module extracts doc comments on-demand
@@ -17,7 +17,7 @@ const Allocator = std.mem.Allocator;
 /// Returns an allocated string containing the doc comment text (with `## ` prefixes stripped),
 /// or null if no doc comments are found.
 ///
-/// Doc comments in Roc use `##` prefix (not `###` which is just a section header comment).
+/// Doc comments in Claw use `##` prefix (not `###` which is just a section header comment).
 /// Multiple consecutive doc comment lines are joined with newlines.
 ///
 /// The caller owns the returned memory and must free it with the provided allocator.
@@ -88,7 +88,7 @@ pub fn extractDocCommentBefore(allocator: Allocator, source: []const u8, offset:
 }
 
 /// Checks if a trimmed line is a type annotation (has ':' but no '=')
-/// Type annotations in Roc look like: `add : I64, I64 -> I64`
+/// Type annotations in Claw look like: `add : I64, I64 -> I64`
 fn isTypeAnnotation(trimmed: []const u8) bool {
     // Look for ':' character
     const colon_pos = std.mem.findScalar(u8, trimmed, ':') orelse return false;

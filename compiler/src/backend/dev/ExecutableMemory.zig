@@ -261,7 +261,7 @@ test "execute aarch64 code" {
 test "execute x86_64 with result ptr" {
     if (builtin.cpu.arch != .x86_64) return error.SkipZigTest;
 
-    // Roc ABI: fn(roc_ops, result_ptr, args_ptr)
+    // Claw ABI: fn(roc_ops, result_ptr, args_ptr)
     // Windows x64: RCX = roc_ops (ignored), RDX = result_ptr
     // System V: RDI = roc_ops (ignored), RSI = result_ptr
     // mov qword [arg1], 42; ret

@@ -1,4 +1,4 @@
-//! Runtime implementation of Roc's List type with reference counting and memory optimization.
+//! Runtime implementation of Claw's List type with reference counting and memory optimization.
 //!
 //! Lists use copy-on-write semantics to minimize allocations when shared across contexts.
 //! Seamless slice optimization reduces memory overhead for substring operations.
@@ -23,7 +23,7 @@ pub const SEAMLESS_SLICE_TAG: usize = 1;
 /// Deprecated compatibility alias for the seamless-slice tag bit.
 pub const SEAMLESS_SLICE_BIT: usize = SEAMLESS_SLICE_TAG;
 
-/// Runtime representation of Roc's List type with reference counting and seamless slice optimization.
+/// Runtime representation of Claw's List type with reference counting and seamless slice optimization.
 pub const ClawList = extern struct {
     bytes: ?[*]u8,
     length: usize,

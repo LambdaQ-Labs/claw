@@ -1,5 +1,5 @@
 //! Pre-link verification that the platform's host inputs define the symbols
-//! compiled Roc code references.
+//! compiled Claw code references.
 //!
 //! Apps reference hosted functions and the fixed runtime set (roc_alloc and
 //! friends) as extern symbols the host satisfies at link time. LLVM output

@@ -1,7 +1,7 @@
 //! WebAssembly execution runner for eval and REPL.
 //!
 //! Provides host-function bindings and memory management for running
-//! Roc expressions compiled to WebAssembly via the Bytebox runtime.
+//! Claw expressions compiled to WebAssembly via the Bytebox runtime.
 
 const std = @import("std");
 const builtin = @import("builtin");

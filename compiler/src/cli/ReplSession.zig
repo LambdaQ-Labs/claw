@@ -1022,7 +1022,7 @@ test "Repl - Str.from_utf8 snapshot sequence" {
     const steps = &[_][2][]const u8{
         .{ "Str.from_utf8([72, 105])", "Ok(\"Hi\")" },
         .{ "Str.from_utf8([])", "Ok(\"\")" },
-        .{ "Str.from_utf8([82, 111, 99])", "Ok(\"Roc\")" },
+        .{ "Str.from_utf8([82, 111, 99])", "Ok(\"Claw\")" },
         .{ "Str.from_utf8([240, 159, 144, 166])", "Ok(\"🐦\")" },
         .{ "Str.from_utf8([195, 169])", "Ok(\"é\")" },
         .{ "Str.from_utf8([255]).is_err()", "True" },

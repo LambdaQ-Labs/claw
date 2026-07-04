@@ -49,7 +49,7 @@ fn readU64(bytes: []const u8) u64 {
     return std.mem.readInt(u64, bytes[0..8], .little);
 }
 
-/// Hash a byte slice with SHA-256 and return the 32 digest bytes as a Roc list.
+/// Hash a byte slice with SHA-256 and return the 32 digest bytes as a Claw list.
 pub fn sha256HashBytes(input_bytes: ?[*]const u8, input_len: usize, roc_ops: *ClawOps) ClawList {
     const input = readInput(input_bytes, input_len, roc_ops);
     var digest: [digest_len]u8 = undefined;
@@ -57,7 +57,7 @@ pub fn sha256HashBytes(input_bytes: ?[*]const u8, input_len: usize, roc_ops: *Cl
     return listFromBytes(&digest, roc_ops);
 }
 
-/// Hash a byte slice with BLAKE3 and return the 32 digest bytes as a Roc list.
+/// Hash a byte slice with BLAKE3 and return the 32 digest bytes as a Claw list.
 pub fn blake3HashBytes(input_bytes: ?[*]const u8, input_len: usize, roc_ops: *ClawOps) ClawList {
     const input = readInput(input_bytes, input_len, roc_ops);
     var digest: [digest_len]u8 = undefined;

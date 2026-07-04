@@ -1,7 +1,7 @@
 //! Process signal handling for hosts that want crash messages.
 //!
-//! This module is not part of Roc builtins. Hosts may opt into it explicitly,
-//! and the compiler uses it for its own process. Generated Roc code does not
+//! This module is not part of Claw builtins. Hosts may opt into it explicitly,
+//! and the compiler uses it for its own process. Generated Claw code does not
 //! install or call this module.
 
 const std = @import("std");
@@ -212,7 +212,7 @@ fn stackPointerFromSignalContext(context: ?*anyopaque) ?usize {
 ///
 /// POSIX signal actions are process-wide, but the alternate signal stack and
 /// stack bounds are per-thread. Call this from each thread before it runs work
-/// that should produce Roc's crash messages.
+/// that should produce Claw's crash messages.
 pub fn installForCurrentThread(callbacks: Callbacks) bool {
     if (comptime supports_windows_exceptions) {
         return installWindows(callbacks);

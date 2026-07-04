@@ -1,8 +1,8 @@
-//! Since all of these can be passed across the host boundary, and since compiled Roc
+//! Since all of these can be passed across the host boundary, and since compiled Claw
 //! programs must not depend on libc or on Zig's standard library, it's important that
 //! none of these operations depend on any Zig types like slices or Allocator.
 //!
-//! Roc calls the host using the platform C ABI. Every host operation — the memory and
+//! Claw calls the host using the platform C ABI. Every host operation — the memory and
 //! diagnostic callbacks in `ClawOps`, and each platform-provided hosted function — takes a
 //! leading `*ClawOps` argument (the host's operation table, through which the host can reach
 //! its own `env` context) and then its remaining arguments and return value in whatever
@@ -11,29 +11,29 @@
 //! Hosted functions are exposed to the host with their natural C signatures (see
 //! `src/layout/abi`), so small arguments and returns travel in registers exactly as a
 //! hand-written C function would. A hosted function receives the leading `*ClawOps` only when
-//! its argument or return layouts require Roc memory management; otherwise it is a bare C
+//! its argument or return layouts require Claw memory management; otherwise it is a bare C
 //! call.
 
 const tracy = @import("tracy");
 
 /// A type-erased pointer to a platform-provided hosted function.
 ///
-/// Each hosted function will have its own natural C signature, determined by its Roc argument
+/// Each hosted function will have its own natural C signature, determined by its Claw argument
 /// and return types under the target C ABI, so there is no single concrete function-pointer
 /// type for all of them. They are stored type-erased in `HostedFunctions` and cast back to
-/// their concrete signature at the Roc call site (which knows the types).
+/// their concrete signature at the Claw call site (which knows the types).
 ///
 /// (For now, hosted functions are still invoked through the uniform `(ops, ret_ptr, args_ptr)`
 /// shape until the per-signature C-ABI call path lands; the erased pointer type below keeps
 /// that working. The interpreter will bridge to the natural C ABI via a fixed assembly
 /// register-image trampoline, and the compiled backends will emit direct C-ABI calls.)
 ///
-/// Roc transfers ownership of refcounted arguments to hosted functions. A host function must
+/// Claw transfers ownership of refcounted arguments to hosted functions. A host function must
 /// decref each owned refcounted argument when it is done with it, or transfer that ownership
 /// into its return value or longer-lived storage. If the host keeps both the call argument
 /// and a stored copy, it must incref the stored copy so each live reference has one
 /// ownership.
-/// How builtins and compiled Roc code reach the host's runtime operations.
+/// How builtins and compiled Claw code reach the host's runtime operations.
 pub const HostCallMode = enum {
     /// Through the ClawOps vtable parameter (the interpreter, compiler-internal
     /// evaluation, and any host that constructs a ClawOps).
@@ -97,10 +97,10 @@ pub fn emptyHostedFunctions() HostedFunctions {
     return .{ .count = 0, .fns = &empty_hosted_fns.fns };
 }
 
-/// Operations that the host provides to Roc code, including memory management,
+/// Operations that the host provides to Claw code, including memory management,
 /// panic handling, and platform-specific effects.
 pub const ClawOps = extern struct {
-    /// The host's own context pointer. Roc never interprets it; the host's callbacks reach it
+    /// The host's own context pointer. Claw never interprets it; the host's callbacks reach it
     /// through their leading `*ClawOps` argument (`ops.env`) to find things like an arena
     /// allocator. May be null if the host has no context.
     env: *anyopaque,
@@ -109,7 +109,7 @@ pub const ClawOps = extern struct {
     ///
     /// A host that cannot provide a non-null pointer (e.g. due to OOM) must not return a real
     /// pointer; a platform host aborts, while the compiler-internal host returns `null` so the
-    /// surrounding interpreter can turn it into a Roc crash. (`null` and a real pointer share
+    /// surrounding interpreter can turn it into a Claw crash. (`null` and a real pointer share
     /// the same representation, so codegen and platform hosts that always succeed are
     /// unaffected.)
     roc_alloc: *const fn (*ClawOps, usize, usize) callconv(.c) ?*anyopaque,
@@ -119,21 +119,21 @@ pub const ClawOps = extern struct {
     /// Reallocate `ptr` to `new_length` bytes aligned to `alignment`, returning the new
     /// allocation (or null on OOM, as for `roc_alloc`). Similar to `_aligned_realloc`.
     roc_realloc: *const fn (*ClawOps, *anyopaque, usize, usize) callconv(.c) ?*anyopaque,
-    /// Called when the Roc program runs `dbg`, with the UTF-8 message bytes and length.
+    /// Called when the Claw program runs `dbg`, with the UTF-8 message bytes and length.
     /// The bytes are non-null but not guaranteed to be null-terminated.
     roc_dbg: *const fn (*ClawOps, [*]const u8, usize) callconv(.c) void,
     /// Called when an inline `expect` fails, with the UTF-8 message bytes and length.
     roc_expect_failed: *const fn (*ClawOps, [*]const u8, usize) callconv(.c) void,
-    /// Called when the Roc program crashes (e.g. integer overflow), with the UTF-8 message
-    /// bytes and length. The host must stop execution of the Roc program and not return to it
+    /// Called when the Claw program crashes (e.g. integer overflow), with the UTF-8 message
+    /// bytes and length. The host must stop execution of the Claw program and not return to it
     /// (a platform host aborts; the compiler-internal host longjmps out), so it never returns
-    /// to Roc — but the type stays `void` since a longjmp-based host is not statically noreturn.
+    /// to Claw — but the type stays `void` since a longjmp-based host is not statically noreturn.
     roc_crashed: *const fn (*ClawOps, [*]const u8, usize) callconv(.c) void,
     /// Hosted functions provided by the platform (sorted alphabetically by name).
     /// These are effectful operations like I/O that the platform provides to Type Modules.
     hosted_fns: HostedFunctions,
 
-    /// Helper to crash the Roc program. The host does not return control to Roc.
+    /// Helper to crash the Claw program. The host does not return control to Claw.
     pub fn crash(self: *ClawOps, msg: []const u8) void {
         const trace = tracy.trace(@src());
         defer trace.end();

@@ -1,4 +1,4 @@
-//! Collection utilities and memory alignment constants for the Roc compiler.
+//! Collection utilities and memory alignment constants for the Claw compiler.
 //!
 //! This module provides utilities for managing collections and defines
 //! memory alignment constants used throughout the compiler, particularly
@@ -7,7 +7,7 @@
 const std = @import("std");
 const Allocator = std.mem.Allocator;
 
-/// The highest alignment any Roc type can have.
+/// The highest alignment any Claw type can have.
 /// This is used as the base alignment for the allocation used
 /// in the interpreter for stack allocations.
 pub const max_roc_alignment: std.mem.Alignment = .@"16";

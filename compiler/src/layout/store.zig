@@ -518,7 +518,7 @@ pub const Store = struct {
     }
 
     /// Insert the canonical runtime layout for an erased callable behind a
-    /// `Box(function)` boundary. The value is one pointer to a Roc refcounted
+    /// `Box(function)` boundary. The value is one pointer to a Claw refcounted
     /// allocation whose payload stores the callable header followed by inline
     /// capture bytes.
     pub fn insertErasedCallable(self: *Self) std.mem.Allocator.Error!Idx {

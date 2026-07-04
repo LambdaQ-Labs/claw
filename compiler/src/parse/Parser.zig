@@ -1,4 +1,4 @@
-//! Parser for converting tokenized Roc source code into an Abstract Syntax Tree.
+//! Parser for converting tokenized Claw source code into an Abstract Syntax Tree.
 //!
 //! This module provides the Parser struct which takes a buffer of tokens and
 //! transforms them into an AST representation. The parser handles syntax errors
@@ -740,7 +740,7 @@ pub fn runFile(self: *Parser) std.mem.Allocator.Error!void {
     });
 }
 
-/// Parse a Roc file header.
+/// Parse a Claw file header.
 pub fn runHeader(self: *Parser) std.mem.Allocator.Error!AST.Header.Idx {
     const trace = tracy.trace(@src());
     defer trace.end();
@@ -2731,7 +2731,7 @@ fn readQualificationChain(self: *Parser, mode: QualificationMode) std.mem.Alloca
     };
 }
 
-/// Parse a Roc expression with the lowest binding power.
+/// Parse a Claw expression with the lowest binding power.
 pub fn runExpr(self: *Parser) std.mem.Allocator.Error!AST.Expr.Idx {
     const trace = tracy.trace(@src());
     defer trace.end();
@@ -2739,7 +2739,7 @@ pub fn runExpr(self: *Parser) std.mem.Allocator.Error!AST.Expr.Idx {
     return try self.runExprBp(0);
 }
 
-/// Parse a Roc expression with a caller-provided minimum binding power.
+/// Parse a Claw expression with a caller-provided minimum binding power.
 pub fn runExprBp(self: *Parser, min_bp: u8) std.mem.Allocator.Error!AST.Expr.Idx {
     const trace = tracy.trace(@src());
     defer trace.end();

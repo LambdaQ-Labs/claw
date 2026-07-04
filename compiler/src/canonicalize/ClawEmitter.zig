@@ -1,11 +1,11 @@
-//! Roc Code Emitter
+//! Claw Code Emitter
 //!
-//! Converts the Canonical IR (CIR) to valid Roc source code.
+//! Converts the Canonical IR (CIR) to valid Claw source code.
 //! This is primarily used for testing the monomorphization pipeline -
-//! we can emit monomorphic Roc code and verify it produces the same results
+//! we can emit monomorphic Claw code and verify it produces the same results
 //! as the original polymorphic code.
 //!
-//! The emitter walks the CIR expression tree and writes corresponding Roc syntax.
+//! The emitter walks the CIR expression tree and writes corresponding Claw syntax.
 
 const std = @import("std");
 const Allocator = std.mem.Allocator;
@@ -29,7 +29,7 @@ allocator: std.mem.Allocator,
 /// The module environment containing the CIR
 module_env: *const ModuleEnv,
 
-/// The output buffer where Roc code is written
+/// The output buffer where Claw code is written
 output: std.ArrayList(u8),
 
 /// Scratch buffer for short-lived formatting.
@@ -74,7 +74,7 @@ pub fn deinit(self: *Self) void {
     self.capture_renames.deinit();
 }
 
-/// Get the emitted Roc source code
+/// Get the emitted Claw source code
 pub fn getOutput(self: *const Self) []const u8 {
     return self.output.items;
 }
@@ -94,12 +94,12 @@ pub fn reset(self: *Self) void {
     self.rename_counter = 0;
 }
 
-/// Emit an expression as Roc source code
+/// Emit an expression as Claw source code
 pub fn emitExpr(self: *Self, expr_idx: Expr.Idx) EmitError!void {
     try self.emitFromFrame(.{ .expr = expr_idx });
 }
 
-/// Emit a pattern as Roc source code
+/// Emit a pattern as Claw source code
 pub fn emitPattern(self: *Self, pattern_idx: CIR.Pattern.Idx) EmitError!void {
     try self.emitFromFrame(.{ .pattern = pattern_idx });
 }
@@ -934,7 +934,7 @@ fn formatF64(self: *Self, value: f64) std.mem.Allocator.Error![]const u8 {
 
 /// Emit a tag name, transforming compiler-generated `#` prefix to `C`.
 /// This handles closure tag names like "#1_foo" which become "C1_foo" in output.
-/// The `#` prefix is used internally because it's reserved for comments in Roc
+/// The `#` prefix is used internally because it's reserved for comments in Claw
 /// source code, ensuring no collision with user-defined tag names.
 fn emitTagName(self: *Self, name: []const u8) Allocator.Error!void {
     if (name.len > 0 and name[0] == '#') {
@@ -949,7 +949,7 @@ fn emitTagName(self: *Self, name: []const u8) Allocator.Error!void {
 
 /// Emit an identifier, transforming compiler-generated `#` prefix to `c`.
 /// This handles lifted function names like "#1_foo" which become "c1_foo" in output.
-/// The `#` prefix is used internally because it's reserved for comments in Roc
+/// The `#` prefix is used internally because it's reserved for comments in Claw
 /// source code, ensuring no collision with user-defined identifiers.
 fn emitIdent(self: *Self, name: []const u8) Allocator.Error!void {
     if (name.len > 0 and name[0] == '#') {

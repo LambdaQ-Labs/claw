@@ -21,7 +21,7 @@ pub const ErrorCode = enum(i32) {
     }
 };
 
-/// Standard JSON-RPC error envelope used in Roc responses.
+/// Standard JSON-RPC error envelope used in Claw responses.
 pub const ResponseError = struct {
     code: ErrorCode,
     message: []const u8,
@@ -187,7 +187,7 @@ pub const ClientState = struct {
     }
 };
 
-/// Metadata describing the Roc language server.
+/// Metadata describing the Claw language server.
 pub const ServerInfo = struct {
     name: []const u8,
     version: ?[]const u8 = null,

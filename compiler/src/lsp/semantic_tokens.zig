@@ -1,6 +1,6 @@
-//! Semantic token extraction for the Roc LSP.
+//! Semantic token extraction for the Claw LSP.
 //!
-//! This module provides functionality to extract semantic tokens from Roc source code
+//! This module provides functionality to extract semantic tokens from Claw source code
 //! and encode them in the LSP delta-encoded format for syntax highlighting.
 //!
 //! Two extraction modes are available:
@@ -58,7 +58,7 @@ pub const SemanticToken = struct {
     }
 };
 
-/// Maps a Roc Token.Tag to an LSP semantic type index.
+/// Maps a Claw Token.Tag to an LSP semantic type index.
 /// Returns null for tokens that should not be highlighted (punctuation, etc.).
 pub fn tokenTagToSemanticType(tag: Token.Tag) ?u32 {
     return switch (tag) {
@@ -210,7 +210,7 @@ pub fn tokenTagToSemanticType(tag: Token.Tag) ?u32 {
     };
 }
 
-/// Extracts semantic tokens from Roc source code.
+/// Extracts semantic tokens from Claw source code.
 /// Returns a list of SemanticToken structs with absolute positions.
 pub fn extractSemanticTokens(
     allocator: std.mem.Allocator,

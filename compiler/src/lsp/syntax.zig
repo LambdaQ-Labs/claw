@@ -1,4 +1,4 @@
-//! Syntax checking integration that runs the Roc compiler and converts
+//! Syntax checking integration that runs the Claw compiler and converts
 //! reports to LSP diagnostics.
 
 const std = @import("std");
@@ -817,7 +817,7 @@ pub const SyntaxChecker = struct {
         range: LspRange,
     };
 
-    /// Returns true when a byte can be part of a Roc identifier token used for
+    /// Returns true when a byte can be part of a Claw identifier token used for
     /// hover symbol fallback resolution.
     fn isSymbolByte(b: u8) bool {
         return std.ascii.isAlphanumeric(b) or b == '_' or b == '.';

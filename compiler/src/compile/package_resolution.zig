@@ -28,7 +28,7 @@
 //! in the cache recording its kind, declared dependencies, and content size.
 //! Bundles are content-addressed and immutable, so sidecars never need
 //! invalidation, and warm-cache resolution touches no network and parses no
-//! Roc headers. Sidecars record only immutable facts about a bundle - never
+//! Claw headers. Sidecars record only immutable facts about a bundle - never
 //! resolution outcomes, which are global and recomputed every build.
 //!
 //! As a defense against decompression bombs, each package bundle's expanded
@@ -1217,7 +1217,7 @@ fn copyFetchedPackage(allocator: Allocator, fetched: FetchedPackage) Allocator.E
     };
 }
 
-/// Scan a Roc source file's header for its kind and declared dependencies.
+/// Scan a Claw source file's header for its kind and declared dependencies.
 /// Allocates returned strings with `allocator`; uses `gpa` for scratch.
 pub fn scanHeaderSource(
     allocator: Allocator,

@@ -1,4 +1,4 @@
-//! Any text in a Roc source file that has significant content.
+//! Any text in a Claw source file that has significant content.
 //!
 //! During tokenization, all variable names, record field names, type names, etc. are interned
 //! into a deduplicated collection, the [Ident.Store]. On interning, each Ident gets a unique ID

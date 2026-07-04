@@ -55,7 +55,7 @@ fn rocAlloc(roc_ops: *ClawOps, length: usize, alignment: usize) callconv(.c) ?*a
     const allocation: Allocation = .{ .size = length, .alignment = alignment };
     const ptr = allocateBytes(self.allocator, length, alignment) orelse {
         // OOM: signal failure to the caller (the interpreter turns this into a
-        // Roc crash) instead of aborting the whole compiler.
+        // Claw crash) instead of aborting the whole compiler.
         return null;
     };
     self.allocations.put(@intFromPtr(ptr), allocation) catch {

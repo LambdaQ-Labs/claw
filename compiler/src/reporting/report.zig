@@ -55,9 +55,9 @@ fn titleContainsIgnoreCase(title: []const u8, needle: []const u8) bool {
 ///     keeps the authored case);
 ///   - allowed to contain backticked inline code spans, whose contents must be
 ///     non-empty and trimmed, but are not title-cased;
-///   - free of the word "comptime", which is a Zig term, not a Roc one, and so
+///   - free of the word "comptime", which is a Zig term, not a Claw one, and so
 ///     must never reach user-facing text;
-///   - free of any pairing of "annotation" with "need" or "miss" — Roc never
+///   - free of any pairing of "annotation" with "need" or "miss" — Claw never
 ///     tells users they must annotate their types (see the panic below).
 fn isTrimmed(text: []const u8) bool {
     return std.mem.eql(u8, text, std.mem.trim(u8, text, " \t\r\n"));
@@ -218,7 +218,7 @@ fn assertValidTitleAndDescription(title: []const u8, description: []const u8) vo
         (titleContainsIgnoreCase(title, "need") or titleContainsIgnoreCase(title, "miss")))
     {
         @panic(
-            "Error-report title pairs \"annotation\" with \"need\"/\"miss\". Roc never tells " ++
+            "Error-report title pairs \"annotation\" with \"need\"/\"miss\". Claw never tells " ++
                 "users they NEED to annotate their types: unlike many languages, type annotations " ++
                 "are never required as a matter of course, so no part of a diagnostic report should " ++
                 "say a type needs, or is missing, an annotation. When a type is ambiguous, explain " ++

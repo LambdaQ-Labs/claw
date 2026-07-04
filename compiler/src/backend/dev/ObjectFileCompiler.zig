@@ -1,6 +1,6 @@
-//! Object File Compiler for Roc Dev Backend
+//! Object File Compiler for Claw Dev Backend
 //!
-//! This module orchestrates the compilation of Roc code to native object files
+//! This module orchestrates the compilation of Claw code to native object files
 //! using the dev backend. It generates ABI-compliant entrypoint wrappers that
 //! can be linked with platform hosts.
 //!
@@ -8,7 +8,7 @@
 //!
 //! The compilation pipeline:
 //! ```
-//! Roc Source → checked modules → post-check IRs → LIR → Machine Code → Object File
+//! Claw Source → checked modules → post-check IRs → LIR → Machine Code → Object File
 //! ```
 
 const std = @import("std");

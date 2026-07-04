@@ -1,4 +1,4 @@
-//! Unbundle functionality for Roc packages using Zig's standard library
+//! Unbundle functionality for Claw packages using Zig's standard library
 //!
 //! This module provides functionality to:
 //! - Unbundle compressed tar archives (.tar.zst files)

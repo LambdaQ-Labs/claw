@@ -1,7 +1,7 @@
 //! Safe hash map collections with serialization support
 //!
 //! These collections provide type-safe serialization/deserialization for hash maps
-//! commonly used in the Roc compiler.
+//! commonly used in the Claw compiler.
 
 const std = @import("std");
 const testing = std.testing;

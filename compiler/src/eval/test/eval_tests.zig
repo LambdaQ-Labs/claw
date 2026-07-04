@@ -641,9 +641,9 @@ const core_tests = [_]TestCase{
         \\force : Tag -> Tag
         \\force = |t| t
         \\
-        \\main = force("Roc")
+        \\main = force("Claw")
         ,
-        .expected = .{ .inspect_str = "Tag(\"Roc\")" },
+        .expected = .{ .inspect_str = "Tag(\"Claw\")" },
     },
     .{
         .name = "inspect: from_quote literal defaults to Str",
@@ -891,9 +891,9 @@ const core_tests = [_]TestCase{
         \\    from_quote = |str| Ok(Tag(str))
         \\}
         \\
-        \\main = "Roc".Tag
+        \\main = "Claw".Tag
         ,
-        .expected = .{ .inspect_str = "Tag(\"Roc\")" },
+        .expected = .{ .inspect_str = "Tag(\"Claw\")" },
     },
     .{
         .name = "inspect: string literal Str type suffix",
@@ -1092,7 +1092,7 @@ const core_tests = [_]TestCase{
         .expected = .{ .inspect_str = "(0, 3)" },
     },
     .{
-        .name = "inspect: Bool stored boxed tagged and passed as ordinary Roc value",
+        .name = "inspect: Bool stored boxed tagged and passed as ordinary Claw value",
         .source_kind = .module,
         .source =
         \\choose : Bool, a, a -> a

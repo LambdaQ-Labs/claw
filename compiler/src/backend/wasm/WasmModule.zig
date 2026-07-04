@@ -6051,7 +6051,7 @@ test "verifyNoLinkObjectContract - allows only env wasm object ABI imports" {
     try module.verifyNoLinkObjectContract();
 }
 
-test "verifyNoLinkObjectContract - rejects undefined Roc builtin function symbols" {
+test "verifyNoLinkObjectContract - rejects undefined Claw builtin function symbols" {
     const allocator = std.testing.allocator;
     var module = Self.init(allocator);
     defer module.deinit();

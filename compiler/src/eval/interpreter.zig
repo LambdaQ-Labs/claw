@@ -180,7 +180,7 @@ const InterpreterRocEnv = struct {
     }
 
     /// The host allocators signal OOM by returning a null pointer (see
-    /// `host_abi.ClawOps.roc_alloc`). Turn that into a Roc crash that unwinds to
+    /// `host_abi.ClawOps.roc_alloc`). Turn that into a Claw crash that unwinds to
     /// the eval boundary via the active jump buffer, instead of letting it abort.
     fn crashAllocationFailed(self: *InterpreterRocEnv) noreturn {
         self.reportCrash("ran out of memory");
@@ -264,7 +264,7 @@ pub const Interpreter = struct {
     const LirInterpreter = @This();
     const max_call_depth: usize = 1024;
     const stack_overflow_message =
-        "This Roc program overflowed its stack memory. This usually means there is very deep or infinite recursion somewhere in the code.";
+        "This Claw program overflowed its stack memory. This usually means there is very deep or infinite recursion somewhere in the code.";
     /// Debug value-shape validation stops descending past this many nested
     /// values; deeper structures are legal (TRMC builds arbitrarily long
     /// lists) but walking them would overflow the native stack.
@@ -300,7 +300,7 @@ pub const Interpreter = struct {
     rc_plans: std.AutoHashMapUnmanaged(u64, layout_mod.RcHelperPlan) = .{},
     struct_field_plans: std.AutoHashMapUnmanaged(u64, ?layout_mod.RcFieldPlan) = .{},
     tag_variant_plans: std.AutoHashMapUnmanaged(u64, ?layout_mod.RcHelperKey) = .{},
-    /// Bound recursive function-call depth so the interpreter reports a Roc crash
+    /// Bound recursive function-call depth so the interpreter reports a Claw crash
     /// instead of overflowing the native stack.
     call_depth: usize = 0,
     /// Active proc call stack for the current evaluation.
@@ -2773,7 +2773,7 @@ pub const Interpreter = struct {
             error.RuntimeError => ops.crash("LIR/interpreter erased callable trampoline hit runtime error"),
             error.ComptimeExhaustiveness => ops.crash("LIR/interpreter erased callable trampoline hit compile-time exhaustiveness marker"),
             error.DivisionByZero => ops.crash("LIR/interpreter erased callable trampoline hit division by zero"),
-            error.Crash => ops.crash("LIR/interpreter erased callable trampoline hit Roc crash"),
+            error.Crash => ops.crash("LIR/interpreter erased callable trampoline hit Claw crash"),
             // expect_err statements only occur in top-level expect test
             // roots, never in callable bodies.
             error.ExpectErr => unreachable,
@@ -3266,7 +3266,7 @@ pub const Interpreter = struct {
         arg_layouts: []const layout_mod.Idx,
         ret_layout: layout_mod.Idx,
     ) Error!Value {
-        // Pack arguments into a buffer in Roc layout order, recording each argument's offset
+        // Pack arguments into a buffer in Claw layout order, recording each argument's offset
         // so the C-ABI trampoline can scatter them into registers.
         var total_args_size: usize = 0;
         var args_alignment: layout_mod.ClawAlignment = .@"1";
@@ -3329,7 +3329,7 @@ pub const Interpreter = struct {
             // Architectures without a register-image trampoline (e.g. wasm32, where
             // a dynamic-signature call cannot be synthesized) call hosted functions
             // through a uniform `(args_buf, ret_buf)` ABI instead. The arguments are
-            // already packed contiguously above in Roc layout order, so the host reads
+            // already packed contiguously above in Claw layout order, so the host reads
             // each one from `args_buf` at its layout offset and writes the return value
             // into `ret_buf`. Platforms register their hosted functions in this shape
             // when `host_trampoline.available` is false (see the echo platform).
@@ -4627,7 +4627,7 @@ pub const Interpreter = struct {
             },
             .str_from_utf8 => blk: {
                 // str_from_utf8(list) -> Try(Str, [BadUtf8 {index: U64, problem: Utf8Problem}, ..])
-                // The C builtin returns FromUtf8Try (a flat struct). We convert it to the Roc
+                // The C builtin returns FromUtf8Try (a flat struct). We convert it to the Claw
                 // tag union layout using layout-resolved offsets. Note the err tag union has an
                 // open extension (`..`), so at the call site it may be unified with other error
                 // tags from `?` chaining. We must locate the BadUtf8 variant inside that

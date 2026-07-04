@@ -1,4 +1,4 @@
-//! Type system definitions and utilities for the Roc compiler.
+//! Type system definitions and utilities for the Claw compiler.
 //!
 //! This module re-exports core type definitions from the types/ directory.
 //! It serves as the main interface for type-related functionality throughout

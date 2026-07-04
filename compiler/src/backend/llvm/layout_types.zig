@@ -1,7 +1,7 @@
 //! Layout to LLVM Type Conversion
 //!
-//! This module provides conversion from Roc's Layout system to LLVM types.
-//! It converts the Roc compiler's layout representation to LLVM IR builder types.
+//! This module provides conversion from Claw's Layout system to LLVM types.
+//! It converts the Claw compiler's layout representation to LLVM IR builder types.
 //!
 //! Main conversions:
 //! - Scalars → i8/i16/i32/i64/i128/float/double
@@ -25,7 +25,7 @@ pub const Error = error{
     OutOfMemory,
 };
 
-/// Converts a Roc Layout to an LLVM Builder.Type.
+/// Converts a Claw Layout to an LLVM Builder.Type.
 ///
 /// Records and tuples nest other layouts, so this walks them with an explicit
 /// post-order work stack (never recursion): field/element layouts are converted
@@ -132,14 +132,14 @@ fn fracPrecisionToLlvmType(precision: types.Frac.Precision) Builder.Type {
     };
 }
 
-/// Get the LLVM type for a Roc List (3-element struct: ptr, len, capacity)
+/// Get the LLVM type for a Claw List (3-element struct: ptr, len, capacity)
 fn listLlvmType(builder: *Builder) Error!Builder.Type {
     // List layout: { ptr: *T, len: u64, capacity: u64 }
     const fields = [_]Builder.Type{ .ptr, .i64, .i64 };
     return builder.structType(.normal, &fields) catch return error.OutOfMemory;
 }
 
-/// Get the LLVM type for a Roc Str (3-element struct: ptr, encoded capacity, len)
+/// Get the LLVM type for a Claw Str (3-element struct: ptr, encoded capacity, len)
 /// Note: Str also has seamless small string optimization, but the LLVM type
 /// is the same (the SSO is handled at runtime)
 pub fn strLlvmType(builder: *Builder) Error!Builder.Type {

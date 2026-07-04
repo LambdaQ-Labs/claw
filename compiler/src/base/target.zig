@@ -12,7 +12,7 @@ pub const Target = struct {
 
 /// How big is `usize` on a given target?
 pub const TargetUsize = enum(u1) {
-    /// Roc only supports compiling to 32-bit and 64-bit targets
+    /// Claw only supports compiling to 32-bit and 64-bit targets
     u32 = 0,
     u64 = 1,
 
@@ -33,12 +33,12 @@ pub const TargetUsize = enum(u1) {
         4 => .u32,
         8 => .u64,
         else => {
-            // The Roc compiler can only be built for 32-bit and 64-bit targets.
+            // The Claw compiler can only be built for 32-bit and 64-bit targets.
             unreachable;
         },
     };
 
-    /// Returns an array of all TargetUsize variants that Roc supports
+    /// Returns an array of all TargetUsize variants that Claw supports
     pub fn all() [2]TargetUsize {
         return .{ .u32, .u64 };
     }

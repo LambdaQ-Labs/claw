@@ -1,4 +1,4 @@
-//! LLVM-based compilation infrastructure for Roc
+//! LLVM-based compilation infrastructure for Claw
 
 const std = @import("std");
 const builtin = @import("builtin");

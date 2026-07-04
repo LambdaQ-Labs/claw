@@ -12,7 +12,7 @@
 //!   --threads <N>        Max concurrent child processes (default: CPU count)
 //!   --timeout <ms>       Per-test timeout in ms (default: 120000, 240000 with glue)
 //!   --include-llvm       Include size and speed LLVM backend jobs
-//!   --glue-roc <path>    Roc binary to use for glue generation (default: <roc_binary>)
+//!   --glue-roc <path>    Claw binary to use for glue generation (default: <roc_binary>)
 //!   --glue-opt <opt>     Glue execution mode; supported value: interpreter
 //!   --glue-full-targets  Run opt-in non-default glue compile targets
 //!   --verbose            Print PASS results and timing details
@@ -654,9 +654,9 @@ const all_syntax_expected_stdout =
     \\10.0
     \\42.0
     \\NotOneTwoNotFive
-    \\("Roc", 1.0)
+    \\("Claw", 1.0)
     \\["a", "b"]
-    \\("Roc", 1.0, 1.0, 1.0)
+    \\("Claw", 1.0, 1.0, 1.0)
     \\10.0
     \\{ age: 31, name: "Alice" }
     \\{ binary: 5.0, explicit_i128: 5, explicit_i16: 5, explicit_i32: 5, explicit_i64: 5, explicit_i8: 5, explicit_u128: 5, explicit_u16: 5, explicit_u32: 5, explicit_u64: 5, explicit_u8: 5, hex: 5.0, octal: 5.0, usage_based: 5.0 }
@@ -818,7 +818,7 @@ const subcommand_cases = [_]CliCase{
     .{ .id = 0, .suite = .subcommands, .name = "issue 9717: spec-constr record cloning reaches target validation on LLVM speed backend", .backend = .speed, .body = .{ .command = .{ .args = &.{ "build", "--opt=speed", "--no-cache" }, .roc_file = "test/cli/Issue9717SpecConstrSpanInvalidation.roc", .exit = .failure, .contains = &.{.{ .stream = .stderr, .text = "MISSING TARGET FILE" }}, .not_contains = &.{ .{ .stream = .stderr, .text = "Segmentation fault" }, .{ .stream = .stderr, .text = "SIGSEGV" }, .{ .stream = .stderr, .text = "panic" } } } } },
     .{ .id = 0, .suite = .subcommands, .name = "issue 9801: spec-constr call-pattern collection survives program.fns reallocation on LLVM size backend", .backend = .size, .body = .{ .command = .{ .args = &.{ "build", "--target=wasm32", "--opt=size", "--no-cache" }, .roc_file = "test/wasm/issue_9801_spec_constr_realloc/app.roc", .exit = .not_panic, .not_contains = &.{ .{ .stream = .stderr, .text = "index out of bounds" }, .{ .stream = .stderr, .text = "Segmentation fault" }, .{ .stream = .stderr, .text = "SIGSEGV" }, .{ .stream = .stderr, .text = "panic" } } } } },
     .{ .id = 0, .suite = .subcommands, .name = "direct LIR callable calls survive variant table growth on LLVM speed backend", .backend = .speed, .body = .{ .command = .{ .args = &.{ "build", "--opt=speed", "--no-cache" }, .roc_file = "test/cli/direct_lir_callable_variant_span_invalidation.roc", .exit = .success, .contains = &.{.{ .stream = .stdout, .text = "successfully building" }}, .not_contains = &.{ .{ .stream = .stderr, .text = "direct LIR reachability referenced a missing function spec" }, .{ .stream = .stderr, .text = "postcheck invariant violated" }, .{ .stream = .stderr, .text = "panic" } } } } },
-    .{ .id = 0, .suite = .subcommands, .name = "issue 9815: roc run turns discarded user where-clause error into ordinary crash", .body = .{ .command = .{ .args = &.{"--no-cache"}, .roc_file = "test/cli/issue_9815_discarded_user_where_clause_output.roc", .exit = .failure, .contains = &.{ .{ .stream = .stderr, .text = "MISSING METHOD" }, .{ .stream = .stderr, .text = "from_thing" }, .{ .stream = .stderr, .text = "Roc application crashed with this message:" } }, .not_contains = &.{ .{ .stream = .stderr, .text = "unresolved `where`-clause method dispatch on a polymorphic value" }, .{ .stream = .stderr, .text = "dispatch plan had no method owner" }, .{ .stream = .stderr, .text = "panic" } } } } },
+    .{ .id = 0, .suite = .subcommands, .name = "issue 9815: roc run turns discarded user where-clause error into ordinary crash", .body = .{ .command = .{ .args = &.{"--no-cache"}, .roc_file = "test/cli/issue_9815_discarded_user_where_clause_output.roc", .exit = .failure, .contains = &.{ .{ .stream = .stderr, .text = "MISSING METHOD" }, .{ .stream = .stderr, .text = "from_thing" }, .{ .stream = .stderr, .text = "Claw application crashed with this message:" } }, .not_contains = &.{ .{ .stream = .stderr, .text = "unresolved `where`-clause method dispatch on a polymorphic value" }, .{ .stream = .stderr, .text = "dispatch plan had no method owner" }, .{ .stream = .stderr, .text = "panic" } } } } },
     .{ .id = 0, .suite = .subcommands, .name = "issue 9858: default app args.get value times reports missing method without panic", .body = .{ .command = .{ .args = &.{"--no-cache"}, .roc_file = "test/cli/issue_9858_default_app_args_get_times.roc", .exit = .failure, .contains = &.{ .{ .stream = .stderr, .text = "MISSING METHOD" }, .{ .stream = .stderr, .text = "times" } }, .not_contains = &.{ .{ .stream = .stderr, .text = "checked method registry is missing resolved dispatch target" }, .{ .stream = .stderr, .text = "postcheck invariant violated" }, .{ .stream = .stderr, .text = "panic" } } } } },
     .{ .id = 0, .suite = .subcommands, .name = "spec-constr preserves List.find_first return targets on LLVM size wasm backend", .backend = .size, .body = .{ .command = .{ .args = &.{ "build", "--target=wasm32", "--opt=size", "--no-cache" }, .roc_file = "test/wasm/spec_constr_return_target_app.roc", .exit = .success, .contains = &.{.{ .stream = .stdout, .text = "successfully building" }}, .not_contains = &.{ .{ .stream = .stderr, .text = "return target type differed" }, .{ .stream = .stderr, .text = "postcheck invariant violated" }, .{ .stream = .stderr, .text = "panic" } } } } },
     .{ .id = 0, .suite = .subcommands, .name = "issue 9548: record function fields can be called with method syntax", .body = .{ .command = .{ .args = &.{ "check", "--no-cache" }, .roc_file = "test/cli/issue_9548_record_function_field_method.roc", .exit = .success, .contains_any = &.{.{ .needles = &no_errors_needles }}, .not_contains = &.{ .{ .stream = .stderr, .text = "MISSING METHOD" }, .{ .stream = .stderr, .text = "panic" } } } } },
@@ -853,7 +853,7 @@ const subcommand_cases = [_]CliCase{
     .{ .id = 0, .suite = .subcommands, .name = "default platform stack overflow prints debug backtrace on arm64win", .body = .{ .custom = .default_platform_stack_overflow_arm64win } },
     .{ .id = 0, .suite = .subcommands, .name = "roc version outputs at least 5 chars to stdout", .body = .{ .command = .{ .args = &.{"version"}, .stdout_min_len = 5 } } },
     .{ .id = 0, .suite = .subcommands, .name = "roc repl batch mode suppresses welcome banner", .body = .{ .command = .{ .args = &.{"repl"}, .stdin = "", .stdout_exact = "", .stderr_exact = "" } } },
-    .{ .id = 0, .suite = .subcommands, .name = "roc repl evaluates simple expression", .body = .{ .command = .{ .args = &.{"repl"}, .stdin = "1 + 1\n", .contains = &.{.{ .stream = .stdout, .text = "2" }}, .not_contains = &.{ .{ .stream = .stdout, .text = "Roc REPL" }, .{ .stream = .stdout, .text = ">" }, .{ .stream = .stdout, .text = "Goodbye" } } } } },
+    .{ .id = 0, .suite = .subcommands, .name = "roc repl evaluates simple expression", .body = .{ .command = .{ .args = &.{"repl"}, .stdin = "1 + 1\n", .contains = &.{.{ .stream = .stdout, .text = "2" }}, .not_contains = &.{ .{ .stream = .stdout, .text = "Claw REPL" }, .{ .stream = .stdout, .text = ">" }, .{ .stream = .stdout, .text = "Goodbye" } } } } },
     .{ .id = 0, .suite = .subcommands, .name = "roc repl evaluates final stdin line without trailing newline", .body = .{ .command = .{ .args = &.{"repl"}, .stdin = "1 + 1", .contains = &.{.{ .stream = .stdout, .text = "2" }}, .stderr_exact = "" } } },
     .{ .id = 0, .suite = .subcommands, .name = "roc repl :help command works", .body = .{ .command = .{ .args = &.{"repl"}, .stdin = ":help\n", .contains_any = &.{.{ .needles = &.{ .{ .stream = .stdout, .text = ":exit" }, .{ .stream = .stdout, .text = ":quit" } } }} } } },
     .{ .id = 0, .suite = .subcommands, .name = "roc repl :exit command exits cleanly in batch mode", .body = .{ .command = .{ .args = &.{"repl"}, .stdin = ":exit\n", .stdout_exact = "", .stderr_exact = "" } } },
@@ -986,7 +986,7 @@ const subcommand_cases = [_]CliCase{
     .{ .id = 0, .suite = .subcommands, .name = "roc check treats integral scientific notation as integer syntax sugar", .body = .{ .command = .{ .args = &.{ "check", "--no-cache" }, .roc_file = "test/cli/scientific_integer_u8.roc", .contains_any = &.{.{ .needles = &no_errors_needles }}, .not_contains = &.{.{ .stream = .stderr, .text = "panic:" }} } } },
     .{ .id = 0, .suite = .subcommands, .name = "roc returns exit code 2 for warnings (interpreter)", .backend = .interpreter, .body = .{ .command = .{ .args = &.{ "--opt=interpreter", "--no-cache" }, .roc_file = "test/fx/run_warning_only.roc", .exit = .{ .code = 2 }, .contains_any = &.{.{ .needles = &warning_needles }} } } },
     .{ .id = 0, .suite = .subcommands, .name = "roc --opt=dev returns exit code 2 for warnings", .backend = .dev, .body = .{ .command = .{ .args = &.{ "--opt=dev", "--no-cache" }, .roc_file = "test/fx/run_warning_only.roc", .exit = .{ .code = 2 }, .contains_any = &.{.{ .needles = &warning_needles }} } } },
-    .{ .id = 0, .suite = .subcommands, .name = "roc returns exit code 1 for old platform download", .backend = .interpreter, .body = .{ .command = .{ .args = &.{ "--opt=interpreter", "--no-cache" }, .roc_file = "test/cli/old_hello_world.roc", .exit = .{ .code = 1 }, .contains = &.{.{ .stream = .stderr, .text = "platform was built with the old Roc" }} } } },
+    .{ .id = 0, .suite = .subcommands, .name = "roc returns exit code 1 for old platform download", .backend = .interpreter, .body = .{ .command = .{ .args = &.{ "--opt=interpreter", "--no-cache" }, .roc_file = "test/cli/old_hello_world.roc", .exit = .{ .code = 1 }, .contains = &.{.{ .stream = .stderr, .text = "platform was built with the old Claw" }} } } },
     .{ .id = 0, .suite = .subcommands, .name = "roc --opt=dev rejects non executable targets", .backend = .dev, .body = .{ .command = .{ .args = &.{ "--opt=dev", "--target=wasm32" }, .roc_file = "test/wasm/app.roc", .exit = .failure, .contains_any = &.{.{ .needles = &.{ .{ .stream = .stderr, .text = "only produces static libraries" }, .{ .stream = .stderr, .text = "TARGET NOT SUPPORTED" }, .{ .stream = .stderr, .text = "unsupported target" } } }} } } },
     .{ .id = 0, .suite = .subcommands, .name = "roc build returns exit code 2 for warnings (interpreter)", .backend = .interpreter, .body = .{ .custom = .build_warning_interpreter } },
     .{ .id = 0, .suite = .subcommands, .name = "roc build returns exit code 2 for warnings (dev)", .backend = .dev, .skip = .{ .always = "TODO: dev backend compilation fails for test/fx/run_warning_only.roc" }, .body = .{ .custom = .noop } },
@@ -1304,7 +1304,7 @@ fn runPlatformCase(io: std.Io, allocator: Allocator, spec: CliCase, timeout_ms: 
     defer dirs.deinit(allocator);
 
     const roc_file = absoluteFromProjectRoot(allocator, platform.roc_file) catch
-        return .{ .status = .infra_error, .phase = .setup, .duration_ns = timer.read(), .message = "failed to resolve Roc file path" };
+        return .{ .status = .infra_error, .phase = .setup, .duration_ns = timer.read(), .message = "failed to resolve Claw file path" };
 
     const output_name = std.fs.path.join(allocator, &.{ dirs.work_dir, "app" }) catch
         return .{ .status = .infra_error, .phase = .setup, .duration_ns = timer.read(), .message = "failed to allocate output path" };
@@ -4256,14 +4256,14 @@ fn customDefaultPlatformDebugBacktrace(
 
     const expected_contains: []const OutputNeedle = switch (kind) {
         .crash => &.{
-            .{ .stream = .stderr, .text = "Roc application crashed with this message:\n\n\tdefault platform crash contract\n\n" },
+            .{ .stream = .stderr, .text = "Claw application crashed with this message:\n\n\tdefault platform crash contract\n\n" },
             .{ .stream = .stderr, .text = "Backtrace:" },
             .{ .stream = .stderr, .text = "\x1b[94mtrigger!\x1b[0m" },
             .{ .stream = .stderr, .text = "\x1b[94mmain!\x1b[0m" },
             .{ .stream = .stderr, .text = " main:" },
         },
         .stack_overflow => &.{
-            .{ .stream = .stderr, .text = "Roc application overflowed its stack memory\n\n" },
+            .{ .stream = .stderr, .text = "Claw application overflowed its stack memory\n\n" },
             .{ .stream = .stderr, .text = "Backtrace:" },
             .{ .stream = .stderr, .text = "\x1b[94mrecurse\x1b[0m" },
         },
@@ -4277,7 +4277,7 @@ fn customDefaultPlatformDebugBacktrace(
         .not_contains = &.{
             .{ .stream = .stderr, .text = "Segmentation fault" },
             .{ .stream = .stderr, .text = "panic" },
-            .{ .stream = .stderr, .text = "Roc " ++ "crashed:" },
+            .{ .stream = .stderr, .text = "Claw " ++ "crashed:" },
             .{ .stream = .stderr, .text = "Stack overflow" },
             .{ .stream = .stderr, .text = " at " },
             .{ .stream = .stderr, .text = "  0x" },
@@ -5784,7 +5784,7 @@ fn customGlueZigBoxHelperTest(
         \\}
         \\
         \\// Regression test for a `Box(U64)`-style host resource handle: the box's
-        \\// payload is NOT Roc-refcounted (header = one pointer word) but it carries a
+        \\// payload is NOT Claw-refcounted (header = one pointer word) but it carries a
         \\// teardown callback to free the underlying resource. The box header size must
         \\// come from the explicit `payload_contains_refcounted = false` argument, not
         \\// from "is there a teardown callback?". A previous version inferred the header
@@ -5806,7 +5806,7 @@ fn customGlueZigBoxHelperTest(
         \\    try std.testing.expectEqual(@intFromPtr(&backing), env_value.dealloc_ptr);
         \\}
         \\
-        \\test "allocateBox uses Roc box header layout" {
+        \\test "allocateBox uses Claw box header layout" {
         \\    var env_value = Env{};
         \\    var host = makeHost(&env_value);
         \\
@@ -6353,7 +6353,7 @@ fn printUsage() void {
         \\  --threads <N>        Max concurrent workers (default: CPU count)
         \\  --timeout <ms>       Per-test timeout in ms (default: 120000, 240000 with glue)
         \\  --include-llvm       Include size and speed LLVM backend jobs
-        \\  --glue-roc <path>    Roc binary to use for glue generation (default: <roc_binary>)
+        \\  --glue-roc <path>    Claw binary to use for glue generation (default: <roc_binary>)
         \\  --glue-opt <opt>     Glue execution mode; supported value: interpreter
         \\  --glue-full-targets  Run opt-in non-default glue compile targets
         \\  --verbose            Show PASS results with timing

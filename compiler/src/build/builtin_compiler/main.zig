@@ -1,4 +1,4 @@
-//! Build-time compiler for Roc builtin module (Builtin.roc).
+//! Build-time compiler for Claw builtin module (Builtin.roc).
 //!
 //! This executable runs during `zig build` on the host machine to:
 //! 1. Parse and type-check the Builtin.roc module (which contains nested Bool, Try, Str, Dict, Set types)

@@ -3,7 +3,7 @@
 //! This module provides composable functions for compiling individual modules
 //! through each compilation phase (parse, canonicalize, type-check).
 //!
-//! This is the foundation for all Roc compilation tools:
+//! This is the foundation for all Claw compilation tools:
 //! - Coordinator (multi-threaded CLI builds)
 //! - Snapshot tool (compiler testing)
 //! - REPL (interactive evaluation)
@@ -111,7 +111,7 @@ pub fn parseSingleModule(
 /// Results are stored in module_env (all_defs, all_statements, diagnostics, etc).
 ///
 /// Memory ownership:
-/// - roc_ctx: Caller provides the Roc compiler context (allocators + I/O)
+/// - roc_ctx: Caller provides the Claw compiler context (allocators + I/O)
 /// - module_env: Caller provides; results stored here
 /// - parse_ast: Caller provides and manages
 /// - context: Builtin type context plus optional explicit imported module environments

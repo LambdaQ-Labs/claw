@@ -148,7 +148,7 @@ pub fn enterCrashBoundary(self: *CompileTimeHost) CrashBoundary {
     return CrashBoundary.init(self);
 }
 
-/// Return the latest captured Roc crash message, if any.
+/// Return the latest captured Claw crash message, if any.
 pub fn crashMessage(self: *const CompileTimeHost) ?[]const u8 {
     for (0..self.events.items.len) |i| {
         const idx = self.events.items.len - 1 - i;

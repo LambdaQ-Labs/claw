@@ -44,7 +44,7 @@ pub const tests = [_]TestCase{
         .expected = .{ .problem = {} },
     },
     .{
-        .name = "regression B010: Dec multiplication overflow is a Roc crash",
+        .name = "regression B010: Dec multiplication overflow is a Claw crash",
         .source = "170141183460469231731.0.Dec * 2.0.Dec",
         .expected = .{ .crash = {} },
         .skip = .{ .llvm = true },
@@ -123,7 +123,7 @@ pub const tests = [_]TestCase{
         .expected = .{ .inspect_str = "1" },
     },
     .{
-        .name = "regression B028: compile-time list-pattern failure becomes Roc crash",
+        .name = "regression B028: compile-time list-pattern failure becomes Claw crash",
         .source_kind = .module,
         .source =
         \\main : I64
@@ -132,7 +132,7 @@ pub const tests = [_]TestCase{
         .expected = .{ .crash = {} },
     },
     .{
-        .name = "regression B029: unannotated crash constant becomes Roc crash",
+        .name = "regression B029: unannotated crash constant becomes Claw crash",
         .source_kind = .module,
         .source =
         \\main = {
@@ -312,7 +312,7 @@ pub const tests = [_]TestCase{
         .expected = .{ .problem = {} },
     },
     .{
-        .name = "regression B059: compile-time constant pattern failure becomes Roc crash",
+        .name = "regression B059: compile-time constant pattern failure becomes Claw crash",
         .source_kind = .module,
         .source =
         \\f = |0| 1

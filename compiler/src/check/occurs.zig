@@ -3,7 +3,7 @@
 //! This module implements an "occurs check" to detect:
 //! - structurally infinite types (e.g., `a = List(a)`)
 //! - recursion through unnamed constructs (anonymous recursion)
-//! - recursion through named nominal types (permitted in Roc under some rules)
+//! - recursion through named nominal types (permitted in Claw under some rules)
 //!
 //! The main entrypoint is `occurs()`. It analyzes the type graph rooted at a variable
 //! and reports whether the structure is recursive, and if so, what kind of recursion.
@@ -250,7 +250,7 @@ const CheckOccurs = struct {
             return .valid;
         } else if (recursion_allowed) {
             // Through a recursion-allowed position but no nominal: anonymous
-            // recursion, which Roc rejects.
+            // recursion, which Claw rejects.
             return .recursive_anonymous;
         } else {
             // No recursion-allowed position in the cycle: structurally infinite.
@@ -335,7 +335,7 @@ pub const Scratch = struct {
 
     pub fn init(gpa: std.mem.Allocator) std.mem.Allocator.Error!Self {
         // Initial capacities are conservative estimates. Lists grow dynamically as needed.
-        // Rust compiler uses 1024, but that's likely overkill for typical Roc code.
+        // Rust compiler uses 1024, but that's likely overkill for typical Claw code.
         // These values handle common cases:
         // - seen: 32 - typical type depth is much shallower
         // - visited: 64 - covers most type traversals without reallocation
@@ -766,7 +766,7 @@ test "occurs: anonymous recursion in a nominal's type argument is not valid (reg
     //
     // The recursion cycle is `Inner -> Cons -> Inner`. It lives entirely inside
     // the *type argument* of `Wrapper` and never passes through the nominal
-    // `Wrapper` itself, so this is anonymous recursion (which Roc rejects), NOT
+    // `Wrapper` itself, so this is anonymous recursion (which Claw rejects), NOT
     // legal recursion-through-a-nominal.
     const gpa = std.testing.allocator;
     var types_store = try Store.init(gpa);

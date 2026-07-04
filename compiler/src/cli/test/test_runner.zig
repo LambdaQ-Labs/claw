@@ -1,6 +1,6 @@
 //! Unified test platform runner.
 //!
-//! This tool tests Roc test platforms with various modes:
+//! This tool tests Claw test platforms with various modes:
 //! - Cross-compilation to different targets
 //! - Native build and execution
 //! - Valgrind memory testing (Linux x86_64 only)
@@ -21,7 +21,7 @@
 //!   --mode=<mode>       Test mode (default: all applicable)
 //!                       Values: cross, native, valgrind
 //!   --app=<path>        Run only one app within the selected platform
-//!   --opt=<name>        Roc optimization level (default: dev)
+//!   --opt=<name>        Claw optimization level (default: dev)
 //!                       Values: dev, interpreter
 //!   --verbose           Show detailed output
 //!
@@ -103,7 +103,7 @@ pub fn main(init: std.process.Init) TestRunnerError!void {
 
     // Print banner
     std.debug.print("=== Test Platform Runner ===\n", .{});
-    std.debug.print("Roc binary: {s}\n", .{args.roc_binary});
+    std.debug.print("Claw binary: {s}\n", .{args.roc_binary});
     std.debug.print("Platform: {s}\n", .{platform.name});
     if (args.target_filter) |t| {
         std.debug.print("Target filter: {s}\n", .{t});
@@ -617,7 +617,7 @@ fn printUsage() void {
         \\  --mode=<mode>       Test mode (default: all applicable)
         \\                      Values: cross, native, valgrind, all
         \\  --app=<path>        Run only one app within the selected platform
-        \\  --opt=<name>        Roc optimization level (default: dev)
+        \\  --opt=<name>        Claw optimization level (default: dev)
         \\                      Values: dev, interpreter
         \\  --verbose           Show detailed output
         \\

@@ -622,7 +622,7 @@ pub const Store = struct {
             const tag_args_range = try self.content_indexes.appendSlice(self.gpa, self.scratch_content.sliceFromStart(content_scratch_top));
             self.scratch_content.clearFrom(content_scratch_top);
 
-            // Format the tag using TypeWriter (uses correct Roc syntax like "TagName(a, b)")
+            // Format the tag using TypeWriter (uses correct Claw syntax like "TagName(a, b)")
             const formatted_tag = type_writer.writeTagGet(tag, root_var) catch return error.OutOfMemory;
             const formatted_owned = try self.gpa.dupe(u8, formatted_tag);
 

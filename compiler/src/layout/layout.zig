@@ -1,4 +1,4 @@
-//! Memory layout representations for values in running Roc programs.
+//! Memory layout representations for values in running Claw programs.
 //!
 //! See the Layout Store for how these representations actually get created
 //! (using type and target information from previous steps in compilation).
@@ -136,7 +136,7 @@ pub const Idx = enum(std.meta.Int(.unsigned, layout_bit_size - @bitSizeOf(Layout
     }
 
     /// Default numeric type for unbound/polymorphic numbers.
-    /// Dec is the default in the new Roc compiler.
+    /// Dec is the default in the new Claw compiler.
     pub const default_num: Idx = .dec;
 };
 
@@ -412,7 +412,7 @@ pub const TagUnionVariant = struct {
     pub const SafeMultiList = collections.SafeMultiList(TagUnionVariant);
 };
 
-/// Roc's version of alignment that is limited to a max alignment of 16B to save bits.
+/// Claw's version of alignment that is limited to a max alignment of 16B to save bits.
 pub const ClawAlignment = enum(u3) {
     @"1" = 0,
     @"2" = 1,
@@ -617,14 +617,14 @@ pub const ScalarInfo = struct {
     frac_precision: ?types.Frac.Precision,
 };
 
-/// The memory layout of a value in a running Roc program.
+/// The memory layout of a value in a running Claw program.
 ///
-/// A Layout can be created from a Roc type, given the additional information
+/// A Layout can be created from a Claw type, given the additional information
 /// of the build target's `usize`. Layouts cannot be created without knowing
 /// that aspect of the build target, because pointers in layouts are different
 /// sizes on 32-bit and 64-bit targets. No other target information is needed.
 ///
-/// When a Roc type gets converted to a Layout, zero-sized types (ZSTs)
+/// When a Claw type gets converted to a Layout, zero-sized types (ZSTs)
 /// like empty records and empty tag unions are represented with a first-class
 /// ZST layout (`.zst` tag). Abstract type parameters must already have been
 /// eliminated or collapsed to ZST before reaching this layer. ZST fields in
@@ -787,7 +787,7 @@ pub const Layout = packed struct {
     }
 
     /// Runtime layout for an erased callable stored behind a `Box(T)` boundary.
-    /// The value itself is one ordinary Roc refcounted payload pointer.
+    /// The value itself is one ordinary Claw refcounted payload pointer.
     /// The heap payload starts with `builtins.erased_callable.Payload` and then
     /// stores the erased callable's hidden capture bytes inline.
     pub fn erasedCallable() Layout {

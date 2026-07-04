@@ -44,7 +44,7 @@ pub const RunWithStdIoError = CreateLogFileError || std.Io.File.Reader.Error || 
     PayloadTooLarge,
 };
 
-/// Factory for the Roc LSP server. Handles the state and request handlers.
+/// Factory for the Claw LSP server. Handles the state and request handlers.
 pub fn Server(comptime ReaderType: type, comptime WriterType: type) type {
     const SyntaxChecker = @import("syntax.zig").SyntaxChecker;
     return ServerWithSyntaxDriver(ReaderType, WriterType, SyntaxChecker);

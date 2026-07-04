@@ -1050,8 +1050,8 @@ pub fn setupAutoImportedBuiltinTypes(
 
 const Self = @This();
 
-/// The intermediate representation of a canonicalized Roc program.
-/// After parsing a Roc program, the [ParseIR](src/parse/AST.zig) is transformed into a [canonical
+/// The intermediate representation of a canonicalized Claw program.
+/// After parsing a Claw program, the [ParseIR](src/parse/AST.zig) is transformed into a [canonical
 /// form](src/check/canonicalize/ir.zig) called CanIR.
 ///
 /// Canonicalization performs analysis to catch user errors, and sets up the state necessary to solve the types in a
@@ -3652,7 +3652,7 @@ fn canonicalizeTopLevelTypeDecl(
     }
 }
 
-/// Canonicalizes a full Roc source file, transforming the Abstract Syntax Tree (AST)
+/// Canonicalizes a full Claw source file, transforming the Abstract Syntax Tree (AST)
 /// into Canonical Intermediate Representation (CIR).
 ///
 /// This is the main entry point for file-level canonicalization, handling:
@@ -4164,7 +4164,7 @@ fn defPatternIdent(store: *const CIR.NodeStore, pattern_idx: CIR.Pattern.Idx) ?I
 }
 
 /// Finalize a module that will be published through explicit checked-artifact
-/// root requests instead of Roc's user-facing `roc check` app/type-module
+/// root requests instead of Claw's user-facing `roc check` app/type-module
 /// validation.
 pub fn validateForExplicitRoots(self: *Self) std.mem.Allocator.Error!void {
     const trace = tracy.trace(@src());
@@ -5797,7 +5797,7 @@ fn canonicalizeImportStatement(
                 } });
 
                 // Use a unique placeholder identifier that starts with '#' to ensure it can't
-                // collide with user-defined identifiers (# starts a comment in Roc)
+                // collide with user-defined identifiers (# starts a comment in Claw)
                 const scratch_top = self.scratchBytesTop();
                 defer self.clearScratchBytesFrom(scratch_top);
                 const placeholder_text = try self.scratchFmt("#malformed_import_{d}", .{self.malformed_import_count});
@@ -20325,7 +20325,7 @@ fn createUnknownIdent(self: *Self) std.mem.Allocator.Error!Ident.Idx {
 ///
 /// This generates names like "#1_addX", "#2_addX" when a hint is provided,
 /// or "#1", "#2" when no hint is available. The `#` prefix is used because
-/// it's reserved for comments in Roc source code, so these names cannot
+/// it's reserved for comments in Claw source code, so these names cannot
 /// collide with user-defined tags. ClawEmitter transforms `#` to `C` when
 /// printing, so `#1_foo` becomes `C1_foo` in emitted code.
 fn generateClosureTagName(self: *Self, hint: ?Ident.Idx) std.mem.Allocator.Error!Ident.Idx {

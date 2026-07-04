@@ -1,4 +1,4 @@
-//! Memory layout representations for values in running Roc programs.
+//! Memory layout representations for values in running Claw programs.
 //!
 //! The interpreter shares one canonical `Layout` representation with the
 //! compiler: every type here is re-exported from the `layout` module so the

@@ -1,7 +1,7 @@
-//! Unit tests for the Roc emitter
+//! Unit tests for the Claw emitter
 //!
 //! These tests verify that the emitter correctly converts CIR expressions
-//! to valid Roc source code using manually constructed CIR nodes.
+//! to valid Claw source code using manually constructed CIR nodes.
 
 const std = @import("std");
 const Allocator = std.mem.Allocator;

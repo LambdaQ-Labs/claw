@@ -11,7 +11,7 @@
 //! Special care is taken to keep memory layouts small and efficient. When modifying
 //! these types, please consider their size impact and unification performance.
 //!
-//! Note: In other HM compilers (Elm, Roc Rust), marks are used to track intermediate
+//! Note: In other HM compilers (Elm, Claw Rust), marks are used to track intermediate
 //! metadata around type variables. Here, we intentionally do _not_ use them. The
 //! idea being that because marks are not used after type checking, if we store them
 //! on the type descriptor, then that memory has to stay allocated until the end

@@ -89,7 +89,7 @@ pub const CalledVia = enum {
     range,
 };
 
-/// Represents a value written as-is in a Roc source file.
+/// Represents a value written as-is in a Claw source file.
 pub const Literal = union(enum) {
     Int: IntLiteral,
     Float: FracLiteral,

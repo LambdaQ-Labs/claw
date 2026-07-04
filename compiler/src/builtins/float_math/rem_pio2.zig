@@ -1,4 +1,4 @@
-//! F64 argument reduction by pi/2 for Roc float tangent builtins.
+//! F64 argument reduction by pi/2 for Claw float tangent builtins.
 //!
 //! The algorithm is ported from Zig compiler_rt, which is ported from musl.
 

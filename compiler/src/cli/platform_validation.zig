@@ -134,7 +134,7 @@ fn renderParseError(allocator: std.mem.Allocator, path: []const u8) std.mem.Allo
     try report.document.addAnnotated(path, .path);
     try report.document.addLineBreak();
     try report.document.addLineBreak();
-    try report.document.addText("Check that the file contains valid Roc syntax.");
+    try report.document.addText("Check that the file contains valid Claw syntax.");
     try report.document.addLineBreak();
 
     reporting.renderReportToTerminal(

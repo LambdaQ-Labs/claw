@@ -1,4 +1,4 @@
-//! Shared value formatting module for Roc runtime values.
+//! Shared value formatting module for Claw runtime values.
 //!
 //! Provides a common `ClawValue` type that wraps raw bytes + layout and a
 //! canonical `format()` function used by the interpreter, dev backend, test

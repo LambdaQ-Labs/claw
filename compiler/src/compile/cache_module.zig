@@ -1,6 +1,6 @@
-//! Module cache for Roc files
+//! Module cache for Claw files
 //!
-//! This module provides memory-mapped caching for compiled Roc modules,
+//! This module provides memory-mapped caching for compiled Claw modules,
 //! allowing fast serialization and deserialization of ModuleEnv and CIR data.
 
 const std = @import("std");

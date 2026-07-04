@@ -1,6 +1,6 @@
 //! Serialization format definitions for embedded module data.
 //!
-//! This module defines the binary format used to serialize Roc modules
+//! This module defines the binary format used to serialize Claw modules
 //! for embedding in compiled binaries. The format is designed to be
 //! portable across architectures by using fixed-size types.
 //!
@@ -26,7 +26,7 @@
 
 const std = @import("std");
 
-/// Magic number for serialized embedded format: "RSER" (Roc Serialized)
+/// Magic number for serialized embedded format: "RSER" (Claw Serialized)
 ///
 /// This 4-byte magic number identifies the portable serialization format.
 /// The bytes spell "RSER" when read as ASCII in little-endian order:

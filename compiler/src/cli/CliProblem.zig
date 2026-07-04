@@ -767,8 +767,8 @@ fn createDownloadFailedReport(allocator: Allocator, info: anytype) Allocator.Err
             try report.document.addText("Possible Reasons: ");
             try report.document.addLineBreak();
             try report.document.addText("1. The ");
-            try report.document.addAnnotated("platform was built with the old Roc", .error_highlight);
-            try report.document.addText(" (Rust) compiler (alpha4 or older), instead of the new Roc (Zig) compiler. The new compiler is available at https://github.com/roc-lang/nightlies");
+            try report.document.addAnnotated("platform was built with the old Claw", .error_highlight);
+            try report.document.addText(" (Rust) compiler (alpha4 or older), instead of the new Claw (Zig) compiler. The new compiler is available at https://github.com/roc-lang/nightlies");
             try report.document.addLineBreak();
             try report.document.addText("2. The Hash portion of the URL is malformed.");
 

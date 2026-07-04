@@ -31,7 +31,7 @@ pub const IsolatedCacheDirs = struct {
 pub const TestProcessDirs = struct {
     roc_cache_dir: []u8,
     zig_local_cache_dir: []u8,
-    /// Per-job temp dir, exported as TEMP/TMP/TMPDIR to the roc subprocess. Roc
+    /// Per-job temp dir, exported as TEMP/TMP/TMPDIR to the roc subprocess. Claw
     /// derives its runtime-host scratch dir (`<temp>/roc/<version>/...`) from
     /// these and runs a background cleanup thread that iterates and deletes
     /// entries under it. Without per-job isolation every concurrent roc process
@@ -75,7 +75,7 @@ pub const ChildTimeoutError = std.mem.Allocator.Error || std.process.SpawnError 
 };
 /// Errors that can occur while constructing test environment variables.
 pub const EnvMapError = TestDirError || std.mem.Allocator.Error;
-/// Errors that can occur while running a Roc CLI test command.
+/// Errors that can occur while running a Claw CLI test command.
 pub const ClawRunError = TestDirError || EnvMapError || ChildTimeoutError;
 /// Errors that can occur while validating CLI test results.
 pub const ResultCheckError = error{
@@ -121,7 +121,7 @@ fn reserveUniqueTestDir(io: std.Io, allocator: std.mem.Allocator, namespace: []c
     }
 }
 
-/// Result of executing a Roc command during testing.
+/// Result of executing a Claw command during testing.
 /// Contains the captured output streams and process termination status.
 pub const ClawResult = struct {
     stdout: []u8,
@@ -286,7 +286,7 @@ pub fn runChildWithTimeout(
     };
 }
 
-/// Create unique Roc and Zig local cache directories for one CLI test subprocess.
+/// Create unique Claw and Zig local cache directories for one CLI test subprocess.
 pub fn createIsolatedTestCacheDirs(io: std.Io, allocator: std.mem.Allocator) TestDirError!IsolatedCacheDirs {
     const cwd_path = try std.Io.Dir.cwd().realPathFileAlloc(io, ".", allocator);
     defer allocator.free(cwd_path);
@@ -313,7 +313,7 @@ pub fn createIsolatedTestCacheDirs(io: std.Io, allocator: std.mem.Allocator) Tes
     };
 }
 
-/// Create unique Roc cache, Zig local cache, and work directories for one CLI test job.
+/// Create unique Claw cache, Zig local cache, and work directories for one CLI test job.
 pub fn createIsolatedTestDirs(io: std.Io, allocator: std.mem.Allocator) TestDirError!TestProcessDirs {
     const cwd_path = try std.Io.Dir.cwd().realPathFileAlloc(io, ".", allocator);
     defer allocator.free(cwd_path);
@@ -346,8 +346,8 @@ pub fn cleanupTestWorkDir(io: std.Io, work_dir: []const u8) void {
     std.Io.Dir.cwd().deleteTree(io, work_dir) catch {};
 }
 
-/// Build an environment map for a test Roc subprocess.
-/// Unless the caller already set them, this gives the subprocess unique Roc,
+/// Build an environment map for a test Claw subprocess.
+/// Unless the caller already set them, this gives the subprocess unique Claw,
 /// URL package, and Zig local cache roots.
 pub fn buildIsolatedTestEnvMap(
     io: std.Io,

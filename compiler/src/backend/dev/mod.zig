@@ -1,4 +1,4 @@
-//! Development backends for the Roc compiler.
+//! Development backends for the Claw compiler.
 //!
 //! These backends generate native machine code directly without LLVM,
 //! enabling fast compilation for development workflows.

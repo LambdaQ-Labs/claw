@@ -1,4 +1,4 @@
-//! Roc code formatter module - provides formatting functionality for Roc source code.
+//! Claw code formatter module - provides formatting functionality for Claw source code.
 //! This module re-exports the main formatting API from fmt.zig.
 
 const std = @import("std");

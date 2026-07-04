@@ -1,6 +1,6 @@
 //! Shared value representation wrapping raw bytes + layout.
 //!
-//! Provides canonical formatting for all Roc value types, usable by the
+//! Provides canonical formatting for all Claw value types, usable by the
 //! interpreter, dev backend, test helpers, and snapshot tool.
 
 const std = @import("std");
@@ -135,7 +135,7 @@ pub const FormatContext = struct {
 /// Errors that can occur during value formatting.
 pub const FormatError = error{OutOfMemory};
 
-/// Format this value into a newly-allocated string using canonical Roc syntax.
+/// Format this value into a newly-allocated string using canonical Claw syntax.
 pub fn format(self: ClawValue, allocator: std.mem.Allocator, ctx: FormatContext) FormatError![]u8 {
     // --- Scalars ---
     if (self.lay.tag == .scalar) {
@@ -347,7 +347,7 @@ pub fn equals(self: ClawValue, other: ClawValue, ctx: FormatContext) bool {
                 .opaque_ptr => return self.readOpaquePtr() == other.readOpaquePtr(),
             };
         },
-        .erased_callable => unreachable, // Function values are not equality-comparable Roc values.
+        .erased_callable => unreachable, // Function values are not equality-comparable Claw values.
         .zst => return true,
         .struct_ => {
             const s_fields = ctx.layout_store.struct_fields.sliceRange(

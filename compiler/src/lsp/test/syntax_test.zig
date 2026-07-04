@@ -14,8 +14,8 @@ fn platformPath(allocator: std.mem.Allocator) integration_spec.SpecError![]u8 {
     const repo_root = try std.Io.Dir.cwd().realPathFileAlloc(test_env.io, ".", allocator);
     defer allocator.free(repo_root);
     const path = try std.fs.path.join(allocator, &.{ repo_root, "test", "str", "platform", "main.roc" });
-    // Convert backslashes to forward slashes for cross-platform Roc source compatibility
-    // Roc interprets backslashes as escape sequences in string literals
+    // Convert backslashes to forward slashes for cross-platform Claw source compatibility
+    // Claw interprets backslashes as escape sequences in string literals
     for (path) |*c| {
         if (c.* == '\\') c.* = '/';
     }
@@ -59,7 +59,7 @@ const TestHarness = struct {
         self.tmp.cleanup();
     }
 
-    /// Format a Roc source template, substituting the platform path for `{s}`.
+    /// Format a Claw source template, substituting the platform path for `{s}`.
     fn formatSource(self: *TestHarness, comptime fmt: []const u8) std.mem.Allocator.Error![]u8 {
         return std.fmt.allocPrint(self.allocator, fmt, .{self.platform_path});
     }
@@ -699,7 +699,7 @@ pub fn staticDispatchCompletionForChainedCall() integration_spec.SpecError!void 
 
 // Doc Comment Tests
 
-/// Verifies completion items include doc comments from Roc source.
+/// Verifies completion items include doc comments from Claw source.
 pub fn completionIncludesDocCommentsFromSource() integration_spec.SpecError!void {
     var h = try TestHarness.init();
     defer h.deinit();

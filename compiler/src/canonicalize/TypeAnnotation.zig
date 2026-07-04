@@ -13,7 +13,7 @@ const DataSpan = base.DataSpan;
 const SExprTree = base.SExprTree;
 const Statement = CIR.Statement;
 
-/// Canonical representation of type annotations in Roc.
+/// Canonical representation of type annotations in Claw.
 ///
 /// Type annotations appear on the right-hand side of type declarations and in other
 /// contexts where types are specified. For example, in `Map(a, b) : List(a) -> List(b)`,

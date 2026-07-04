@@ -1,6 +1,6 @@
 //! Maps layout.Idx to wasm value types.
 //!
-//! Determines how Roc types are represented in wasm:
+//! Determines how Claw types are represented in wasm:
 //! - Primitives that fit in a wasm value type are returned directly
 //! - Composites (i128, Dec, Str, List, records) use linear memory
 //!
@@ -17,7 +17,7 @@ const ValType = WasmModule.ValType;
 /// an unusually deep type spills the inline work-stack buffer onto the heap).
 pub const Error = error{OutOfMemory};
 
-/// How a Roc value is represented in wasm
+/// How a Claw value is represented in wasm
 pub const WasmRepr = union(enum) {
     /// Value fits in a single wasm value type (returned directly)
     primitive: ValType,

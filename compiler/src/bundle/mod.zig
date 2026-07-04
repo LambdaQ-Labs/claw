@@ -1,7 +1,7 @@
-//! Bundle functionality for Roc packages
+//! Bundle functionality for Claw packages
 //!
 //! This module provides functionality to:
-//! - Bundle Roc packages and their dependencies into compressed tar archives
+//! - Bundle Claw packages and their dependencies into compressed tar archives
 //! - Validate paths for security and cross-platform compatibility
 //!
 //! Note: This module requires the C zstd library for compression.

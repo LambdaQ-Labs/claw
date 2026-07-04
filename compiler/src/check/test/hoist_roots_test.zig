@@ -362,7 +362,7 @@ test "hoist roots selected for nested record and tuple destructure extraction bi
 test "hoist roots selected for record rest extraction binders" {
     var test_env = try TestEnv.init("Test",
         \\main = |arg| {
-        \\    { name: _, ..rest } = { name: "Roc", count: 41.I64 }
+        \\    { name: _, ..rest } = { name: "Claw", count: 41.I64 }
         \\    total = rest.count + 1.I64
         \\    total + arg
         \\}
@@ -942,7 +942,7 @@ test "hoist roots are not selected for custom from_quote conversion roots" {
         \\
         \\main = |_| {
         \\    x : Tag
-        \\    x = "Roc"
+        \\    x = "Claw"
         \\    _ = x
         \\    0.I64
         \\}

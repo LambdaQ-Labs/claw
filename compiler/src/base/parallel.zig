@@ -1,4 +1,4 @@
-//! Parallel processing utilities and thread management for the Roc compiler.
+//! Parallel processing utilities and thread management for the Claw compiler.
 //!
 //! (Currently only used in the snapshot tool)
 const std = @import("std");
@@ -58,7 +58,7 @@ fn workerThread(comptime T: type, ctx: WorkerContext(T)) void {
             const i = ctx.index.fetchAdd(1, .monotonic);
             if (i >= ctx.work_item_count) break;
 
-            // Each work item can compile a complete Roc program. Release the
+            // Each work item can compile a complete Claw program. Release the
             // previous item's peak allocation instead of retaining a high-water
             // arena for the rest of the worker's lifetime.
             const reset_ok = arena.reset(.free_all);

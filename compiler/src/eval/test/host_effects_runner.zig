@@ -1,6 +1,6 @@
 //! Parallel runtime host-effects test runner.
 //!
-//! Runs raw Roc source through the normal compiler pipeline and compares the
+//! Runs raw Claw source through the normal compiler pipeline and compares the
 //! exact host callback traffic produced by the interpreter and dev backend:
 //!
 //! - `dbg`
@@ -698,7 +698,7 @@ fn collectTests() []const TestCase {
 
 fn printHelp() void {
     const help =
-        \\Roc Runtime Host-Effects Test Runner
+        \\Claw Runtime Host-Effects Test Runner
         \\
         \\Runs eval tests across the interpreter and dev backend and compares the
         \\exact host callback traffic emitted through ClawOps:

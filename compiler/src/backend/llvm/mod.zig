@@ -1,6 +1,6 @@
 //! LLVM Backend Module
 //!
-//! This module provides the LLVM code generation backend for the Roc compiler.
+//! This module provides the LLVM code generation backend for the Claw compiler.
 //! It includes:
 //! 1. Builder - LLVM IR builder for constructing LLVM modules
 //! 2. IR types and data structures

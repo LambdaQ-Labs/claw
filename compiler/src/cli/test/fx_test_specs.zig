@@ -27,8 +27,8 @@ pub const TestSpec = struct {
 };
 
 /// Regression coverage for #9401: boxed erased callables must use the same
-/// payload ABI and RC/drop semantics when they are created by Roc, created by
-/// the host, passed to the host, stored by the host, and returned to Roc.
+/// payload ABI and RC/drop semantics when they are created by Claw, created by
+/// the host, passed to the host, stored by the host, and returned to Claw.
 /// Kept outside `io_spec_tests` so the explicit Zig tests can run this narrow
 /// host-boundary fixture independently for interpreter and dev backends.
 pub const host_boxed_fn_boundary_test = TestSpec{
@@ -554,8 +554,8 @@ pub const io_spec_tests = [_]TestSpec{
     // These apps build runtime heap strings (>= 24 bytes, derived from stdin) so
     // the fx host's tracking allocator reports any missed decref as a leak, which
     // the harness turns into a hard failure. Note: the listReverse/listPrepend
-    // wrappers are not reachable from the current Roc surface (List.rev is pure
-    // Roc; there is no List.prepend), so they have no coverage here.
+    // wrappers are not reachable from the current Claw surface (List.rev is pure
+    // Claw; there is no List.prepend), so they have no coverage here.
     .{
         .roc_file = "test/fx/leak_join_with_heap_strs.roc",
         .io_spec = "0<xy|1>joined bytes: 98",

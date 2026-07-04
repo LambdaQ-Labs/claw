@@ -3,7 +3,7 @@
 //! Provides exported functions for JavaScript to:
 //! 1. Initialize the WASM module
 //! 2. Register module files (e.g. Greeting.roc)
-//! 3. Compile and execute a headerless Roc app through the full compiler pipeline
+//! 3. Compile and execute a headerless Claw app through the full compiler pipeline
 //!
 //! Delegates the compile-and-run pipeline to `runner.zig`, which is shared
 //! with the native CLI in `echo_native.zig`.
@@ -151,11 +151,11 @@ export fn addFile(
     return 0;
 }
 
-/// Compile and execute Roc source code through the echo platform pipeline.
+/// Compile and execute Claw source code through the echo platform pipeline.
 ///
-/// The source should be a headerless Roc module containing a `main!` declaration.
+/// The source should be a headerless Claw module containing a `main!` declaration.
 /// Any modules registered via addFile() are available as imports.
-/// Returns the exit code from the Roc program (0 on success), or 255 on error.
+/// Returns the exit code from the Claw program (0 on success), or 255 on error.
 export fn compileAndRun(source_ptr: [*]const u8, source_len: usize) u8 {
     // Copy source to a static buffer before resetting the FBA,
     // since allocateBuffer returned a pointer into the same heap.

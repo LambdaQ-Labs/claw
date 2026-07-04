@@ -21,7 +21,7 @@
 //!
 //! An important detail is that it provides access to the child process via a file
 //! descriptor rather than using named shared memory. As it turns out, macOS has a
-//! security restriction where if a process creates an executable on disk (which Roc's
+//! security restriction where if a process creates an executable on disk (which Claw's
 //! compiler does), and then runs that executable, the child process is not allowed
 //! to call shm_open(). (If it tries to, shm_open always fails with errno 13.) If the
 //! parent process instead gives a fd to the child for the shared memory, the child

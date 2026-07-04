@@ -90,7 +90,7 @@ const BlockKind = enum {
 const Block = struct {
     /// 1-indexed line in Builtin.roc where the opening ```roc fence sits.
     start_line: usize,
-    /// Stripped Roc source (owned).
+    /// Stripped Claw source (owned).
     source: []u8,
     /// Name of the last top-level `name =` definition, if any. Points into
     /// `source` and is valid for the lifetime of the block.
@@ -231,7 +231,7 @@ fn classify(a: Analysis) BlockKind {
 }
 
 /// Returns true if `source` contains any effectful function call, identified
-/// by a `name!` suffix on an identifier (the Roc convention for effects).
+/// by a `name!` suffix on an identifier (the Claw convention for effects).
 /// Distinguishes from the prefix logical-not `!x` and the inequality operator
 /// `!=` by requiring the `!` to follow an identifier character and to not be
 /// immediately followed by `=`.

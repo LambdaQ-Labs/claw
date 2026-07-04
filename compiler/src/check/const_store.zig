@@ -179,7 +179,7 @@ pub const FnDef = union(enum) {
 ///
 /// `data` identifies the backing bytes. `offset` and `len` describe the string
 /// view into those bytes. This lets checked constants keep the sharing needed
-/// for readonly static slices while still storing only checked Roc values.
+/// for readonly static slices while still storing only checked Claw values.
 pub const ConstStr = struct {
     data: ConstStrDataId,
     offset: u32,

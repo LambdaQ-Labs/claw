@@ -1128,7 +1128,7 @@ pub const BuildEnv = struct {
 
     const PackageKind = enum { app, package, platform, module, hosted, type_module, default_app };
 
-    /// A mapping from a Roc identifier to an FFI symbol name, extracted from
+    /// A mapping from a Claw identifier to an FFI symbol name, extracted from
     /// a platform's `provides { "roc_ffi_symbol": roc_ident }` clause.
     pub const ProvidesEntry = struct {
         roc_ident: []const u8,

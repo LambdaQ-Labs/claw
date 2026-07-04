@@ -61,7 +61,7 @@ export fn roc_dbg(bytes: [*]const u8, len: usize) callconv(.c) void {
 }
 
 export fn roc_expect_failed(bytes: [*]const u8, len: usize) callconv(.c) noreturn {
-    writeLiteral(stderr_fd, "Roc expect failed: ");
+    writeLiteral(stderr_fd, "Claw expect failed: ");
     writeAll(stderr_fd, bytes[0..len]);
     writeLiteral(stderr_fd, "\n");
     printBacktrace(@returnAddress(), @frameAddress());
@@ -69,7 +69,7 @@ export fn roc_expect_failed(bytes: [*]const u8, len: usize) callconv(.c) noretur
 }
 
 export fn roc_crashed(bytes: [*]const u8, len: usize) callconv(.c) noreturn {
-    writeLiteral(stderr_fd, "Roc application crashed with this message:\n\n\t");
+    writeLiteral(stderr_fd, "Claw application crashed with this message:\n\n\t");
     writeAll(stderr_fd, bytes[0..len]);
     writeLiteral(stderr_fd, "\n\n");
     printBacktrace(@returnAddress(), @frameAddress());
@@ -141,7 +141,7 @@ fn installSignalHandlers() void {
         0,
     );
     if (linux.errno(stack_addr) != .SUCCESS) {
-        writeLiteral(stderr_fd, "Roc runtime failed to allocate signal stack\n");
+        writeLiteral(stderr_fd, "Claw runtime failed to allocate signal stack\n");
         exitFailure();
     }
 
@@ -151,7 +151,7 @@ fn installSignalHandlers() void {
         .size = alt_signal_stack_size,
     };
     if (linux.errno(linux.sigaltstack(&stack, null)) != .SUCCESS) {
-        writeLiteral(stderr_fd, "Roc runtime failed to install signal stack\n");
+        writeLiteral(stderr_fd, "Claw runtime failed to install signal stack\n");
         exitFailure();
     }
 
@@ -170,16 +170,16 @@ fn installSignal(sig: linux.SIG) void {
         .flags = linux.SA.SIGINFO | linux.SA.ONSTACK,
     };
     if (linux.errno(linux.sigaction(sig, &action, null)) != .SUCCESS) {
-        writeLiteral(stderr_fd, "Roc runtime failed to install signal handler\n");
+        writeLiteral(stderr_fd, "Claw runtime failed to install signal handler\n");
         exitFailure();
     }
 }
 
 fn signalHandler(sig: linux.SIG, _: *const linux.siginfo_t, ctx: ?*anyopaque) callconv(.c) void {
     if (sig == .SEGV) {
-        writeLiteral(stderr_fd, "Roc application overflowed its stack memory\n\n");
+        writeLiteral(stderr_fd, "Claw application overflowed its stack memory\n\n");
     } else {
-        writeLiteral(stderr_fd, "Roc process terminated by signal ");
+        writeLiteral(stderr_fd, "Claw process terminated by signal ");
         writeUnsigned(stderr_fd, @intFromEnum(sig));
         writeLiteral(stderr_fd, "\n\n");
     }

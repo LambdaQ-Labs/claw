@@ -19,7 +19,7 @@ const layout = @import("layout");
 const Store = layout.Store;
 const Idx = layout.Idx;
 
-/// The control block handed to the fixed assembly stub. Every Roc→host call is funneled
+/// The control block handed to the fixed assembly stub. Every Claw→host call is funneled
 /// through a single pointer argument so the stub is free to clobber all argument registers.
 const Call = extern struct {
     target: *const anyopaque,
@@ -59,7 +59,7 @@ const max_stack_bytes = 256;
 pub const Error = error{ TooManyRegisters, TooManyStackBytes, UnsupportedArch };
 
 /// Call hosted function `target` with the platform C ABI. `args_buf` holds the arguments
-/// packed in Roc layout order (the interpreter's existing buffer); `ret_buf` receives the
+/// packed in Claw layout order (the interpreter's existing buffer); `ret_buf` receives the
 /// return value. Hosted functions take their natural C ABI: no ClawOps is passed.
 pub fn call(
     store: *const Store,

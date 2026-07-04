@@ -1,4 +1,4 @@
-//! Core utility functions and types for the Roc runtime builtins.
+//! Core utility functions and types for the Claw runtime builtins.
 //!
 //! This module provides essential infrastructure for builtin operations,
 //! including memory allocation interfaces, overflow detection utilities,
@@ -257,7 +257,7 @@ pub const TestEnv = struct {
 
     fn rocCrashedFn(_: *ClawOps, bytes: [*]const u8, len: usize) callconv(.c) void {
         const message = bytes[0..len];
-        debugPrint("Roc crashed: {s}\n", .{message});
+        debugPrint("Claw crashed: {s}\n", .{message});
         unreachable;
     }
 };

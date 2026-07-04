@@ -1,4 +1,4 @@
-//! Reduced-argument sine, cosine, and tangent kernels for Roc float builtins.
+//! Reduced-argument sine, cosine, and tangent kernels for Claw float builtins.
 //!
 //! The algorithms are ported from Zig compiler_rt, which is ported from musl.
 

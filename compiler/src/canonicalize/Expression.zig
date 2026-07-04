@@ -1,7 +1,7 @@
-//! Expression constructs used in Roc's canonicalization phase.
+//! Expression constructs used in Claw's canonicalization phase.
 //!
 //! This module defines the `Expr` union which represents all possible expressions
-//! in Roc's Canonical Intermediate Representation (CIR). These expressions are
+//! in Claw's Canonical Intermediate Representation (CIR). These expressions are
 //! created during the canonicalization phase and represent the semantic meaning
 //! of parsed code after semantic analysis.
 //!
@@ -39,7 +39,7 @@ const TypeVar = types.Var;
 
 const Self = Expr;
 
-/// An expression in the Roc language.
+/// An expression in the Claw language.
 pub const Expr = union(enum) {
     /// An number literal with a specific value.
     /// Represents whole numbers in various bases (decimal, hex, octal, binary).
@@ -74,7 +74,7 @@ pub const Expr = union(enum) {
     },
     /// A high-precision decimal literal.
     /// Used for exact decimal arithmetic without floating-point precision issues.
-    /// Roc's preferred numeric type for most decimal calculations.
+    /// Claw's preferred numeric type for most decimal calculations.
     ///
     /// ```roc
     /// 3.14159265358979323846    # High precision decimal
@@ -192,7 +192,7 @@ pub const Expr = union(enum) {
     /// ```
     e_match: Match,
     /// If expression with one or more conditional branches and a final else clause.
-    /// Roc's if expressions are expressions, not statements, so they always return a value.
+    /// Claw's if expressions are expressions, not statements, so they always return a value.
     /// All branches must return the same type.
     ///
     /// ```roc
@@ -212,7 +212,7 @@ pub const Expr = union(enum) {
         constraint_fn_var: ?TypeVar = null,
     },
     /// Record literal with zero or more fields.
-    /// Records are Roc's primary data structure for grouping related values.
+    /// Records are Claw's primary data structure for grouping related values.
     /// Field order doesn't matter for type compatibility.
     ///
     /// ```roc
@@ -566,7 +566,7 @@ pub const Expr = union(enum) {
 
     /// A low-level builtin operation.
     /// This represents a lambda/function that will be implemented by the compiler backend.
-    /// Like e_anno_only, it has no Roc implementation, but unlike e_anno_only,
+    /// Like e_anno_only, it has no Claw implementation, but unlike e_anno_only,
     /// it's expected to be implemented by the backend rather than being an error.
     /// It behaves like e_lambda in that it has parameters and a body (which crashes when evaluated).
     ///
@@ -648,7 +648,7 @@ pub const Expr = union(enum) {
         lhs: Expr.Idx,
         rhs: Expr.Idx,
 
-        /// Binary operators available in Roc.
+        /// Binary operators available in Claw.
         pub const Op = enum {
             add, // +
             sub, // -

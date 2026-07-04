@@ -651,7 +651,7 @@ pub fn int_to_str(comptime T: type, buf: []u8, val: T) []const u8 {
 }
 
 // f64/f32 to string formatting.
-// Uses Roc's vendored Ryu binary-to-decimal conversion followed by manual
+// Uses Claw's vendored Ryu binary-to-decimal conversion followed by manual
 // decimal formatting, avoiding Zig formatting symbols in compiled programs.
 
 /// Format an f64 as a decimal string into the provided buffer.

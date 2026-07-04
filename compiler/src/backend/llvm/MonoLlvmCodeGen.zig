@@ -4,7 +4,7 @@
 //!
 //!     void roc_proc_N(*ClawOps, ret_ptr, args_ptr)
 //!
-//! Direct Roc calls pack argument bytes into `args_ptr` using Roc's canonical
+//! Direct Claw calls pack argument bytes into `args_ptr` using Claw's canonical
 //! alignment order, and callees write results into caller-owned storage. This
 //! avoids target-specific aggregate return and argument rules while still
 //! letting LLVM optimize ordinary local stack traffic.
@@ -1090,7 +1090,7 @@ pub const MonoLlvmCodeGen = struct {
     }
 
     /// Emits a dbg.declare for every named local in the proc's frame so
-    /// debuggers can show Roc variables by their source names.
+    /// debuggers can show Claw variables by their source names.
     fn declareFrameLocals(self: *MonoLlvmCodeGen, proc: LirProcSpec, proc_line: u32) Error!void {
         const builder = self.builder orelse return error.CompilationFailed;
         const wip = self.wip orelse return error.CompilationFailed;
@@ -1723,7 +1723,7 @@ pub const MonoLlvmCodeGen = struct {
 
     fn serializeBuilderToBitcode(self: *MonoLlvmCodeGen, builder: *LlvmBuilder) Error![]const u32 {
         const producer = LlvmBuilder.Producer{
-            .name = "Roc statement LLVM CodeGen",
+            .name = "Claw statement LLVM CodeGen",
             .version = .{ .major = 1, .minor = 0, .patch = 0 },
         };
         if (comptime build_options.llvm_keep_ir.len != 0) {
@@ -2671,7 +2671,7 @@ pub const MonoLlvmCodeGen = struct {
             .ptr_store => try self.emitPtrStore(arg_locals[0], arg_locals[1]),
             .ptr_load => try self.emitPtrLoad(target, arg_locals[0]),
             .ptr_cast => try self.emitPtrCast(target, arg_locals[0]),
-            .crash => try self.emitCrashBytes("Roc crashed"),
+            .crash => try self.emitCrashBytes("Claw crashed"),
             else => try self.emitNumericConversionOrCrash(target, op, arg_locals),
         }
     }
@@ -7983,7 +7983,7 @@ pub const MonoLlvmCodeGen = struct {
 
     /// Emit a hosted-function call using the platform C ABI: small arguments and the return
     /// travel in registers per `abi.lower`, with `*ClawOps` threaded only when the signature
-    /// touches Roc-managed memory. `arg_ptrs` point at each argument's value bytes; the result
+    /// touches Claw-managed memory. `arg_ptrs` point at each argument's value bytes; the result
     /// is written into `ret_ptr` (used directly as the sret pointer for memory-class returns).
     fn emitHostedCallCAbi(
         self: *MonoLlvmCodeGen,

@@ -1,10 +1,10 @@
-//! WASM module for the Roc playground.
+//! WASM module for the Claw playground.
 //!
-//! This module provides a state machine interface for the Roc compiler.
+//! This module provides a state machine interface for the Claw compiler.
 //!
 //! State Machine:
 //! 1. START: Initialize module, return compiler version
-//! 2. READY: Receive Roc source, compile through all stages, return "LOADED" with diagnostics
+//! 2. READY: Receive Claw source, compile through all stages, return "LOADED" with diagnostics
 //! 3. LOADED: Handle queries for tokens, AST, CIR, types, etc. Handle reset to go back to READY
 //! 4. REPL_ACTIVE: Handle REPL interactions with stateful evaluation
 //!
@@ -1728,7 +1728,7 @@ fn writeParseAstResponse(response_buffer: []u8, data: CompilerStageData) (Alloca
     try resp_writer.finalize();
 }
 
-/// Write formatted response with formatted Roc code
+/// Write formatted response with formatted Claw code
 fn writeFormattedResponse(response_buffer: []u8, data: CompilerStageData) (Allocator.Error || error{ OutOfBufferSpace, WriteFailed })!void {
     var resp_writer = ResponseWriter.init(response_buffer);
     resp_writer.pos = @sizeOf(u32);

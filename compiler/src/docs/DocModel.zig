@@ -1,4 +1,4 @@
-//! Data model for Roc documentation extraction.
+//! Data model for Claw documentation extraction.
 //!
 //! These structs represent the documentation data extracted from compiled modules.
 //! They are serializable to a deterministic S-expression format for golden/snapshot testing.
@@ -202,7 +202,7 @@ fn rewriteDocTypeRefs(
     }
 }
 
-/// Documentation for a Roc application — the app's own modules,
+/// Documentation for a Claw application — the app's own modules,
 /// its platform, and all dependency packages (recursively).
 pub const AppDocs = struct {
     name: []const u8,
@@ -249,7 +249,7 @@ pub const AppDocs = struct {
     }
 };
 
-/// Documentation for a Roc platform — the platform's own modules
+/// Documentation for a Claw platform — the platform's own modules
 /// and all dependency packages.
 pub const PlatformDocs = struct {
     name: []const u8,
@@ -388,7 +388,7 @@ pub const DocEntryKind = enum {
     }
 };
 
-/// Structured representation of a Roc type for documentation.
+/// Structured representation of a Claw type for documentation.
 ///
 /// This recursive tagged union preserves the identity and origin of each type
 /// reference, enabling HTML documentation with syntax highlighting and links

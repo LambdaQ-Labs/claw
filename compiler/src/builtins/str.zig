@@ -1,9 +1,9 @@
-//! Builtin string operations and data structures for the Roc runtime.
+//! Builtin string operations and data structures for the Claw runtime.
 //!
-//! This module provides the core implementation of Roc's Str type, including
+//! This module provides the core implementation of Claw's Str type, including
 //! operations for string manipulation, Unicode handling, formatting, and
 //! memory management. It defines the ClawStr structure and associated functions
-//! that are called from compiled Roc code to handle string operations efficiently.
+//! that are called from compiled Claw code to handle string operations efficiently.
 const std = @import("std");
 const builtin = @import("builtin");
 
@@ -35,7 +35,7 @@ pub const SMALL_STR_MAX_LENGTH = SMALL_STRING_SIZE - 1;
 
 const SMALL_STRING_SIZE = @sizeOf(ClawStr);
 
-/// Runtime representation of Roc's Str value.
+/// Runtime representation of Claw's Str value.
 ///
 /// Small strings store their bytes inline across the full struct and mark the
 /// final byte with the high bit. Big strings keep `bytes` as a directly
@@ -677,7 +677,7 @@ inline fn smallBytesEqual(left: [@sizeOf(ClawStr)]u8, right: [@sizeOf(ClawStr)]u
 }
 
 inline fn readSmallStringU64(bytes: [@sizeOf(ClawStr)]u8, index: usize) u64 {
-    // Roc small strings store their bytes inline in the ClawStr value and zero
+    // Claw small strings store their bytes inline in the ClawStr value and zero
     // unused inline bytes. That gives the hot equality path a real fixed-width
     // source to load from even when the logical string length is not a multiple
     // of eight.
@@ -800,7 +800,7 @@ fn strFromFloatHelp(
     return ClawStr.init(result.ptr, result.len, roc_ops);
 }
 
-/// Format a Roc float into caller-owned scratch bytes.
+/// Format a Claw float into caller-owned scratch bytes.
 pub fn floatToStrBytes(buf: []u8, val_bits: u64, is_f32: bool) []const u8 {
     return if (is_f32) blk: {
         const f32_val: f32 = @bitCast(@as(u32, @truncate(val_bits)));
@@ -854,7 +854,7 @@ test "floatToStrBytes emits stable shortest representations" {
     try expectFloatToStr(f64, std.math.nan(f64), "nan");
 }
 
-/// Format a Roc float into a ClawStr using the same implementation used by
+/// Format a Claw float into a ClawStr using the same implementation used by
 /// generated builtin calls.
 pub fn floatToStrFromBits(val_bits: u64, is_f32: bool, roc_ops: *ClawOps) ClawStr {
     var buf: [400]u8 = undefined;

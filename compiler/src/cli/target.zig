@@ -1,4 +1,4 @@
-//! Roc target definitions and link configuration
+//! Claw target definitions and link configuration
 //!
 //! Re-exports types from the compile layer and roc_target module.
 

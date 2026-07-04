@@ -1,4 +1,4 @@
-//! Glue code generation for Roc platforms.
+//! Glue code generation for Claw platforms.
 //!
 //! Generates platform-specific binding code (e.g., Zig structs, C headers)
 //! from a platform's type information by running a glue spec through the interpreter.

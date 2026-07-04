@@ -1621,7 +1621,7 @@ pub const GenerateResult = struct {
     has_imports: bool = false,
 };
 
-/// Generate the host-callable wrapper for a platform-exposed Roc entrypoint.
+/// Generate the host-callable wrapper for a platform-exposed Claw entrypoint.
 pub fn generateEntrypointWrapper(
     self: *Self,
     symbol_name: []const u8,
@@ -6396,7 +6396,7 @@ fn allocStackMemory(self: *Self, size: u32, alignment: u32) Allocator.Error!u32 
 
 /// Emit heap allocation via roc_alloc (erased call through ClawOps).
 /// `size_local` holds the size to allocate; `alignment` is the byte alignment.
-/// Leaves the raw allocated pointer on the wasm stack. Roc refcounted data
+/// Leaves the raw allocated pointer on the wasm stack. Claw refcounted data
 /// allocations must use emitHeapAllocWithRefcount instead.
 fn emitHeapAlloc(self: *Self, size_local: u32, alignment: u32) Allocator.Error!void {
     if (self.runtime_symbol_targets) |targets| {
@@ -6427,8 +6427,8 @@ fn emitHeapAlloc(self: *Self, size_local: u32, alignment: u32) Allocator.Error!v
     try self.emitCallIndirect(self.roc_alloc_type_idx);
 }
 
-/// Emit heap allocation for Roc refcounted data.
-/// Leaves the Roc data pointer on the wasm stack, not the raw allocation pointer.
+/// Emit heap allocation for Claw refcounted data.
+/// Leaves the Claw data pointer on the wasm stack, not the raw allocation pointer.
 fn emitHeapAllocWithRefcount(self: *Self, data_size_local: u32, element_alignment: u32, elements_refcounted: bool) Allocator.Error!void {
     const rc_layout = rcAllocationLayout(element_alignment, elements_refcounted);
 
@@ -6455,7 +6455,7 @@ fn emitHeapAllocWithRefcount(self: *Self, data_size_local: u32, element_alignmen
     self.currentCode().append(self.allocator, Op.i32_add) catch return error.OutOfMemory;
 }
 
-/// Emit heap allocation for Roc refcounted data with a constant data size.
+/// Emit heap allocation for Claw refcounted data with a constant data size.
 fn emitHeapAllocWithRefcountConst(self: *Self, data_size: u32, element_alignment: u32, elements_refcounted: bool) Allocator.Error!void {
     const data_size_local = self.storage.allocAnonymousLocal(.i32) catch return error.OutOfMemory;
     try self.emitI32Const(@intCast(data_size));
@@ -9732,7 +9732,7 @@ fn generateLowLevel(self: *Self, ll: anytype) Allocator.Error!void {
             // Load length from ClawList struct (offset 4)
             try self.emitProcLocal(args[0]);
             try self.emitLoadOp(.i32, 4);
-            // list_len returns U64 in Roc, but we store it as i32 on wasm32
+            // list_len returns U64 in Claw, but we store it as i32 on wasm32
             // If ret_layout expects i64, extend
             const ret_vt = try self.resolveValType(ll.ret_layout);
             if (ret_vt == .i64) {

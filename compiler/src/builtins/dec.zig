@@ -1,6 +1,6 @@
-//! Builtin decimal operations and data structures for the Roc runtime.
+//! Builtin decimal operations and data structures for the Claw runtime.
 //!
-//! This module provides the core implementation of Roc's Dec type, a fixed-point
+//! This module provides the core implementation of Claw's Dec type, a fixed-point
 //! decimal number with 18 decimal places. It includes arithmetic operations,
 //! parsing, formatting, and conversions for precise decimal calculations
 //! without floating-point precision issues.
@@ -49,7 +49,7 @@ fn printI128Decimal(buf: []u8, val: i128) usize {
     return pos;
 }
 
-/// Roc's fixed-point decimal runtime representation.
+/// Claw's fixed-point decimal runtime representation.
 ///
 /// `num` stores the decimal value scaled by 10^18, so `1.0` is represented as
 /// `1_000_000_000_000_000_000`. The extern layout is part of the C ABI used by
@@ -117,7 +117,7 @@ pub const ClawDec = extern struct {
         return i128h.i128_to_f64(dec.num) / comptime @as(f64, @floatFromInt(one_point_zero_i128));
     }
 
-    // All parse failures currently map to null; the Roc wrapper reports that as
+    // All parse failures currently map to null; the Claw wrapper reports that as
     // BadNumStr.
     pub fn fromStr(roc_str: ClawStr) ?ClawDec {
         if (roc_str.isEmpty()) {

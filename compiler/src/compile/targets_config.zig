@@ -26,7 +26,7 @@ pub const LinkItem = union(enum) {
     /// Path is relative to the targets/<target>/ directory.
     file_path: []const u8,
 
-    /// The compiled Roc application.
+    /// The compiled Claw application.
     app,
 
     /// Windows GUI subsystem flag (/subsystem:windows).

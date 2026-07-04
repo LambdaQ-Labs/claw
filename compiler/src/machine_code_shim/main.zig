@@ -2,7 +2,7 @@
 //!
 //! The compiler parent process publishes a dev backend `RunImage` into shared
 //! memory. This shim maps that image, applies its explicit relocations in place,
-//! marks the generated code pages executable, and calls the requested Roc ABI
+//! marks the generated code pages executable, and calls the requested Claw ABI
 //! entrypoint wrapper directly from the shared mapping.
 
 const std = @import("std");
@@ -156,7 +156,7 @@ fn ensureRuntimeState(ops: *ClawOps) ShimError!*RuntimeState {
     if (runtime_state_initialized.load(.acquire)) return &runtime_state;
 
     runtime_state = openRuntimeState(allocator()) catch {
-        ops.crash("Machine-code shim could not map the compiled Roc image");
+        ops.crash("Machine-code shim could not map the compiled Claw image");
         return error.ImageUnavailable;
     };
     runtime_state_initialized.store(true, .release);

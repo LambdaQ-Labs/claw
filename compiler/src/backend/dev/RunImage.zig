@@ -2,7 +2,7 @@
 //!
 //! The parent process emits machine code plus explicit relocation and readonly
 //! data records. The child shim maps the image, patches those records in place,
-//! marks the generated code pages executable, and calls the requested Roc ABI
+//! marks the generated code pages executable, and calls the requested Claw ABI
 //! entrypoint wrapper directly from the shared mapping.
 
 const std = @import("std");

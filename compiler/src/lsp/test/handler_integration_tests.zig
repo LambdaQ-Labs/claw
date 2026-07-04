@@ -33,14 +33,14 @@ fn jsonEscape(allocator: std.mem.Allocator, source: []const u8) std.mem.Allocato
     return escaped.toOwnedSlice(allocator);
 }
 
-/// Get the path to the test platform for creating valid Roc files
+/// Get the path to the test platform for creating valid Claw files
 fn platformPath(allocator: std.mem.Allocator) integration_spec.SpecError![]u8 {
     // Resolve from repo root to ensure absolute path
     const repo_root = try std.Io.Dir.cwd().realPathFileAlloc(test_env.io, ".", allocator);
     defer allocator.free(repo_root);
     const path = try std.fs.path.join(allocator, &.{ repo_root, "test", "str", "platform", "main.roc" });
-    // Convert backslashes to forward slashes for cross-platform Roc source compatibility
-    // Roc interprets backslashes as escape sequences in string literals
+    // Convert backslashes to forward slashes for cross-platform Claw source compatibility
+    // Claw interprets backslashes as escape sequences in string literals
     for (path) |*c| {
         if (c.* == '\\') c.* = '/';
     }
@@ -1056,9 +1056,9 @@ pub fn multipleGotoDefinitionCallsDontBreakDocumentSymbols() integration_spec.Sp
     try expectSymbolNames(try symbols_response.result(), &.{ "foo", "bar", "baz" });
 }
 
-/// Verifies document symbols report the expected Roc definition names.
+/// Verifies document symbols report the expected Claw definition names.
 pub fn documentSymbolHandlerReturnsSymbolsWithCorrectNames() integration_spec.SpecError!void {
-    // Test that outline returns actual symbol names using valid Roc syntax
+    // Test that outline returns actual symbol names using valid Claw syntax
     const allocator = test_env.allocator;
     var tmp = test_env.tmpDir(.{});
     defer tmp.cleanup();
@@ -1069,11 +1069,11 @@ pub fn documentSymbolHandlerReturnsSymbolsWithCorrectNames() integration_spec.Sp
     const file_uri = try uriFromPath(allocator, file_path);
     defer allocator.free(file_uri);
 
-    // Get the platform path for valid Roc syntax
+    // Get the platform path for valid Claw syntax
     const platform_path = try platformPath(allocator);
     defer allocator.free(platform_path);
 
-    // Create a valid Roc app with proper header and definitions
+    // Create a valid Claw app with proper header and definitions
     const roc_source = try std.fmt.allocPrint(allocator,
         \\app [main, add, myConst] {{ pf: platform "{s}" }}
         \\
@@ -1188,11 +1188,11 @@ pub fn documentSymbolHandlerWorksIndependentlyOfCheck() integration_spec.SpecErr
     const file_uri = try uriFromPath(allocator, file_path);
     defer allocator.free(file_uri);
 
-    // Get the platform path for valid Roc syntax
+    // Get the platform path for valid Claw syntax
     const platform_path = try platformPath(allocator);
     defer allocator.free(platform_path);
 
-    // Create a valid Roc app with proper header
+    // Create a valid Claw app with proper header
     const roc_source = try std.fmt.allocPrint(allocator,
         \\app [hello] {{ pf: platform "{s}" }}
         \\

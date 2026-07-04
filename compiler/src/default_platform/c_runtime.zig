@@ -103,14 +103,14 @@ export fn roc_dbg(bytes: [*]const u8, len: usize) callconv(.c) void {
 }
 
 export fn roc_expect_failed(bytes: [*]const u8, len: usize) callconv(.c) noreturn {
-    writeAll(2, "Roc expect failed: ");
+    writeAll(2, "Claw expect failed: ");
     writeAll(2, bytes[0..len]);
     writeAll(2, "\n");
     c.exit(1);
 }
 
 export fn roc_crashed(bytes: [*]const u8, len: usize) callconv(.c) noreturn {
-    writeAll(2, "Roc application crashed with this message:\n\n\t");
+    writeAll(2, "Claw application crashed with this message:\n\n\t");
     writeAll(2, bytes[0..len]);
     writeAll(2, "\n\n");
     c.exit(1);

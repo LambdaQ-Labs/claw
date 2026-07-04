@@ -1,6 +1,6 @@
-//! C Interface for Roc Builtins
+//! C Interface for Claw Builtins
 //!
-//! This module provides C-compatible functions for Roc's built-in functionality.
+//! This module provides C-compatible functions for Claw's built-in functionality.
 //! All functions are exported and follow C calling conventions.
 //!
 //! The exported functions are available in the object file `roc_builtins.o`

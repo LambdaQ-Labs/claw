@@ -133,7 +133,7 @@ pub const Store = struct {
     /// Init the type store with capacity heuristics based on source file size.
     /// Larger source files typically need more type slots and variables.
     ///
-    /// Heuristics based on typical Roc code patterns:
+    /// Heuristics based on typical Claw code patterns:
     /// - ~1 type slot per 50 bytes of source
     /// - ~1 child element (vars, tags, record fields) per 100 bytes
     pub fn initFromSourceLen(gpa: Allocator, source_len: usize) std.mem.Allocator.Error!Self {

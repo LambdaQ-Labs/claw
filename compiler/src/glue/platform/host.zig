@@ -1,8 +1,8 @@
-//! Platform host for the Roc glue generator.
+//! Platform host for the Claw glue generator.
 //!
 //! This host provides the runtime for executing glue specs. It compiles
 //! platform source files, extracts type information, and passes it to
-//! the Roc glue spec, which then handles generating glue code.
+//! the Claw glue spec, which then handles generating glue code.
 //!
 //! Entry point: make_glue : List Types -> Result (List File) Str
 const std = @import("std");
@@ -43,9 +43,9 @@ fn panicImpl(msg: []const u8, addr: ?usize) noreturn {
     std.process.abort();
 }
 
-const STACK_OVERFLOW_MESSAGE = "\nThis Roc application overflowed its stack memory and crashed.\n\n";
+const STACK_OVERFLOW_MESSAGE = "\nThis Claw application overflowed its stack memory and crashed.\n\n";
 
-/// Callback for stack overflow in a Roc program
+/// Callback for stack overflow in a Claw program
 fn handleRocStackOverflow() noreturn {
     if (comptime builtin.os.tag == .windows) {
         const DWORD = u32;
@@ -74,7 +74,7 @@ fn handleRocStackOverflow() noreturn {
     }
 }
 
-/// Callback for access violation in a Roc program
+/// Callback for access violation in a Claw program
 fn handleRocAccessViolation(fault_addr: usize, _: base.signal_handler.AccessViolationContext) noreturn {
     if (comptime builtin.os.tag == .windows) {
         const DWORD = u32;
@@ -90,7 +90,7 @@ fn handleRocAccessViolation(fault_addr: usize, _: base.signal_handler.AccessViol
         var addr_buf: [18]u8 = undefined;
         const addr_str = base.signal_handler.formatHex(fault_addr, &addr_buf);
 
-        const msg1 = "\nSegmentation fault (SIGSEGV) in this Roc program.\nFault address: ";
+        const msg1 = "\nSegmentation fault (SIGSEGV) in this Claw program.\nFault address: ";
         const msg2 = "\n\n";
         const stderr_handle = kernel32.GetStdHandle(STD_ERROR_HANDLE);
         var bytes_written: DWORD = 0;
@@ -100,7 +100,7 @@ fn handleRocAccessViolation(fault_addr: usize, _: base.signal_handler.AccessViol
         kernel32.ExitProcess(139);
     } else {
         // POSIX (and WASI fallback)
-        const msg = "\nSegmentation fault (SIGSEGV) in this Roc program.\nFault address: ";
+        const msg = "\nSegmentation fault (SIGSEGV) in this Claw program.\nFault address: ";
         std.debug.print("{s}", .{msg});
 
         var addr_buf: [18]u8 = undefined;
@@ -111,10 +111,10 @@ fn handleRocAccessViolation(fault_addr: usize, _: base.signal_handler.AccessViol
     }
 }
 
-/// Error message to display on division by zero in a Roc program
-const DIVISION_BY_ZERO_MESSAGE = "\nThis Roc application divided by zero and crashed.\n\n";
+/// Error message to display on division by zero in a Claw program
+const DIVISION_BY_ZERO_MESSAGE = "\nThis Claw application divided by zero and crashed.\n\n";
 
-/// Callback for arithmetic errors (division by zero) in a Roc program
+/// Callback for arithmetic errors (division by zero) in a Claw program
 fn handleRocArithmeticError() noreturn {
     if (comptime builtin.os.tag == .windows) {
         const DWORD = u32;
@@ -139,7 +139,7 @@ fn handleRocArithmeticError() noreturn {
     }
 }
 
-/// Tracking entry for a Roc allocation
+/// Tracking entry for a Claw allocation
 const ClawAllocation = struct {
     ptr: [*]u8, // Base pointer (before user data, includes size metadata)
     total_size: usize,
@@ -150,14 +150,14 @@ const ClawAllocation = struct {
 const HostEnv = struct {
     gpa: std.heap.DebugAllocator(.{ .safety = true }),
     std_io: std.Io,
-    /// Track Roc allocations for cleanup on test failure
+    /// Track Claw allocations for cleanup on test failure
     roc_allocations: std.ArrayListUnmanaged(ClawAllocation) = .{ .items = &.{}, .capacity = 0 },
     /// Allocation counters for diagnostics
     alloc_count: usize = 0,
     dealloc_count: usize = 0,
 };
 
-/// Report an out-of-memory failure from a Roc host allocation callback and
+/// Report an out-of-memory failure from a Claw host allocation callback and
 /// abort. These callbacks use the C ABI and cannot return a Zig error, so a
 /// reported `exit(1)` is the graceful failure path.
 fn hostAllocFailed(host: *HostEnv) noreturn {
@@ -166,7 +166,7 @@ fn hostAllocFailed(host: *HostEnv) noreturn {
     std.process.exit(1);
 }
 
-/// Roc allocation function with size-tracking metadata
+/// Claw allocation function with size-tracking metadata
 fn rocAllocFn(ops: *builtins.host_abi.ClawOps, length: usize, alignment: usize) callconv(.c) ?*anyopaque {
     const env = ops.env;
     const env_addr = @intFromPtr(env);
@@ -216,7 +216,7 @@ fn rocAllocFn(ops: *builtins.host_abi.ClawOps, length: usize, alignment: usize) 
     return answer;
 }
 
-/// Roc deallocation function with size-tracking metadata
+/// Claw deallocation function with size-tracking metadata
 fn rocDeallocFn(ops: *builtins.host_abi.ClawOps, ptr: *anyopaque, alignment: usize) callconv(.c) void {
     const env = ops.env;
     const env_addr = @intFromPtr(env);
@@ -256,7 +256,7 @@ fn rocDeallocFn(ops: *builtins.host_abi.ClawOps, ptr: *anyopaque, alignment: usi
     allocator.rawFree(slice, align_enum, @returnAddress());
 }
 
-/// Roc reallocation function with size-tracking metadata
+/// Claw reallocation function with size-tracking metadata
 fn rocReallocFn(ops: *builtins.host_abi.ClawOps, ptr: *anyopaque, new_length: usize, alignment: usize) callconv(.c) ?*anyopaque {
     const env = ops.env;
     const env_addr = @intFromPtr(env);
@@ -313,20 +313,20 @@ fn rocReallocFn(ops: *builtins.host_abi.ClawOps, ptr: *anyopaque, new_length: us
     return answer;
 }
 
-/// Roc debug function
+/// Claw debug function
 fn rocDbgFn(_: *builtins.host_abi.ClawOps, bytes: [*]const u8, len: usize) callconv(.c) void {
     const message = bytes[0..len];
     std.debug.print("ROC DBG: {s}\n", .{message});
 }
 
-/// Roc expect failed function
+/// Claw expect failed function
 fn rocExpectFailedFn(_: *builtins.host_abi.ClawOps, bytes: [*]const u8, len: usize) callconv(.c) void {
     const source_bytes = bytes[0..len];
     const trimmed = std.mem.trim(u8, source_bytes, " \t\n\r");
     std.debug.print("Expect failed: {s}\n", .{trimmed});
 }
 
-/// Roc crashed function
+/// Claw crashed function
 fn rocCrashedFn(ops: *builtins.host_abi.ClawOps, bytes: [*]const u8, len: usize) callconv(.c) void {
     const host: *HostEnv = @ptrCast(@alignCast(ops.env));
     const message = bytes[0..len];
@@ -342,34 +342,34 @@ fn rocCrashedFn(ops: *builtins.host_abi.ClawOps, bytes: [*]const u8, len: usize)
 const ClawStr = builtins.str.ClawStr;
 const ClawList = builtins.list.ClawList;
 
-// Roc Type Definitions for Glue Platform
+// Claw Type Definitions for Glue Platform
 
-/// TypeId is just a U64 wrapper in Roc
+/// TypeId is just a U64 wrapper in Claw
 const TypeId = u64;
 
-/// File record - matches Roc { name : Str, content : Str }
-/// Roc orders record fields alphabetically: content, name
+/// File record - matches Claw { name : Str, content : Str }
+/// Claw orders record fields alphabetically: content, name
 const File = extern struct {
     content: ClawStr,
     name: ClawStr,
 };
 
 /// EntryPoint record: { name : Str, type_id : U64 }
-/// Roc records are ordered alphabetically by field name: name < type_id
+/// Claw records are ordered alphabetically by field name: name < type_id
 const EntryPoint = extern struct {
     name: ClawStr,
     type_id: TypeId,
 };
 
 /// FunctionInfo record: { name : Str, type_str : Str }
-/// Roc records are ordered alphabetically by field name: name < type_str
+/// Claw records are ordered alphabetically by field name: name < type_str
 const FunctionInfoRoc = extern struct {
     name: ClawStr,
     type_str: ClawStr,
 };
 
 /// HostedFunctionInfo record: { index : U64, name : Str, type_str : Str }
-/// Roc records are ordered alphabetically: index < name < type_str
+/// Claw records are ordered alphabetically: index < name < type_str
 const HostedFunctionInfoRoc = extern struct {
     index: u64,
     name: ClawStr,
@@ -377,7 +377,7 @@ const HostedFunctionInfoRoc = extern struct {
 };
 
 /// ModuleTypeInfo record: { functions : List(FunctionInfo), hosted_functions : List(HostedFunctionInfo), main_type : Str, name : Str }
-/// Roc records are ordered alphabetically: functions < hosted_functions < main_type < name
+/// Claw records are ordered alphabetically: functions < hosted_functions < main_type < name
 const ModuleTypeInfoRoc = extern struct {
     functions: ClawList, // List(FunctionInfo)
     hosted_functions: ClawList, // List(HostedFunctionInfo)
@@ -403,7 +403,7 @@ const TypesInner = extern struct {
     type_table: ClawList, // List(TypeRepr)
 };
 
-/// Result (List File) Str - Roc Result type
+/// Result (List File) Str - Claw Result type
 /// Ok variant has tag 1, Err variant has tag 0 (alphabetical: Err < Ok)
 const ResultTag = enum(u8) {
     Err = 0,
@@ -424,7 +424,7 @@ extern fn roc_make_glue(types_list: ClawList) callconv(.c) ResultListFileStr;
 
 // The host's private ClawOps. The exported runtime symbols below and the
 // builtins helpers reach the host allocator through this global, set by
-// platform_main before any Roc code runs.
+// platform_main before any Claw code runs.
 var g_roc_ops: ?*builtins.host_abi.ClawOps = null;
 
 fn hostAlloc(length: usize, alignment: usize) callconv(.c) ?*anyopaque {
@@ -452,12 +452,23 @@ fn hostCrashed(bytes: [*]const u8, len: usize) callconv(.c) void {
 }
 
 comptime {
+    // The runtime ABI. The `roc_*` names are kept as the load-bearing
+    // contract so Claw stays binary-compatible with the Roc platform
+    // ecosystem; the `claw_*` aliases point at the same functions so a
+    // Claw-native host can bind the branded names. Same code, two names.
     @export(&hostAlloc, .{ .name = "roc_alloc", .visibility = .hidden });
     @export(&hostDealloc, .{ .name = "roc_dealloc", .visibility = .hidden });
     @export(&hostRealloc, .{ .name = "roc_realloc", .visibility = .hidden });
     @export(&hostDbg, .{ .name = "roc_dbg", .visibility = .hidden });
     @export(&hostExpectFailed, .{ .name = "roc_expect_failed", .visibility = .hidden });
     @export(&hostCrashed, .{ .name = "roc_crashed", .visibility = .hidden });
+
+    @export(&hostAlloc, .{ .name = "claw_alloc", .visibility = .hidden });
+    @export(&hostDealloc, .{ .name = "claw_dealloc", .visibility = .hidden });
+    @export(&hostRealloc, .{ .name = "claw_realloc", .visibility = .hidden });
+    @export(&hostDbg, .{ .name = "claw_dbg", .visibility = .hidden });
+    @export(&hostExpectFailed, .{ .name = "claw_expect_failed", .visibility = .hidden });
+    @export(&hostCrashed, .{ .name = "claw_crashed", .visibility = .hidden });
 }
 
 // OS-specific entry point handling
@@ -550,7 +561,7 @@ fn cleanupResult(result: *ResultListFileStr, roc_ops: *builtins.host_abi.ClawOps
                     file_slice[i].name.decref(roc_ops);
                 }
             }
-            // Note: The files list container itself is Roc-allocated and will be
+            // Note: The files list container itself is Claw-allocated and will be
             // cleaned up by the defer block's rawFree of remaining roc_allocations
         },
         .Err => {
@@ -560,8 +571,8 @@ fn cleanupResult(result: *ResultListFileStr, roc_ops: *builtins.host_abi.ClawOps
 }
 
 /// Parse types_json and build ClawList of ModuleTypeInfoRoc
-/// All list allocations use Roc's allocation scheme (allocateWithRefcount) so that
-/// Roc's compiled code can properly check refcounts at bytes-8.
+/// All list allocations use Claw's allocation scheme (allocateWithRefcount) so that
+/// Claw's compiled code can properly check refcounts at bytes-8.
 fn parseTypesJson(
     allocator: std.mem.Allocator,
     json_str: []const u8,
@@ -584,7 +595,7 @@ fn parseTypesJson(
         return ClawList.empty();
     }
 
-    // Allocate array for ModuleTypeInfoRoc entries using Roc's allocation scheme
+    // Allocate array for ModuleTypeInfoRoc entries using Claw's allocation scheme
     // ModuleTypeInfoRoc contains ClawStr and ClawList fields which are refcounted
     const modules_data_size = modules.len * @sizeOf(ModuleTypeInfoRoc);
     const modules_bytes = builtins.utils.allocateWithRefcount(
@@ -597,7 +608,7 @@ fn parseTypesJson(
     const modules_ptr: [*]ModuleTypeInfoRoc = @ptrCast(@alignCast(modules_bytes));
 
     for (modules, 0..) |mod, mod_idx| {
-        // Build functions list using Roc's allocation scheme
+        // Build functions list using Claw's allocation scheme
         // FunctionInfoRoc contains ClawStr fields which are refcounted
         const functions_list = if (mod.functions.len > 0) blk: {
             const funcs_data_size = mod.functions.len * @sizeOf(FunctionInfoRoc);
@@ -624,7 +635,7 @@ fn parseTypesJson(
             };
         } else ClawList.empty();
 
-        // Build hosted_functions list using Roc's allocation scheme
+        // Build hosted_functions list using Claw's allocation scheme
         // HostedFunctionInfoRoc contains ClawStr fields which are refcounted
         const hosted_functions_list = if (mod.hosted_functions.len > 0) blk: {
             const hosted_data_size = mod.hosted_functions.len * @sizeOf(HostedFunctionInfoRoc);
@@ -719,7 +730,7 @@ fn platform_main(args: [][*:0]u8, std_io: std.Io) (Allocator.Error || error{ Mis
             const stderr_file: std.Io.File = .stderr();
             var buf: [512]u8 = undefined;
             const msg = std.fmt.bufPrint(&buf,
-                \\[Roc Memory Info] {d} allocation(s) not freed by Roc runtime.
+                \\[Claw Memory Info] {d} allocation(s) not freed by Claw runtime.
                 \\  Cleaning up {d} allocations...
                 \\
             , .{ remaining_count, remaining_count }) catch "";
@@ -737,7 +748,7 @@ fn platform_main(args: [][*:0]u8, std_io: std.Io) (Allocator.Error || error{ Mis
             const stderr_file: std.Io.File = .stderr();
             stderr_file.writeStreamingAll(host_env.std_io,
                 \\
-                \\[Roc Memory Info] Additional memory leak detected by GPA.
+                \\[Claw Memory Info] Additional memory leak detected by GPA.
                 \\
             ) catch {};
         }
@@ -768,8 +779,8 @@ fn platform_main(args: [][*:0]u8, std_io: std.Io) (Allocator.Error || error{ Mis
     }
     defer allocator.free(entry_point_names);
 
-    // Allocate array for EntryPoint entries using Roc's allocation scheme
-    // This ensures a valid refcount is present at bytes-8, which Roc's
+    // Allocate array for EntryPoint entries using Claw's allocation scheme
+    // This ensures a valid refcount is present at bytes-8, which Claw's
     // list operations expect when checking isUnique() etc.
     // EntryPoint contains ClawStr which is refcounted, so use elements_refcounted=true
     // to allocate 16 bytes of header space (refcount + element count).
@@ -787,7 +798,7 @@ fn platform_main(args: [][*:0]u8, std_io: std.Io) (Allocator.Error || error{ Mis
     // Build EntryPoint for each entry point
     for (entry_point_names, 0..) |name, idx| {
         // Force big string creation to avoid small string encoding mismatch.
-        // Roc's compiled code reads the length field directly, which is 0 for small strings
+        // Claw's compiled code reads the length field directly, which is 0 for small strings
         // (small strings store length in byte[23] with high bit set).
         // By always allocating >= 24 bytes, we ensure the string is treated as a big string.
         const roc_name = if (name.len < SMALL_STRING_SIZE) blk: {
@@ -857,8 +868,8 @@ fn platform_main(args: [][*:0]u8, std_io: std.Io) (Allocator.Error || error{ Mis
         };
     } else ClawList.empty();
 
-    // Heap-allocate TypesInner using Roc's allocation scheme
-    // This ensures a valid refcount is present at bytes-8, which Roc's
+    // Heap-allocate TypesInner using Claw's allocation scheme
+    // This ensures a valid refcount is present at bytes-8, which Claw's
     // list operations expect when checking isUnique() etc.
     // TypesInner contains ClawList fields which are refcounted
     const types_inner_bytes = builtins.utils.allocateWithRefcount(
@@ -883,8 +894,8 @@ fn platform_main(args: [][*:0]u8, std_io: std.Io) (Allocator.Error || error{ Mis
         .capacity_or_alloc_ptr = ClawList.encodeCapacity(1),
     };
 
-    // Call the Roc glue spec
-    // Note: Roc consumes types_list (takes ownership), so it handles cleanup
+    // Call the Claw glue spec
+    // Note: Claw consumes types_list (takes ownership), so it handles cleanup
     // of all nested structures. We must NOT manually clean up after this call.
     var result: ResultListFileStr = roc_make_glue(types_list);
     defer cleanupResult(&result, &roc_ops);

@@ -1,4 +1,4 @@
-//! Roc target definitions - shared between build.zig and CLI
+//! Claw target definitions - shared between build.zig and CLI
 //!
 //! This module is importable by build.zig (build-time) and CLI code (runtime).
 //! It contains no dependencies on compiler modules like `parse`.
@@ -6,7 +6,7 @@
 const std = @import("std");
 const builtin = @import("builtin");
 
-/// Roc's minimum supported macOS deployment target.
+/// Claw's minimum supported macOS deployment target.
 ///
 /// Keep this in one place because LLVM triples, Mach-O linker metadata, Mach-O
 /// object metadata, and Zig-built platform host archives must all agree. If
@@ -29,7 +29,7 @@ pub const macos_deployment = struct {
     }
 };
 
-/// Roc's simplified target representation.
+/// Claw's simplified target representation.
 /// Maps to specific OS/arch/ABI combinations for cross-compilation.
 pub const ClawTarget = enum {
     // x64 (x86_64) targets
@@ -126,7 +126,7 @@ pub const ClawTarget = enum {
         }
     }
 
-    /// Detect the current system's Roc target (compile-time)
+    /// Detect the current system's Claw target (compile-time)
     pub fn detectNative() ClawTarget {
         return fromStdTarget(builtin.target);
     }
@@ -166,7 +166,7 @@ pub const ClawTarget = enum {
         };
     }
 
-    /// Convert Roc target to LLVM target triple
+    /// Convert Claw target to LLVM target triple
     pub fn toTriple(self: ClawTarget) []const u8 {
         return switch (self) {
             // x64 targets

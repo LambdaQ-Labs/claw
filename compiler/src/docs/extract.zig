@@ -1,4 +1,4 @@
-//! Extraction of documentation data from compiled Roc modules.
+//! Extraction of documentation data from compiled Claw modules.
 //!
 //! This module provides functions to extract doc comments from source text,
 //! build structured type representations, and build `DocModel` structs from a `ModuleEnv`.

@@ -1,6 +1,6 @@
-//! Renders CIR type annotations to human-readable Roc syntax strings.
+//! Renders CIR type annotations to human-readable Claw syntax strings.
 //!
-//! This converts the internal `TypeAnno` representation into the syntax a Roc
+//! This converts the internal `TypeAnno` representation into the syntax a Claw
 //! programmer would write, e.g. `List(Str)`, `a -> b`, `{ name : Str }`.
 
 const std = @import("std");
@@ -35,7 +35,7 @@ pub const RenderBuffer = struct {
     }
 };
 
-/// Render a type annotation index to a newly allocated Roc syntax string.
+/// Render a type annotation index to a newly allocated Claw syntax string.
 pub fn renderTypeAnnoToString(
     gpa: Allocator,
     module_env: *const ModuleEnv,
@@ -47,7 +47,7 @@ pub fn renderTypeAnnoToString(
     return buf.toOwnedSlice(gpa);
 }
 
-/// Render a type annotation to Roc syntax into a buffer.
+/// Render a type annotation to Claw syntax into a buffer.
 ///
 /// `needs_parens` indicates whether compound types (like functions) should be
 /// wrapped in parentheses when used as arguments to other type constructors.
@@ -159,7 +159,7 @@ pub fn renderTypeAnno(
     }
 }
 
-/// Render a type header (e.g. `Maybe(a)`) to Roc syntax.
+/// Render a type header (e.g. `Maybe(a)`) to Claw syntax.
 pub fn renderTypeHeader(
     buf: *RenderBuffer,
     gpa: Allocator,

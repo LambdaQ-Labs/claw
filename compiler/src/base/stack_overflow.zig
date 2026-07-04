@@ -1,4 +1,4 @@
-//! Signal handling for the Roc compiler process.
+//! Signal handling for the Claw compiler process.
 
 const std = @import("std");
 const builtin = @import("builtin");
@@ -6,7 +6,7 @@ const posix = if (builtin.os.tag != .windows and builtin.os.tag != .freestanding
 const signal_handler = @import("signal_handler.zig");
 
 /// Error message to display on stack overflow
-const STACK_OVERFLOW_MESSAGE = "\nThe Roc compiler overflowed its stack memory and had to exit.\n\n";
+const STACK_OVERFLOW_MESSAGE = "\nThe Claw compiler overflowed its stack memory and had to exit.\n\n";
 
 /// Callback for stack overflow in the compiler
 fn handleStackOverflow() noreturn {
@@ -41,7 +41,7 @@ fn handleStackOverflow() noreturn {
 }
 
 /// Error message to display on arithmetic error (division by zero, etc.)
-const ARITHMETIC_ERROR_MESSAGE = "\nThe Roc compiler divided by zero and had to exit.\n\n";
+const ARITHMETIC_ERROR_MESSAGE = "\nThe Claw compiler divided by zero and had to exit.\n\n";
 
 /// Callback for arithmetic errors (division by zero) in the compiler
 fn handleArithmeticError() noreturn {
@@ -84,7 +84,7 @@ fn handleAccessViolation(fault_addr: usize, context: signal_handler.AccessViolat
         var addr_buf: [18]u8 = undefined;
         const addr_str = signal_handler.formatHex(fault_addr, &addr_buf);
 
-        const msg1 = "\nAccess violation in the Roc compiler.\nFault address: ";
+        const msg1 = "\nAccess violation in the Claw compiler.\nFault address: ";
         const msg2 = "\n\nPlease report this issue at: https://github.com/roc-lang/roc/issues\n\n";
         const stderr_handle = kernel32.GetStdHandle(STD_ERROR_HANDLE);
         var bytes_written: DWORD = 0;
@@ -94,7 +94,7 @@ fn handleAccessViolation(fault_addr: usize, context: signal_handler.AccessViolat
         kernel32.ExitProcess(139);
     } else {
         // POSIX (and WASI fallback): use raw write for signal-safety
-        const generic_msg = "\nSegmentation fault (SIGSEGV) in the Roc compiler.\nFault address: ";
+        const generic_msg = "\nSegmentation fault (SIGSEGV) in the Claw compiler.\nFault address: ";
         _ = std.c.write(posix.STDERR_FILENO, generic_msg.ptr, generic_msg.len);
 
         // Write the fault address as hex

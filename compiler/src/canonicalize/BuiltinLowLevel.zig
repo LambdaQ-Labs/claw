@@ -1,7 +1,7 @@
 //! Builtin.roc low-level operation transform.
 //!
 //! The compiler-owned Builtin module declares primitive operations as annotations
-//! in Roc source. This pass replaces those annotation-only definitions with CIR
+//! in Claw source. This pass replaces those annotation-only definitions with CIR
 //! lambdas that run the matching low-level operation before checking begins.
 
 const std = @import("std");

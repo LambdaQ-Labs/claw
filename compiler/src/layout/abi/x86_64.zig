@@ -1,13 +1,13 @@
-//! x86-64 C-ABI parameter/return classification for Roc layouts — both the System V
+//! x86-64 C-ABI parameter/return classification for Claw layouts — both the System V
 //! (Linux/macOS) eightbyte algorithm and the Windows x64 convention.
 //!
 //! Adapted from the Zig compiler (MIT License, "Copyright (c) Zig contributors"):
 //! `src/codegen/x86_64/abi.zig` @ 24fdd5b7a4 (Release 0.16.0). The classification
 //! algorithms — System V's per-eightbyte INTEGER/SSE classification with struct/union
 //! recursion and post-merge cleanup, and the Win64 size-based rules — are unchanged; they
-//! have been rewritten to read Roc's layout store instead of Zig's `Type`/`Zcu`.
+//! have been rewritten to read Claw's layout store instead of Zig's `Type`/`Zcu`.
 //!
-//! Roc aggregates always use a C-compatible (extern-like) layout: fields are laid out at
+//! Claw aggregates always use a C-compatible (extern-like) layout: fields are laid out at
 //! natural alignment with no `auto`/`packed` distinction, which removes the packed-struct
 //! branches present in the upstream code.
 
@@ -109,7 +109,7 @@ pub fn classifyWindows(store: *const Store, idx: Idx) Class {
 /// Classify under the System V AMD64 ABI. Returns up to eight eightbyte classes; unused
 /// trailing slots are `.none`.
 pub fn classifySystemV(store: *const Store, idx: Idx, ctx: Context) [8]Class {
-    // Roc has no f16, f128, or SIMD vector types, so the only ABI types whose classification
+    // Claw has no f16, f128, or SIMD vector types, so the only ABI types whose classification
     // depends on arg-vs-return position do not occur here; `ctx` is accepted for API
     // symmetry with the consumer (which threads it through) but is not needed.
     _ = ctx;

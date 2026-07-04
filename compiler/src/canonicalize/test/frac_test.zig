@@ -181,7 +181,7 @@ test "fractional literal - NaN handling" {
     var test_env = try TestEnv.init(source);
     defer test_env.deinit();
 
-    // Note: NaN is not a valid numeric literal in Roc
+    // Note: NaN is not a valid numeric literal in Claw
     // The parser will fail before canonicalization
     // This test verifies that behavior
     const parse_ast = test_env.parse_ast;
@@ -199,7 +199,7 @@ test "fractional literal - infinity handling" {
     var test_env = try TestEnv.init(source);
     defer test_env.deinit();
 
-    // Note: Infinity is not a valid numeric literal in Roc
+    // Note: Infinity is not a valid numeric literal in Claw
     // The parser will fail before canonicalization
     // This test verifies that behavior
     const parse_ast = test_env.parse_ast;

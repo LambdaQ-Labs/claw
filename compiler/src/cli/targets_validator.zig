@@ -269,7 +269,7 @@ pub fn createValidationReport(
             try report.document.addLineBreak();
             try report.document.addText("  - `exe`: Targets that build executables");
             try report.document.addLineBreak();
-            try report.document.addText("  - Each target lists files to link in order, with `app` for the Roc application");
+            try report.document.addText("  - Each target lists files to link in order, with `app` for the Claw application");
             try report.document.addLineBreak();
 
             return report;
@@ -416,7 +416,7 @@ pub fn createValidationReport(
             defer allocator.free(headline);
             var report = try Report.init(allocator, "No Platform Found", headline, .runtime_error);
 
-            try report.document.addText("Every Roc application needs a platform. Add a platform declaration:");
+            try report.document.addText("Every Claw application needs a platform. Add a platform declaration:");
             try report.document.addLineBreak();
             try report.document.addLineBreak();
 
@@ -487,7 +487,7 @@ pub fn createValidationReport(
             defer allocator.free(headline);
             var report = try Report.init(allocator, "Process Crashed", headline, .runtime_error);
 
-            try report.document.addText("This is likely a bug in the Roc compiler.");
+            try report.document.addText("This is likely a bug in the Claw compiler.");
             try report.document.addLineBreak();
             try report.document.addLineBreak();
 
@@ -519,7 +519,7 @@ pub fn createValidationReport(
             defer allocator.free(headline);
             var report = try Report.init(allocator, "Process Killed By Signal", headline, .runtime_error);
 
-            try report.document.addText("This is likely a bug in the Roc compiler.");
+            try report.document.addText("This is likely a bug in the Claw compiler.");
             try report.document.addLineBreak();
             try report.document.addLineBreak();
 

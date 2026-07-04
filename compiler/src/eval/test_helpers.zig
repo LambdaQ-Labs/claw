@@ -1904,7 +1904,7 @@ fn boolRootRetBuffer(
 
 fn copyRuntimeCrashMessage(allocator: Allocator, runtime_env: *const RuntimeHostEnv) TestHelperError![]const u8 {
     return switch (runtime_env.crashState()) {
-        .did_not_crash => try allocator.dupe(u8, "Roc crashed"),
+        .did_not_crash => try allocator.dupe(u8, "Claw crashed"),
         .crashed => |msg| try allocator.dupe(u8, msg),
     };
 }

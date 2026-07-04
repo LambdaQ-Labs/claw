@@ -52,7 +52,7 @@ pub const ArgProblem = union(enum) {
     },
 };
 
-/// The optimization strategy for the compilation of a Roc program
+/// The optimization strategy for the compilation of a Claw program
 pub const OptLevel = enum {
     size, // binary size (LLVM)
     speed, // execution speed (LLVM)
@@ -286,14 +286,14 @@ const main_help =
     \\  unbundle         Extract files from compressed .tar.zst archives
     \\  test             Run all top-level `expect`s in a main module and any modules it imports
     \\  repl             Launch the interactive Read Eval Print Loop (REPL)
-    \\  fmt              Format a .claw file or the .claw files contained in a directory using standard Roc formatting
-    \\  glue             Generate native glue code from a Roc platform using a language-specific glue spec
-    \\  version          Print the Roc compiler's version
+    \\  fmt              Format a .claw file or the .claw files contained in a directory using standard Claw formatting
+    \\  glue             Generate native glue code from a Claw platform using a language-specific glue spec
+    \\  version          Print the Claw compiler's version
     \\  check            Check the code for problems, but don't build or run it
-    \\  docs             Generate documentation for a Roc package or platform
+    \\  docs             Generate documentation for a Claw package or platform
     \\  experimental-lsp Start the experimental language server (LSP) implementation
     \\  help             Print this message
-    \\  licenses         Prints license info for Roc as well as attributions to other projects used by Roc
+    \\  licenses         Prints license info for Claw as well as attributions to other projects used by Claw
     \\
     \\Arguments:
     \\  [CLAW_FILE]         The .claw file of an app to run [default: main.roc]
@@ -311,7 +311,7 @@ const main_help =
 const run_not_a_command_help =
     \\Error: 'run' is not a valid subcommand.
     \\
-    \\To run a Roc application, use:
+    \\To run a Claw application, use:
     \\    claw path/to/app.roc
     \\
     \\For example:
@@ -724,7 +724,7 @@ fn parseFormat(alloc: mem.Allocator, args: []const []const u8) std.mem.Allocator
             // We need to free the paths here because we aren't returning the .format variant
             paths.deinit();
             return CliArgs{ .help =
-            \\Format a .claw file or the .claw files contained in a directory using standard Roc formatting
+            \\Format a .claw file or the .claw files contained in a directory using standard Claw formatting
             \\
             \\Usage: claw fmt [OPTIONS] [DIRECTORY_OR_FILES]
             \\
@@ -983,7 +983,7 @@ fn parseVersion(args: []const []const u8) CliArgs {
     for (args) |arg| {
         if (isHelpFlag(arg)) {
             return CliArgs{ .help =
-            \\Print the Roc compiler’s version
+            \\Print the Claw compiler’s version
             \\
             \\Usage: claw version
             \\
@@ -1002,7 +1002,7 @@ fn parseLicenses(args: []const []const u8) CliArgs {
     for (args) |arg| {
         if (isHelpFlag(arg)) {
             return CliArgs{ .help =
-            \\Prints license info for Roc as well as attributions to other projects used by Roc
+            \\Prints license info for Claw as well as attributions to other projects used by Claw
             \\
             \\Usage: claw licenses
             \\
@@ -1031,7 +1031,7 @@ fn parseDocs(args: []const []const u8) CliArgs {
     for (args) |arg| {
         if (isHelpFlag(arg)) {
             return CliArgs{ .help =
-            \\Generate documentation for a Roc package
+            \\Generate documentation for a Claw package
             \\
             \\Usage: claw docs [OPTIONS] [CLAW_FILE]
             \\
@@ -1096,7 +1096,7 @@ fn parseExperimentalLsp(args: []const []const u8) CliArgs {
     for (args) |arg| {
         if (isHelpFlag(arg)) {
             return CliArgs{ .help =
-            \\Start the experimental Roc language server (LSP)
+            \\Start the experimental Claw language server (LSP)
             \\
             \\Usage: claw experimental-lsp [OPTIONS]
             \\

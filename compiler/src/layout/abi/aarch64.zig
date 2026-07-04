@@ -1,10 +1,10 @@
-//! AArch64 (AAPCS64) C-ABI parameter/return classification for Roc layouts.
+//! AArch64 (AAPCS64) C-ABI parameter/return classification for Claw layouts.
 //!
 //! Adapted from the Zig compiler (MIT License, "Copyright (c) Zig contributors"):
 //! `src/codegen/aarch64/abi.zig` @ 24fdd5b7a4 (Release 0.16.0). The classification
 //! algorithm — homogeneous-float-aggregate (HFA) detection, then size-based
 //! integer/double-integer/memory selection — is unchanged; it has been rewritten to
-//! read Roc's layout store instead of Zig's `Type`/`Zcu`.
+//! read Claw's layout store instead of Zig's `Type`/`Zcu`.
 //!
 //! AAPCS64 does not vary parameter classification by argument-vs-return position, and
 //! Windows-on-ARM64 follows AAPCS64 for fixed (non-variadic) prototypes, so this single
@@ -259,7 +259,7 @@ test "aarch64 classify: Bool (a one-byte enum) uses one register" {
     var store = try Store.init(testing.allocator, .u64);
     defer store.deinit();
 
-    // Roc models Bool as a no-payload two-variant tag union, laid out as a single byte, so
+    // Claw models Bool as a no-payload two-variant tag union, laid out as a single byte, so
     // it classifies as a one-register integer aggregate (ABI-equivalent to a byval u8).
     try testing.expectEqual(Class.integer, classifyType(&store, .bool));
 }

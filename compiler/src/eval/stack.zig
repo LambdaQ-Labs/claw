@@ -1,4 +1,4 @@
-//! The stack (as in stack memory) used when evaluating Roc IR.
+//! The stack (as in stack memory) used when evaluating Claw IR.
 //!
 //! This has a lot in common with a thread's stack memory: it's fixed-size, bumps a
 //! pointer to allocate, and can pop. But this stack's memory comes from an Allocator.
@@ -30,7 +30,7 @@ fn assertAligned(ptr: anytype, alignment: usize, context: []const u8) void {
     }
 }
 
-/// Fixed-size stack memory allocator to be used when evaluating Roc IR
+/// Fixed-size stack memory allocator to be used when evaluating Claw IR
 pub const Stack = struct {
     allocator: std.mem.Allocator,
 

@@ -475,7 +475,7 @@ pub const Diagnostic = union(enum) {
         try report.headline.addReflowingText("This feature is not yet implemented: ");
         try report.headline.addAnnotatedText(owned_feature, reporting.Annotation.emphasized);
         try report.headline.addReflowingText(".");
-        try report.document.addReflowingText("This error doesn't have a proper diagnostic report yet. Let us know if you want to help improve Roc's error messages!");
+        try report.document.addReflowingText("This error doesn't have a proper diagnostic report yet. Let us know if you want to help improve Claw's error messages!");
         return report;
     }
 
@@ -771,7 +771,7 @@ pub const Diagnostic = union(enum) {
         );
 
         try report.document.addLineBreak();
-        try report.document.addReflowingText("Check the spelling and make sure you're using a valid Roc operator like ");
+        try report.document.addReflowingText("Check the spelling and make sure you're using a valid Claw operator like ");
         try report.document.addBinaryOperator("+");
         try report.document.addReflowingText(", ");
         try report.document.addBinaryOperator("-");
@@ -857,7 +857,7 @@ pub const Diagnostic = union(enum) {
         try report.document.addLineBreak();
         try report.document.addReflowingText("Note: Every ");
         try report.document.addKeyword("if");
-        try report.document.addReflowingText(" expression in Roc must have an ");
+        try report.document.addReflowingText(" expression in Claw must have an ");
         try report.document.addKeyword("else");
         try report.document.addReflowingText(" branch, and both branches must have the same type.");
         return report;
@@ -1441,7 +1441,7 @@ pub const Diagnostic = union(enum) {
         try report.headline.addInlineCode(literal_text);
         try report.headline.addReflowingText(".");
 
-        try report.document.addReflowingText("This number exceeds the precision range of Roc's ");
+        try report.document.addReflowingText("This number exceeds the precision range of Claw's ");
         try report.document.addInlineCode("Dec");
         try report.document.addReflowingText(" type and would require F64 representation. ");
         try report.document.addReflowingText("Floating-point numbers (F64) cannot be used in patterns because they don't have reliable equality comparison.");

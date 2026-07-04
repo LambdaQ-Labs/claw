@@ -1,10 +1,10 @@
-//! WebAssembly C-ABI parameter/return classification for Roc layouts.
+//! WebAssembly C-ABI parameter/return classification for Claw layouts.
 //!
 //! Adapted from the Zig compiler (MIT License, "Copyright (c) Zig contributors"):
 //! `src/codegen/wasm/abi.zig` @ 24fdd5b7a4 (Release 0.16.0). The convention follows the
 //! WebAssembly tool-conventions Basic C ABI
 //! (https://github.com/WebAssembly/tool-conventions/blob/main/BasicCABI.md), rewritten to
-//! read Roc's layout store instead of Zig's `Type`/`Zcu`.
+//! read Claw's layout store instead of Zig's `Type`/`Zcu`.
 //!
 //! Scalars (and single-scalar aggregates) are passed directly; everything multi-field is
 //! passed indirectly through a pointer.

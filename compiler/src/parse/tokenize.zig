@@ -1,7 +1,7 @@
-//! Tokenization functionality for the Roc parser.
+//! Tokenization functionality for the Claw parser.
 //!
-//! This module provides the tokenizer that converts Roc source code into
-//! a stream of tokens for parsing. It handles all Roc language tokens including
+//! This module provides the tokenizer that converts Claw source code into
+//! a stream of tokens for parsing. It handles all Claw language tokens including
 //! keywords, identifiers, literals, operators, and punctuation, representing
 //! them as offsets into the source code with additional metadata.
 
@@ -1867,7 +1867,7 @@ fn rebuildBufferForTesting(buf: []const u8, tokens: *TokenizedBuffer, alloc: std
         // EndOfFile consumes the entire file.
 
         // Copy over limited whitespace.
-        // TODO: Long term, we should switch to dummy whitespace, but currently, Roc still has WSS.
+        // TODO: Long term, we should switch to dummy whitespace, but currently, Claw still has WSS.
         const region = tokens.resolve(token_index);
         for (last_end..region.start.offset) |i| {
             // Leave tabs and newlines alone, they are special to roc.

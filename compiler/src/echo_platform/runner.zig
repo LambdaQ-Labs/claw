@@ -114,11 +114,11 @@ pub const RunOptions = struct {
     paths: Paths = .{},
     /// Target word width. `.u32` for wasm32 builds.
     target_usize: base.target.TargetUsize = .u32,
-    /// Roc compilation target.
+    /// Claw compilation target.
     roc_target: ClawTarget = .wasm32,
 };
 
-/// Compile and execute a headerless Roc source through the echo platform.
+/// Compile and execute a headerless Claw source through the echo platform.
 ///
 /// Wraps the user `source` in a synthetic `app [main!]` header that imports
 /// the embedded echo platform, then walks the canonical embedding sequence
@@ -126,7 +126,7 @@ pub const RunOptions = struct {
 /// → `LirImage.fillHeaderInBuffer` → `viewMappedImage` →
 /// `LirInterpreter.runEntrypoint`.
 ///
-/// Returns the Roc program's exit code (or 1 if an inline `expect` failed
+/// Returns the Claw program's exit code (or 1 if an inline `expect` failed
 /// while the program otherwise returned 0). On compilation/runtime error,
 /// emits a labelled diagnostic through `opts.diagnostics` and propagates
 /// the error so the caller can decide on an exit code.
