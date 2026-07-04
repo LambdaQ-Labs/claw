@@ -111,7 +111,12 @@ pub fn stdlib_cdb() -> Cdb {
         ("Nat.inc", "Nat -> Nat"),
         ("Nat.dec", "Nat -> Nat"),
         ("Nat.double", "Nat -> Nat"),
+        ("Nat.half", "Nat -> Nat"),
+        ("Nat.sqr", "Nat -> Nat"),
         ("Nat.isZero", "Nat -> Bool"),
+        ("Nat.isEven", "Nat -> Bool"),
+        ("Nat.isOdd", "Nat -> Bool"),
+        ("Nat.isPositive", "Nat -> Bool"),
         ("Nat.eq", "Nat, Nat -> Bool"),
         ("Nat.lte", "Nat, Nat -> Bool"),
         ("Nat.toStr", "Nat -> Str"),
@@ -122,6 +127,7 @@ pub fn stdlib_cdb() -> Cdb {
         ("Bool.and", "Bool, Bool -> Bool"),
         ("Bool.or", "Bool, Bool -> Bool"),
         ("Bool.not", "Bool -> Bool"),
+        ("Bool.if", "Bool, a, a -> a"),
         ("List.len", "List a -> Nat"),
         ("List.isEmpty", "List a -> Bool"),
         ("List.head", "List a -> Maybe a"),
@@ -261,6 +267,141 @@ fn literal_examples(cdb: &Cdb) -> claw_cdb::Result<Vec<Example>> {
     Ok(out)
 }
 
+/// Conditional programs: `\p0 -> Bool.if(q(p0), k1, k2)` : Nat -> Nat, over
+/// every `Nat -> Bool` predicate `q` and a spread of constant pairs. This is
+/// the branching shape the wrapper/compose/literal corpus lacked — an
+/// out-of-shape class the P4 gate flagged. Requires `Bool.if` in scope;
+/// hallucination-free by construction (uses q + Bool.if, both real).
+fn conditional_examples(cdb: &Cdb) -> claw_cdb::Result<Vec<Example>> {
+    use claw_core::Lit;
+    if cdb.resolve("Bool.if").is_err() {
+        return Ok(Vec::new());
+    }
+    // predicates: Nat -> Bool
+    let preds: Vec<String> = cdb
+        .symbols()?
+        .into_iter()
+        .filter_map(|(n, h)| {
+            let d = cdb.get(&h).ok()?;
+            if let Type::Fn(ps, ret) = &d.ty {
+                if ps.len() == 1
+                    && matches!(&ps[0], Type::Named(x) if x == "Nat")
+                    && matches!(&**ret, Type::Named(x) if x == "Bool")
+                {
+                    return Some(n);
+                }
+            }
+            None
+        })
+        .collect();
+
+    let mut out = Vec::new();
+    for q in &preds {
+        for (k1, k2) in [(0i64, 1i64), (1, 0), (0, 100), (1, 100), (7, 42)] {
+            let body = Expr::App {
+                func: Box::new(Expr::Var("Bool.if".into())),
+                args: vec![
+                    Expr::App {
+                        func: Box::new(Expr::Var(q.clone())),
+                        args: vec![Expr::Var("p0".into())],
+                    },
+                    Expr::Lit(Lit::Int(k1)),
+                    Expr::Lit(Lit::Int(k2)),
+                ],
+            };
+            let ty = Type::Fn(
+                vec![Type::Named("Nat".into())],
+                Box::new(Type::Named("Nat".into())),
+            );
+            let def = Def::new(
+                Expr::Lam {
+                    params: vec!["p0".into()],
+                    body: Box::new(body),
+                },
+                ty,
+            );
+            let dname = format!("{}_branch_{k1}_{k2}", q.replace('.', "_").to_lowercase());
+            let value = serde_json::json!([{
+                "name": dname, "expr": def.expr, "ty": def.ty,
+                "effects": [], "deprecated": false, "doc": ""
+            }]);
+            out.push(Example {
+                prompt: format!(
+                    "Define `{dname}` : Nat -> Nat (parameter p0) that returns {k1} when `{q}` of p0 is true, else {k2}. Use `Bool.if`.",
+                ),
+                completion: serde_json::to_string(&value).unwrap_or_default(),
+                uses: vec![q.clone(), "Bool.if".to_string()],
+            });
+        }
+    }
+    Ok(out)
+}
+
+/// Multi-definition programs: emit a two-def completion where the second def
+/// calls the first — `step = \p0 -> f(p0)` then `twice = \p0 -> step(step p0)`.
+/// Teaches the model to define a local helper and reference it as a sibling
+/// (the other missing shape). `uses` lists only external CDB symbols; the
+/// helper is defined in the same completion, so it's not a hallucination.
+fn multidef_examples(cdb: &Cdb) -> claw_cdb::Result<Vec<Example>> {
+    let unary: Vec<String> = cdb
+        .symbols()?
+        .into_iter()
+        .filter_map(|(n, h)| {
+            let d = cdb.get(&h).ok()?;
+            if let Type::Fn(ps, ret) = &d.ty {
+                if ps.len() == 1
+                    && matches!(&ps[0], Type::Named(x) if x == "Nat")
+                    && matches!(&**ret, Type::Named(x) if x == "Nat")
+                {
+                    return Some(n);
+                }
+            }
+            None
+        })
+        .collect();
+
+    let nat = || Type::Named("Nat".into());
+    let unary_nat = || Type::Fn(vec![nat()], Box::new(nat()));
+    let mut out = Vec::new();
+    for f in &unary {
+        let step = Def::new(
+            Expr::Lam {
+                params: vec!["p0".into()],
+                body: Box::new(Expr::App {
+                    func: Box::new(Expr::Var(f.clone())),
+                    args: vec![Expr::Var("p0".into())],
+                }),
+            },
+            unary_nat(),
+        );
+        let twice = Def::new(
+            Expr::Lam {
+                params: vec!["p0".into()],
+                body: Box::new(Expr::App {
+                    func: Box::new(Expr::Var("step".into())),
+                    args: vec![Expr::App {
+                        func: Box::new(Expr::Var("step".into())),
+                        args: vec![Expr::Var("p0".into())],
+                    }],
+                }),
+            },
+            unary_nat(),
+        );
+        let value = serde_json::json!([
+            {"name": "step", "expr": step.expr, "ty": step.ty, "effects": [], "deprecated": false, "doc": ""},
+            {"name": "twice", "expr": twice.expr, "ty": twice.ty, "effects": [], "deprecated": false, "doc": ""}
+        ]);
+        out.push(Example {
+            prompt: format!(
+                "Define two functions: `step` : Nat -> Nat that applies `{f}` to p0, and `twice` : Nat -> Nat that applies `step` twice. Use only in-scope symbols.",
+            ),
+            completion: serde_json::to_string(&value).unwrap_or_default(),
+            uses: vec![f.clone()],
+        });
+    }
+    Ok(out)
+}
+
 /// Instruction prefixes for prompt augmentation. Same target completion,
 /// varied phrasing — teaches the model the output protocol robustly rather
 /// than memorizing one instruction style. Standard SFT augmentation.
@@ -303,6 +444,8 @@ pub fn generate_stdlib() -> claw_cdb::Result<Vec<Example>> {
     let mut base = generate(&cdb)?;
     base.extend(compose_examples(&cdb)?);
     base.extend(literal_examples(&cdb)?);
+    base.extend(conditional_examples(&cdb)?);
+    base.extend(multidef_examples(&cdb)?);
     Ok(augment(&base))
 }
 
