@@ -1,0 +1,32 @@
+# CRM domain logic — the source of truth for pipeline rules.
+# Pure, typed, and machine-checkable (`claw db eval` / `claw db check`).
+# The Rust service enforces these same rules on real data.
+
+# A deal moves forward through the pipeline. Terminal stages stay put.
+advance = |stage| match stage {
+    Lead => Qualified
+    Qualified => Proposal
+    Proposal => Negotiation
+    Negotiation => Won
+    other => other
+}
+
+# Which stages are closed (no further movement).
+is_terminal = |stage| match stage {
+    Won => Bool.true
+    Lost => Bool.true
+    other => Bool.false
+}
+
+# A numeric rank for a stage, for pipeline ordering / weighting.
+rank = |stage| match stage {
+    Lead => 1
+    Qualified => 2
+    Proposal => 3
+    Negotiation => 4
+    Won => 5
+    Lost => 0
+    other => 0
+}
+
+main! = |_a| Ok({})

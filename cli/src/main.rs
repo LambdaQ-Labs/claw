@@ -495,6 +495,19 @@ impl claw_core::interp::Resolver for CdbResolver<'_> {
     }
 }
 
+/// Parse a `claw db eval` argument: an integer, or a bare Uppercase word as
+/// a nullary tag (for tag-union inputs like a pipeline `Lead` stage).
+fn parse_eval_arg(a: &str) -> claw_core::Expr {
+    use claw_core::{Expr, Lit};
+    if let Ok(n) = a.parse::<i64>() {
+        Expr::Lit(Lit::Int(n))
+    } else if a.chars().next().is_some_and(|c| c.is_uppercase()) {
+        Expr::Tag(a.to_string(), vec![])
+    } else {
+        Expr::Lit(Lit::Str(a.to_string()))
+    }
+}
+
 /// Convert an interpreter value to a contract value (same shape).
 fn to_contract_value(v: &claw_core::interp::Value) -> claw_contract::Value {
     use claw_contract::Value as C;
@@ -518,6 +531,17 @@ fn fmt_value(v: &claw_core::interp::Value) -> String {
         Value::Int(n) => n.to_string(),
         Value::Bool(b) => b.to_string(),
         Value::Str(s) => format!("{s:?}"),
+        Value::Ok(x) => format!("Ok({})", fmt_value(x)),
+        Value::Err(x) => format!("Err({})", fmt_value(x)),
+        Value::Tag(name, args) if args.is_empty() => name.clone(),
+        Value::Tag(name, args) => {
+            let a: Vec<String> = args.iter().map(fmt_value).collect();
+            format!("{name}({})", a.join(", "))
+        }
+        Value::Record(m) => {
+            let fs: Vec<String> = m.iter().map(|(k, v)| format!("{k}: {}", fmt_value(v))).collect();
+            format!("{{ {} }}", fs.join(", "))
+        }
         other => format!("{other:?}"),
     }
 }
@@ -668,14 +692,15 @@ fn db_cmd(db_path: &Path, args: &[String]) -> anyhow::Result<()> {
         // named function to integer arguments. Proves ingested bodies are
         // executable — the substrate for running contracts on real code.
         Some("eval") => {
-            use claw_core::{interp, Expr, Lit};
+            use claw_core::{interp, Expr};
             let name = need(args, 1, "def name")?;
-            let int_args: Vec<i64> = args[2..].iter().filter_map(|a| a.parse().ok()).collect();
-            let res = CdbResolver { cdb: &cdb };
+            // Each arg: an integer literal, or a bare Uppercase word → a
+            // nullary tag (e.g. `Lead`), so tag-union state machines run.
             let call = Expr::App {
                 func: Box::new(Expr::Var(name.clone())),
-                args: int_args.iter().map(|n| Expr::Lit(Lit::Int(*n))).collect(),
+                args: args[2..].iter().map(|a| parse_eval_arg(a)).collect(),
             };
+            let res = CdbResolver { cdb: &cdb };
             match interp::eval(&call, &interp::Env::new(), &res) {
                 Ok(v) => println!("{}", fmt_value(&v)),
                 Err(e) => {
