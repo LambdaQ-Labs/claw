@@ -1,0 +1,12 @@
+[package]
+name = "claw-effects"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+
+[dependencies]
+claw-core = { path = "../crates/claw-core" }
+claw-cdb = { path = "../cdb" }
+serde = { workspace = true }
+serde_json = { workspace = true }
+thiserror = { workspace = true }

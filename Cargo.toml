@@ -5,6 +5,8 @@ members = [
     "cdb",
     "diagnostics",
     "constraint-server",
+    "contract",
+    "effects",
     "cli",
     "bench/grader",
     "bench/runner",
