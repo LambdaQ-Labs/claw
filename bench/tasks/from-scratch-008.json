@@ -1,0 +1,19 @@
+{
+  "id": "from-scratch-008",
+  "category": "from-scratch",
+  "prompt": "Define `sumTwo : Nat, Nat -> Nat` (parameters p0, p1) returning their sum, using only in-scope symbols.",
+  "scope": [
+    { "name": "Nat.add", "ty": "Nat, Nat -> Nat" },
+    { "name": "Nat.mul", "ty": "Nat, Nat -> Nat" }
+  ],
+  "params": [
+    { "name": "a" },
+    { "name": "b" }
+  ],
+  "grade": {
+    "compile": true,
+    "contracts": ["result == a + b", "result >= a"],
+    "forbidden": ["hallucinated-symbol"]
+  },
+  "reference": "solutions/from-scratch-008.claw"
+}

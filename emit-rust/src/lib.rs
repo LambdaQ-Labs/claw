@@ -106,6 +106,62 @@ pub fn emit_ffi_use(crate_name: &str, item: &str) -> String {
     format!("use {}::{};", crate_name.replace('-', "_"), item)
 }
 
+/// Emit a whole definition as a Rust item. A function-typed def whose body
+/// is a lambda becomes a `pub fn`; anything else becomes a `pub const`.
+/// Generic type variables in the signature become `<A, B, …>` params.
+pub fn emit_fn(name: &str, def: &claw_core::Def, names: &NameMap) -> Result<String, EmitError> {
+    let rname = name.replace('.', "_");
+    match (&def.ty, &def.expr) {
+        (Type::Fn(param_tys, ret), Expr::Lam { params, body })
+            if params.len() == param_tys.len() =>
+        {
+            let generics = collect_generics(&def.ty);
+            let gen = if generics.is_empty() {
+                String::new()
+            } else {
+                format!("<{}>", generics.join(", "))
+            };
+            let args: Vec<String> = params
+                .iter()
+                .zip(param_tys)
+                .map(|(p, t)| format!("{}: {}", sanitize_ident(p), emit_type(t)))
+                .collect();
+            Ok(format!(
+                "pub fn {rname}{gen}({}) -> {} {{\n    {}\n}}",
+                args.join(", "),
+                emit_type(ret),
+                emit_expr(body, names)?
+            ))
+        }
+        (ty, expr) => Ok(format!(
+            "pub const {rname}: {} = {};",
+            emit_type(ty),
+            emit_expr(expr, names)?
+        )),
+    }
+}
+
+/// Distinct type variables in a type, uppercased for Rust generics.
+fn collect_generics(t: &Type) -> Vec<String> {
+    let mut out = Vec::new();
+    walk_generics(t, &mut out);
+    out.sort();
+    out.dedup();
+    out
+}
+
+fn walk_generics(t: &Type, out: &mut Vec<String>) {
+    match t {
+        Type::Var(v) => out.push(v.to_uppercase()),
+        Type::Named(_) => {}
+        Type::App(_, args) => args.iter().for_each(|a| walk_generics(a, out)),
+        Type::Fn(ps, r) => {
+            ps.iter().for_each(|p| walk_generics(p, out));
+            walk_generics(r, out);
+        }
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -163,6 +219,40 @@ mod tests {
     #[test]
     fn ffi_use_line() {
         assert_eq!(emit_ffi_use("sha2", "Sha256"), "use sha2::Sha256;");
+    }
+
+    #[test]
+    fn emit_fn_lowers_a_function_def() {
+        // double : Nat -> Nat = \p0 -> Nat.add p0 p0
+        let def = Def::new(
+            Expr::Lam {
+                params: vec!["p0".into()],
+                body: Box::new(Expr::App {
+                    func: Box::new(Expr::Var("Nat.add".into())),
+                    args: vec![Expr::Var("p0".into()), Expr::Var("p0".into())],
+                }),
+            },
+            Type::Fn(vec![named("Nat")], Box::new(named("Nat"))),
+        );
+        let out = emit_fn("double", &def, &NameMap::new()).unwrap();
+        assert_eq!(
+            out,
+            "pub fn double(p0: u64) -> u64 {\n    Nat_add(p0, p0)\n}"
+        );
+    }
+
+    #[test]
+    fn emit_fn_adds_generics_for_type_vars() {
+        // id : a -> a = \p0 -> p0
+        let def = Def::new(
+            Expr::Lam {
+                params: vec!["p0".into()],
+                body: Box::new(Expr::Var("p0".into())),
+            },
+            Type::Fn(vec![Type::Var("a".into())], Box::new(Type::Var("a".into()))),
+        );
+        let out = emit_fn("id", &def, &NameMap::new()).unwrap();
+        assert!(out.starts_with("pub fn id<A>(p0: A) -> A"), "got: {out}");
     }
 
     #[test]

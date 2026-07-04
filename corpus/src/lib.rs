@@ -53,7 +53,8 @@ fn wrapper_example(name: &str, hash: &Hash, params: &[Type], ret: &Type) -> Opti
     if params.is_empty() || params.len() > 3 {
         return None;
     }
-    let param_names: Vec<String> = (0..params.len()).map(|i| format!("a{i}")).collect();
+    // Param pool p0.. matches the Def-JSON output protocol + GBNF grammar.
+    let param_names: Vec<String> = (0..params.len()).map(|i| format!("p{i}")).collect();
     let body = Expr::App {
         func: Box::new(Expr::Ref(hash.clone())),
         args: param_names.iter().map(|p| Expr::Var(p.clone())).collect(),

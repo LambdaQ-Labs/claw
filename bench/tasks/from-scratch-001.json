@@ -1,15 +1,17 @@
 {
   "id": "from-scratch-001",
   "category": "from-scratch",
-  "prompt": "Define `double : Nat -> Nat` that returns its argument times two, using only in-scope symbols.",
+  "prompt": "Define `double : Nat -> Nat` (parameter named p0) that returns its argument times two, using only in-scope symbols.",
   "scope": [
     { "name": "Nat.add", "ty": "Nat, Nat -> Nat" },
     { "name": "Nat.mul", "ty": "Nat, Nat -> Nat" }
   ],
+  "params": [
+    { "name": "n" }
+  ],
   "grade": {
     "compile": true,
-    "tests": ["tests/double_spec.claw"],
-    "contracts": [],
+    "contracts": ["result == n + n"],
     "forbidden": ["hallucinated-symbol"]
   },
   "reference": "solutions/from-scratch-001.claw"

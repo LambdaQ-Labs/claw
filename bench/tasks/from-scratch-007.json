@@ -1,0 +1,19 @@
+{
+  "id": "from-scratch-007",
+  "category": "from-scratch",
+  "prompt": "Define `maxOf : Nat, Nat -> Nat` (parameters p0, p1) returning the larger of the two, using only in-scope symbols.",
+  "scope": [
+    { "name": "Nat.max", "ty": "Nat, Nat -> Nat" },
+    { "name": "Nat.min", "ty": "Nat, Nat -> Nat" }
+  ],
+  "params": [
+    { "name": "a" },
+    { "name": "b" }
+  ],
+  "grade": {
+    "compile": true,
+    "contracts": ["result >= a", "result >= b"],
+    "forbidden": ["hallucinated-symbol"]
+  },
+  "reference": "solutions/from-scratch-007.claw"
+}
