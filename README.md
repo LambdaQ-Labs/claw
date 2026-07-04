@@ -42,17 +42,20 @@ There's a stronger layer too: with decode-time grammar constraints, an out-of-sc
 
 The research is blunt: [every prior "AI-first" language died](docs/master-plan.md) on training-data cold-start and ecosystem, not on ideas. So Claw is engineered around the failure modes LLMs *actually* have, measured on real benchmarks:
 
-- **🚫 No hallucinated APIs** — code-as-database + decode-time grammar constraints
+- **🚫 No hallucinated APIs** — code-as-database + decode-time grammar constraints make out-of-scope calls *ungeneratable*
 - **🧬 Code is a database, not text files** — content-addressed definitions; rename is O(1) and never breaks a caller
 - **🔁 Structured errors, not prose** — every diagnostic is JSON with ranked patches, built for an agent's retry loop
 - **🛡️ Memory-safe with no borrow-checker tax** — forked from [Roc](https://www.roc-lang.org): the strictness that helps LLMs, without the 92% compile-fail wall that Rust hits
-- **📜 Contracts & effects** *(in progress)* — catch "compiles but does the wrong thing"
+- **📜 Contracts that execute** — `requires`/`ensures` are run on generated inputs, so "compiles" becomes "provably correct"
+- **⚡ Effects & capabilities** — every effect visible in the type; a sandbox rejects ungranted I/O
+- **🦀 Rust interop** — `emit-rust` lowers Claw to compilable Rust, so you inherit crates.io instead of dying of isolation
+- **🌱 A bundled model** — a fine-tuned model that already speaks Claw, trained on a self-verifying synthetic corpus (the cold-start escape)
 
 ## Quickstart
 
 ```bash
 git clone https://github.com/LambdaQ-Labs/claw && cd claw
-cargo test --workspace            # the toolchain — ~60 tests, all green
+cargo test --workspace            # the toolchain — 100+ tests, all green
 cd compiler && zig build roc      # the compiler → clawc
 
 # type-check Claw code
@@ -60,7 +63,12 @@ cargo run -p claw-cli -- check examples/hello.claw
 
 # the magic: ask the code-as-database what really exists
 cargo run -p claw-cli -- db candidates "Nat, Nat -> a"
-cargo run -p claw-cli -- db mask "Nat, Nat -> a"   # → the grammar that makes hallucination impossible
+cargo run -p claw-cli -- db mask "Nat, Nat -> a"    # → the grammar that makes hallucination impossible
+cargo run -p claw-cli -- db render double --claw    # a definition as .claw source
+
+# transpile Claw → Rust, and generate a self-verifying training corpus
+cargo run -p claw-cli -- emit-rust defs.json
+cargo run -p claw-cli -- corpus gen --stdlib > corpus.jsonl
 ```
 
 Point any model at the benchmark and watch the hallucinations vanish:
@@ -70,6 +78,15 @@ export CLAW_MODEL_URL=… CLAW_MODEL_NAME=… CLAW_MODEL_KEY=…
 cargo run -p claw-bench-runner -- run --arm A0 --tasks bench/tasks  # blind
 cargo run -p claw-bench-runner -- run --arm A1 --tasks bench/tasks  # + Claw's symbol table
 ```
+
+Drive Claw from an agent (MCP) or an editor (LSP):
+
+```bash
+cargo run -p claw-mcp   # Model Context Protocol server (claw_symbols/candidates/mask)
+cargo run -p claw-lsp   # Language Server (completion + hover from the CDB)
+```
+
+Or just open [`playground/index.html`](playground/index.html) — an interactive, in-browser demo of the whole idea.
 
 ## How it works
 
@@ -81,11 +98,31 @@ cargo run -p claw-bench-runner -- run --arm A1 --tasks bench/tasks  # + Claw's s
 
 The load-bearing trick: the model never references a symbol by guessing its name. It picks from a **typed menu of things that provably exist** — and the decoder's grammar won't let it write anything else.
 
+## Repo layout
+
+| Crate / dir | What |
+|---|---|
+| `compiler/` | The compiler (`clawc`), forked from Roc — type-checks `.claw` |
+| `crates/claw-core` | AST, content-addressed hashing, unification, a small interpreter, `.claw` renderer |
+| `cdb/` | **Code-as-database** — SQLite store, O(1) rename, type-directed `candidates()` |
+| `constraint-server/` | The GBNF projection that makes out-of-scope calls ungeneratable |
+| `diagnostics/` | Structured-error protocol (JSON + ranked patches) |
+| `contract/` | Executable `requires`/`ensures` — predicate parser, evaluator, property gen |
+| `effects/` | Effect-row inference + capability sandbox |
+| `emit-rust/` | Claw → Rust transpiler (ecosystem interop) |
+| `corpus/` | Synthetic, self-verifying training-corpus generator (the cold-start seed) |
+| `cli/` | The `claw` CLI (db / compiler / emit-rust / corpus) |
+| `mcp/` · `lsp/` | MCP server (agents) and Language Server (editors) over the CDB |
+| `bench/` | Benchmark harness — arms A0/A1/A2, grader with executable contracts |
+| `train/` | LoRA fine-tune pipeline + the first bundled-model run |
+| `playground/` · `registry/` | In-browser demo · content-addressed package format |
+| `docs/` | Master plan, specs, and the honest benchmark writeups |
+
 ## Status (honest)
 
-**Experimental. Pre-alpha. Built in the open.** What works today: the compiler type-checks `.claw`, the code-as-database + constraint server run, the benchmark harness produces the numbers above. What's next: contracts, an effect system, a bundled model to beat the cold-start problem, and `--emit=rust` for ecosystem interop. See the [master plan](docs/master-plan.md).
+**Experimental. Pre-alpha. Built in the open** — but further than most first commits. What works today, with tests: the compiler type-checks `.claw`; the code-as-database, constraint server, and structured errors run; contracts *execute* on generated inputs (behaviour-level pass, not just compile); effects + capabilities check; `emit-rust` and the MCP/LSP servers work; and a fine-tuned "bundled model" was trained end-to-end on a self-verifying corpus (for **$0.03** of GPU) and emits valid, in-scope Claw. See the [benchmark writeup](docs/baseline-2026-07-03.md) — warts and all.
 
-This is a research bet with real early evidence, not a finished product. If that's your kind of thing — **★ star it and watch where it goes.**
+What's next: scale the corpus so the bundled model *beats* a general model on Claw (the survival test), a real standard library, and adoption. This is a research bet with real, measured evidence — not a finished product. If that's your kind of thing — **★ star it and watch where it goes.**
 
 ## Contributing
 
