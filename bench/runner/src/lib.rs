@@ -207,12 +207,13 @@ Definition schema (serde):
 "name" is the definition you are producing; it may reference itself
 (recursion) or a sibling definition in this same array.
 Expr: {"Var": "name"} | {"Ref": "hash"} | {"Lit": {"Int": 1}} | {"Lit": {"Str": "s"}}
-    | {"Lam": {"params": ["x"], "body": <Expr>}}
+    | {"Lam": {"params": ["p0"], "body": <Expr>}}
     | {"App": {"func": <Expr>, "args": [<Expr>]}}
 Type: {"Named": "Nat"} | {"Var": "a"} | {"App": ["Result", [<Type>, <Type>]]}
     | {"Fn": [[<Type>], <Type>]}
-Reference in-scope symbols (and your own "name"/siblings) with {"Var": "<name>"}.
-Do NOT invent symbols that are neither in scope nor defined in this array."#;
+Lambda parameters MUST be named p0, p1, p2, … (in order). Reference a
+parameter, an in-scope symbol, or your own "name"/siblings with
+{"Var": "<name>"}. Do NOT invent any other name."#;
 
 pub fn build_prompt(task: &Task, arm: Arm, prior_feedback: &[String]) -> String {
     let mut p = String::new();
@@ -293,6 +294,7 @@ pub fn run_task(
                     contracts_held: (0, task.grade.contracts.len() as u32),
                     forbidden_hit: vec![],
                     hallucinated_symbols: vec![],
+                    effect_unsound: vec![],
                     pass: false,
                     retries_used: attempt,
                     tokens: generator.tokens_used(),
@@ -388,8 +390,10 @@ mod tests {
                 ty: "Nat, Nat -> Nat".into(),
                 deprecated: false,
             }],
+            params: vec![],
             grade: GradeSpec {
                 compile: true,
+                requires: vec![],
                 tests: vec![],
                 contracts: vec![],
                 forbidden: vec!["hallucinated-symbol".into()],

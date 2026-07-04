@@ -1,11 +1,21 @@
 {
   "id": "contract-003",
   "category": "contract",
-  "prompt": "Implement `clampTo : Nat, Nat, Nat -> Nat` (value, lo, hi) satisfying: result is within [lo, hi] and equals value when value already in range. Assume lo <= hi.",
+  "prompt": "Implement `clampTo : Nat, Nat, Nat -> Nat` with parameters (value, lo, hi) named p0, p1, p2 in that order, satisfying: result is within [lo, hi] and equals value when value already in range. Assume lo <= hi. Use only in-scope symbols.",
   "scope": [
     { "name": "Nat.max", "ty": "Nat, Nat -> Nat" },
     { "name": "Nat.min", "ty": "Nat, Nat -> Nat" }
   ],
-  "grade": { "compile": true, "tests": ["tests/clamp_to_spec.claw"], "contracts": ["result >= lo", "result <= hi"], "forbidden": ["hallucinated-symbol"] },
+  "params": [
+    { "name": "value" },
+    { "name": "lo" },
+    { "name": "hi" }
+  ],
+  "grade": {
+    "compile": true,
+    "requires": ["lo <= hi"],
+    "contracts": ["result >= lo", "result <= hi"],
+    "forbidden": ["hallucinated-symbol"]
+  },
   "reference": "solutions/contract-003.claw"
 }

@@ -6,6 +6,7 @@
 //! will eventually lower into these structures; until then this is the
 //! substrate the P2 thesis is prototyped and measured against.
 
+pub mod interp;
 pub mod parse;
 
 use serde::{Deserialize, Serialize};

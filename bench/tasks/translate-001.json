@@ -1,14 +1,19 @@
 {
   "id": "translate-001",
   "category": "translate",
-  "prompt": "Translate this Python function to Claw:\n\ndef clamp(x, lo, hi):\n    return max(lo, min(x, hi))\n\nTarget signature: `clamp : Nat, Nat, Nat -> Nat`. Use only in-scope symbols.",
+  "prompt": "Translate this Python function to Claw:\n\ndef clamp(x, lo, hi):\n    return max(lo, min(x, hi))\n\nTarget signature: `clamp : Nat, Nat, Nat -> Nat` with parameters (x, lo, hi) named p0, p1, p2 in that order. Use only in-scope symbols.",
   "scope": [
     { "name": "Nat.max", "ty": "Nat, Nat -> Nat" },
     { "name": "Nat.min", "ty": "Nat, Nat -> Nat" }
   ],
+  "params": [
+    { "name": "x" },
+    { "name": "lo" },
+    { "name": "hi" }
+  ],
   "grade": {
     "compile": true,
-    "tests": ["tests/clamp_spec.claw"],
+    "requires": ["lo <= hi"],
     "contracts": ["result >= lo", "result <= hi"],
     "forbidden": ["hallucinated-symbol"]
   },

@@ -63,7 +63,14 @@ pub fn def_json_grammar(mask: &[Continuation]) -> String {
         g.push_str("varname ::= scopename | paramname\n");
     }
 
-    g.push_str("paramname ::= \"\\\"\" [a-z] [a-z0-9_]* \"\\\"\"\n");
+    // Lambda parameters are drawn from a FIXED pool (p0..p7), NOT arbitrary
+    // lowercase. This closes the hole that let a weak model emit a fake
+    // unqualified local (e.g. `add`, `fold`) that is neither a scope symbol
+    // nor a real binding: such a name now matches no grammar alternative
+    // and is ungeneratable. Machine-authored code doesn't need creative
+    // parameter names; the payoff is a hard structural guarantee.
+    let pool: Vec<String> = (0..8).map(|i| format!("\"\\\"p{i}\\\"\"")).collect();
+    g.push_str(&format!("paramname ::= {}\n", pool.join(" | ")));
     g.push_str(
         "elit ::= \"{\" ws \"\\\"Lit\\\"\" ws \":\" ws (\"{\" ws \"\\\"Int\\\"\" ws \":\" ws int ws \"}\" | \"{\" ws \"\\\"Str\\\"\" ws \":\" ws string ws \"}\") ws \"}\"\n",
     );
@@ -110,6 +117,15 @@ mod tests {
         let g = def_json_grammar(&[]);
         assert!(!g.contains("scopename"));
         assert!(g.contains("varname ::= paramname\n"));
+    }
+
+    #[test]
+    fn params_are_a_fixed_pool_not_arbitrary_lowercase() {
+        // The A2 fix: `add`/`fold`/etc. are not in the pool and not scope
+        // symbols, so a grammar-constrained decoder cannot emit them.
+        let g = def_json_grammar(&[cont("Nat.add")]);
+        assert!(g.contains(r#"paramname ::= "\"p0\"""#));
+        assert!(!g.contains("[a-z]"), "no open-ended lowercase param class");
     }
 
     #[test]

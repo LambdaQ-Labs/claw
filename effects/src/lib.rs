@@ -47,6 +47,35 @@ fn collect_refs(e: &Expr) -> Vec<Hash> {
     e.refs()
 }
 
+/// Infer effects for code that references scope symbols by *name* (as the
+/// benchmark's Def-JSON does: `{"Var": "Store.put"}`), rather than by hash.
+/// For every free variable that resolves to a bound CDB symbol, union that
+/// symbol's declared effects. This is how we check effect-soundness of
+/// model-produced code, whose references are names, not content hashes.
+pub fn infer_by_names(cdb: &Cdb, def: &Def) -> claw_cdb::Result<EffectRow> {
+    let mut row: EffectRow = def.effects.iter().cloned().collect();
+    for name in def.expr.free_vars() {
+        if let Ok(h) = cdb.resolve(&name) {
+            if let Ok(d) = cdb.get(&h) {
+                row.extend(d.effects.iter().cloned());
+            }
+        }
+    }
+    Ok(row)
+}
+
+/// Name-based soundness check (declared effects must cover name-inferred).
+pub fn check_by_names(cdb: &Cdb, def: &Def) -> claw_cdb::Result<EffectCheck> {
+    let declared: EffectRow = def.effects.iter().cloned().collect();
+    let inferred = infer_by_names(cdb, def)?;
+    let undeclared: EffectRow = inferred.difference(&declared).cloned().collect();
+    Ok(EffectCheck {
+        inferred,
+        declared,
+        undeclared,
+    })
+}
+
 /// Result of checking a definition's declared effects against inference.
 #[derive(Debug, PartialEq)]
 pub struct EffectCheck {

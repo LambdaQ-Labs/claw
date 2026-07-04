@@ -7,9 +7,13 @@
 //!
 //! Spec: docs/benchmark-harness.md §3.
 
+mod exec;
+
 use claw_cdb::Cdb;
 use claw_core::Def;
 use serde::{Deserialize, Serialize};
+
+pub use exec::{run_contracts, ContractRun};
 
 /// A definition the model produced, optionally naming itself. The name
 /// lets a def reference itself (recursion) or its siblings without that
@@ -44,7 +48,10 @@ pub struct GradeSpec {
     /// Test oracles (paths to .claw test specs; executed once the compiler lands).
     #[serde(default)]
     pub tests: Vec<String>,
-    /// Contract assertions that must hold.
+    /// Preconditions — filter the generated input cases during execution.
+    #[serde(default)]
+    pub requires: Vec<String>,
+    /// Contract assertions (postconditions) that must hold.
     #[serde(default)]
     pub contracts: Vec<String>,
     /// Rules the produced code must not trip (e.g. "hallucinated-symbol").
@@ -67,6 +74,20 @@ pub struct ScopeEntry {
     pub deprecated: bool,
 }
 
+/// A named scalar parameter of the function under test, in signature
+/// order. When present, the grader can *execute* the produced definition
+/// on generated inputs and check contracts against real results.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct Param {
+    pub name: String,
+    #[serde(default = "default_nat")]
+    pub ty: String,
+}
+
+fn default_nat() -> String {
+    "Nat".into()
+}
+
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Task {
     pub id: String,
@@ -75,6 +96,9 @@ pub struct Task {
     /// In-scope symbols available to the solution (the CDB snapshot).
     #[serde(default)]
     pub scope: Vec<ScopeEntry>,
+    /// Scalar parameters (in order) enabling contract *execution*.
+    #[serde(default)]
+    pub params: Vec<Param>,
     pub grade: GradeSpec,
     /// Path to the reference solution (not shown to the model).
     #[serde(default)]
@@ -114,6 +138,9 @@ pub struct GradeResult {
     /// Symbols the produced code references that do not exist in the CDB —
     /// the headline metric the constraint server must drive to ~0.
     pub hallucinated_symbols: Vec<String>,
+    /// Effects the produced code performs but does not declare (WS-F).
+    #[serde(default)]
+    pub effect_unsound: Vec<String>,
     pub pass: bool,
     pub retries_used: u32,
     pub tokens: u64,
@@ -174,13 +201,42 @@ pub fn grade(
         forbidden_hit.push("hallucinated-symbol".to_string());
     }
 
-    // Tests/contracts: executable once the compiler lands. Until then a
-    // task with test oracles reports 0/N — visibly ungraded, never
-    // silently passed (docs/benchmark-harness.md §7: no silent truncation).
+    // Test oracles still need the compiler's test runner — reported 0/N,
+    // never silently passed (docs/benchmark-harness.md §7).
     let tests_total = task.grade.tests.len() as u32;
-    let contracts_total = task.grade.contracts.len() as u32;
     let tests_passed = (0, tests_total);
-    let contracts_held = (0, contracts_total);
+
+    // Contracts: EXECUTED when the task declares scalar params and the
+    // produced code runs (WS-E, wired). Otherwise 0/N (ungraded, honest).
+    let contracts_total = task.grade.contracts.len() as u32;
+    let scope_names: Vec<String> = cdb.symbols()?.into_iter().map(|(n, _)| n).collect();
+    let contracts_held = if compiled {
+        match exec::run_contracts(
+            produced,
+            &task.params,
+            &task.grade.requires,
+            &task.grade.contracts,
+            &scope_names,
+        ) {
+            exec::ContractRun::Checked(held, total) => (held, total),
+            exec::ContractRun::Skipped => (0, contracts_total),
+        }
+    } else {
+        (0, contracts_total)
+    };
+
+    // Effect soundness (WS-F): does declared cover what the code performs?
+    let mut effect_unsound: Vec<String> = Vec::new();
+    for pd in produced {
+        if let Ok(chk) = claw_effects::check_by_names(cdb, &pd.def) {
+            effect_unsound.extend(chk.undeclared);
+        }
+    }
+    effect_unsound.sort();
+    effect_unsound.dedup();
+    if task.grade.forbidden.iter().any(|f| f == "effect-unsound") && !effect_unsound.is_empty() {
+        forbidden_hit.push("effect-unsound".to_string());
+    }
 
     let pass = (!task.grade.compile || compiled)
         && tests_passed.0 == tests_total
@@ -194,6 +250,7 @@ pub fn grade(
         contracts_held,
         forbidden_hit,
         hallucinated_symbols: hallucinated,
+        effect_unsound,
         pass,
         retries_used,
         tokens,
@@ -226,8 +283,10 @@ mod tests {
             category: Category::FromScratch,
             prompt: "produce a Nat".into(),
             scope: vec![],
+            params: vec![],
             grade: GradeSpec {
                 compile: true,
+                requires: vec![],
                 tests: vec![],
                 contracts: vec![],
                 forbidden,
