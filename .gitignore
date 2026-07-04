@@ -31,3 +31,5 @@ Cargo.lock
 # env
 .env
 .env.local
+
+/dist

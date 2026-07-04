@@ -1,0 +1,62 @@
+name: release
+
+# Tag a version (vX.Y.Z) → build per-platform tarballs → attach to the release.
+on:
+  push:
+    tags: ["v*"]
+  workflow_dispatch:
+    inputs:
+      version:
+        description: "version tag to build (e.g. v0.1.0)"
+        required: true
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - target: macos-arm64
+            runner: macos-14
+          - target: linux-x64
+            runner: ubuntu-latest
+    runs-on: ${{ matrix.runner }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      - name: Install Zig 0.16.0
+        uses: mlugg/setup-zig@v1
+        with:
+          version: 0.16.0
+
+      - name: Install Rust
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Resolve version
+        id: ver
+        shell: bash
+        run: echo "version=${{ github.event.inputs.version || github.ref_name }}" >> "$GITHUB_OUTPUT"
+
+      - name: Build + package
+        run: sh scripts/package.sh "${{ steps.ver.outputs.version }}"
+
+      - name: Smoke test the tarball
+        shell: bash
+        run: |
+          set -euo pipefail
+          tmp="$(mktemp -d)"
+          tar -xzf dist/claw-${{ steps.ver.outputs.version }}-${{ matrix.target }}.tar.gz -C "$tmp"
+          "$tmp/bin/claw" --version
+          ( cd "$tmp" && ./bin/claw new demo && cd demo && ../bin/claw run )
+
+      - name: Upload to release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ steps.ver.outputs.version }}
+          files: dist/claw-*-*.tar.gz
+          fail_on_unmatched_files: true

@@ -41,6 +41,10 @@ fn real_main() -> anyhow::Result<()> {
     }
 
     match args.first().map(String::as_str) {
+        Some("--version" | "-V" | "version") => {
+            println!("claw {}", env!("CARGO_PKG_VERSION"));
+            Ok(())
+        }
         Some("db") => db_cmd(&db_path, &args[1..]),
         // Project model.
         Some("new") => new_cmd(&args[1..]),
@@ -328,7 +332,16 @@ fn find_tool(tool: &str) -> anyhow::Result<PathBuf> {
             return Ok(PathBuf::from(p));
         }
     }
-    if let Ok(mut dir) = std::env::current_exe() {
+    if let Ok(exe) = std::env::current_exe() {
+        // Packaged install: tools sit next to `claw` (e.g. ~/.claw/bin/clawc).
+        if let Some(dir) = exe.parent() {
+            let sibling = dir.join(tool);
+            if sibling.exists() {
+                return Ok(sibling);
+            }
+        }
+        // Monorepo/dev: walk up to compiler/zig-out/bin/<tool>.
+        let mut dir = exe;
         while dir.pop() {
             let candidate = dir.join(format!("compiler/zig-out/bin/{tool}"));
             if candidate.exists() {
