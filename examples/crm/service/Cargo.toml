@@ -1,0 +1,18 @@
+# Standalone — not a member of the Claw workspace.
+[workspace]
+
+[package]
+name = "claw-crm-service"
+version = "0.1.0"
+edition = "2021"
+
+# A standalone service (not part of the Claw workspace): the I/O layer Claw
+# can't do natively yet (Postgres + HTTP routing). It enforces the pipeline
+# rules authored + verified in ../domain.claw.
+
+[dependencies]
+tokio = { version = "1", features = ["full"] }
+axum = "0.7"
+sqlx = { version = "0.8", default-features = false, features = ["runtime-tokio", "postgres"] }
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
