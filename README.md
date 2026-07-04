@@ -115,18 +115,22 @@ Or open [`playground/index.html`](playground/index.html) — an in-browser demo.
 | Compile & run real programs (self-contained: bundled platform + linker) | ✅ works |
 | `claw new` / `run` / project model | ✅ works |
 | Print, compute, command-line args, `Str`/`Num`/`List` builtins | ✅ works |
-| AI guardrail over your **real** symbols (`claw index` + MCP: symbols/candidates/mask) | ✅ works |
+| **Networking**: `claw new --platform http` → a multi-request HTTP server ([verified](docs/networking.md)) | ✅ works (macOS + Linux) |
+| `claw new --platform cli` → stdin/stdout apps | ✅ works |
+| AI guardrail over your **real** symbols — names, **types, and effects** (`clawc defs --json` → `claw index` → MCP) | ✅ works |
 | Decode-time grammar that makes out-of-scope calls ungeneratable | ✅ works (Def-JSON protocol) |
-| HTTP server / networking via an explicit platform ([verified auth gateway](docs/networking.md)) | 🧪 works (macOS; not yet a first-class `claw new` target) |
+| AST for real bodies (lazy `if`, `let`) — the substrate for body-lowering | ✅ works |
 | Bundled fine-tuned model (0→98% hallucination-free, [P4 gate](docs/p4-gate-2026-07-04.md)) | 🧪 research (separate download) |
-| Contracts / effects / `emit-rust` | 🧪 experimental (synthetic AST) |
-| Networking/file I/O as a bundled `claw new --platform` target | 🗺️ roadmap (v0.1.1) |
-| AI understands whole programs (bodies, call-graph, contracts on your code) | 🗺️ roadmap (v0.2) |
+| Contracts / `emit-rust` | 🧪 experimental (synthetic AST) |
+| File / stdin platform I/O as a bundled target beyond print | 🗺️ roadmap (needs a new host) |
+| AI understands whole programs (real **bodies + call-graph** in the DB) | 🗺️ roadmap (body-lowering: compiler CIR → AST) |
 | Windows | 🗺️ roadmap |
 
-The honest boundary: the language **runs today**, and the AI guardrail works
-at the **symbol level** on your real code. Deeper program understanding
-(lowering real bodies + call-graph into the database) is the v0.2 work.
+The honest boundary: the language **runs today** (mac + linux, including a
+real HTTP server), and the AI guardrail works over your real symbols'
+**names, types, and effects**. The remaining v0.2 core is **body-lowering** —
+translating the compiler's checked bodies into the (now-extended) AST so the
+database holds your real call-graph, not just signatures.
 
 ## How it works
 
