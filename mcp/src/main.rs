@@ -65,9 +65,14 @@ fn handle(req: &Value, db_path: &str) -> Option<Value> {
             let params = req.get("params")?;
             let name = params.get("name")?.as_str()?;
             let args = params.get("arguments").cloned().unwrap_or(json!({}));
+            // A TOOL failure is a normal result with isError:true (the
+            // agent reads it and recovers) — not a JSON-RPC protocol error.
             match call_tool(name, &args, db_path) {
                 Ok(text) => respond(json!({"content": [{"type": "text", "text": text}]})),
-                Err(e) => error(-32000, &e.to_string()),
+                Err(e) => respond(json!({
+                    "content": [{"type": "text", "text": e.to_string()}],
+                    "isError": true,
+                })),
             }
         }
         _ => error(-32601, "method not found"),

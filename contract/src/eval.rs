@@ -57,11 +57,15 @@ fn eval_expr(e: &PExpr, env: &Env) -> Result<Value, EvalError> {
         PExpr::Bin(op, a, b) => {
             let x = as_int(&eval_expr(a, env)?)?;
             let y = as_int(&eval_expr(b, env)?)?;
-            Ok(Value::Int(match op {
-                Arith::Add => x + y,
-                Arith::Sub => x - y,
-                Arith::Mul => x * y,
-            }))
+            // Checked arithmetic — overflow is a diagnosable error, never a
+            // debug-panic or a silent release-mode wrap to a wrong boolean.
+            let r = match op {
+                Arith::Add => x.checked_add(y),
+                Arith::Sub => x.checked_sub(y),
+                Arith::Mul => x.checked_mul(y),
+            };
+            r.map(Value::Int)
+                .ok_or_else(|| EvalError::TypeError("arithmetic overflow".into()))
         }
         PExpr::Call(name, args) => {
             let vals: Result<Vec<Value>, _> = args.iter().map(|a| eval_expr(a, env)).collect();
@@ -76,7 +80,10 @@ fn builtin_call(name: &str, args: &[Value]) -> Result<Value, EvalError> {
         ("List.len", [Value::List(xs)]) => Ok(Value::Int(xs.len() as i64)),
         ("Nat.max", [a, b]) => Ok(Value::Int(as_int(a)?.max(as_int(b)?))),
         ("Nat.min", [a, b]) => Ok(Value::Int(as_int(a)?.min(as_int(b)?))),
-        ("Nat.add", [a, b]) => Ok(Value::Int(as_int(a)? + as_int(b)?)),
+        ("Nat.add", [a, b]) => as_int(a)?
+            .checked_add(as_int(b)?)
+            .map(Value::Int)
+            .ok_or_else(|| EvalError::TypeError("arithmetic overflow".into())),
         _ => Err(EvalError::UnknownCall(format!("{name}/{}", args.len()))),
     }
 }

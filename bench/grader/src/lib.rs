@@ -228,9 +228,10 @@ pub fn grade(
     // Effect soundness (WS-F): does declared cover what the code performs?
     let mut effect_unsound: Vec<String> = Vec::new();
     for pd in produced {
-        if let Ok(chk) = claw_effects::check_by_names(cdb, &pd.def) {
-            effect_unsound.extend(chk.undeclared);
-        }
+        // Propagate CDB errors (?) rather than swallowing them — a failed
+        // check must not silently look like "no undeclared effects".
+        let chk = claw_effects::check_by_names(cdb, &pd.def)?;
+        effect_unsound.extend(chk.undeclared);
     }
     effect_unsound.sort();
     effect_unsound.dedup();

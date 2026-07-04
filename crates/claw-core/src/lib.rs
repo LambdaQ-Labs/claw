@@ -21,7 +21,11 @@ pub struct Hash(pub String);
 
 impl fmt::Display for Hash {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "#{}", &self.0[..self.0.len().min(8)])
+        // Truncate by chars, not bytes — a byte slice could split a
+        // multibyte char and panic (real blake3 hashes are ASCII, but
+        // Hash wraps an arbitrary String).
+        let short: String = self.0.chars().take(8).collect();
+        write!(f, "#{short}")
     }
 }
 
@@ -206,8 +210,27 @@ impl Def {
 /// A substitution from type variables to types.
 pub type Subst = BTreeMap<String, Type>;
 
-/// Structural unification (MVP: no occurs check — fine for the finite,
-/// non-recursive signatures the prototype handles).
+/// Rename every type variable in `t` with a prefix, so it lives in a
+/// namespace disjoint from another type's variables. Used before unifying
+/// a query against a stored (possibly polymorphic) signature so a shared
+/// var name (`a` in both) doesn't capture — otherwise a legal polymorphic
+/// candidate is wrongly rejected.
+pub fn freshen(t: &Type, prefix: &str) -> Type {
+    match t {
+        Type::Named(n) => Type::Named(n.clone()),
+        Type::Var(v) => Type::Var(format!("{prefix}{v}")),
+        Type::App(h, args) => {
+            Type::App(h.clone(), args.iter().map(|a| freshen(a, prefix)).collect())
+        }
+        Type::Fn(ps, r) => Type::Fn(
+            ps.iter().map(|p| freshen(p, prefix)).collect(),
+            Box::new(freshen(r, prefix)),
+        ),
+    }
+}
+
+/// Structural unification (MVP: no occurs check — callers should keep the
+/// two sides' variable namespaces disjoint, e.g. via `freshen`).
 ///
 /// Returns the substitution under which `a` and `b` are equal, or None.
 pub fn unify(a: &Type, b: &Type) -> Option<Subst> {

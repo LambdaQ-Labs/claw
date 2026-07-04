@@ -15,9 +15,15 @@
 
 use crate::Continuation;
 
-/// Escape a symbol name for inclusion in a GBNF string literal.
+/// Escape a symbol name for inclusion in a GBNF string literal. Newlines
+/// and control chars would corrupt the line-oriented grammar, so drop them
+/// (real symbol names never contain them; this hardens the boundary).
 fn escape(name: &str) -> String {
-    name.replace('\\', "\\\\").replace('"', "\\\"")
+    name.chars()
+        .filter(|c| !c.is_control())
+        .collect::<String>()
+        .replace('\\', "\\\\")
+        .replace('"', "\\\"")
 }
 
 /// Build the full Def-JSON grammar. `mask` = the legal continuations for
@@ -74,7 +80,9 @@ pub fn def_json_grammar(mask: &[Continuation]) -> String {
     g.push_str(
         "elit ::= \"{\" ws \"\\\"Lit\\\"\" ws \":\" ws (\"{\" ws \"\\\"Int\\\"\" ws \":\" ws int ws \"}\" | \"{\" ws \"\\\"Str\\\"\" ws \":\" ws string ws \"}\") ws \"}\"\n",
     );
-    g.push_str("int ::= \"-\"? [0-9]+\n");
+    // Canonical JSON integers only — serde_json rejects leading zeros, so
+    // the grammar must not admit `007`. (No `-0` either.)
+    g.push_str("int ::= \"0\" | \"-\"? [1-9] [0-9]*\n");
     g.push_str("string ::= \"\\\"\" [^\"\\\\]* \"\\\"\"\n");
     g.push_str("type ::= tnamed | tvar | tapp | tfn\n");
     g.push_str("tnamed ::= \"{\" ws \"\\\"Named\\\"\" ws \":\" ws tyname ws \"}\"\n");

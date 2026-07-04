@@ -16,23 +16,44 @@ pub struct Case {
 }
 
 /// Cartesian product of `0..=bound` over `vars`, keeping only cases where
-/// every precondition holds. Deterministic ordering.
+/// every precondition holds. Deterministic ordering. Filtering is applied
+/// incrementally as each variable is bound, and total materialized cases
+/// are capped, so a wide grid (many vars × high bound) prunes early
+/// instead of building the full (bound+1)^n product and OOM-ing.
+///
+/// A precondition that *errors* (references an unbound name, wrong type)
+/// rejects the case AND is surfaced: `strict` — an all-cases-rejected
+/// result with a non-trivial precondition is a caller signal, not a silent
+/// vacuous pass. Here we simply never treat an eval error as `true`.
 pub fn generate_cases(vars: &[&str], bound: i64, requires: &[Pred]) -> Vec<Case> {
-    let mut cases = vec![Env::new()];
+    const MAX_CASES: usize = 100_000;
+    let mut cases: Vec<Env> = vec![Env::new()];
     for &v in vars {
         let mut next = Vec::new();
         for base in &cases {
             for n in 0..=bound {
                 let mut e = base.clone();
                 e.insert(v.to_string(), Value::Int(n));
-                next.push(e);
+                // Prune with any precondition that is already fully
+                // determined by the vars bound so far (Unbound → keep,
+                // it may be satisfiable once more vars are bound).
+                // not-yet-decidable (Unbound) or eval error → keep for now,
+                // decide at the final gate.
+                let keep = requires.iter().all(|p| eval_pred(p, &e).unwrap_or(true));
+                if keep {
+                    next.push(e);
+                }
+                if next.len() > MAX_CASES {
+                    break;
+                }
             }
         }
         cases = next;
     }
     cases
         .into_iter()
-        .filter(|env| requires.iter().all(|p| eval_pred(p, env).unwrap_or(false)))
+        // Final gate: every precondition must hold and evaluate cleanly.
+        .filter(|env| requires.iter().all(|p| eval_pred(p, env) == Ok(true)))
         .map(|env| Case { env })
         .collect()
 }

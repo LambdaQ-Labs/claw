@@ -240,7 +240,7 @@ pub fn grade_produced(
     produced: &[ProducedDef],
 ) -> anyhow::Result<claw_bench_grader::GradeResult> {
     let cdb = task.build_scope_cdb()?;
-    Ok(grade(task, produced, &cdb, 0, 0)?)
+    grade(task, produced, &cdb, 0, 0)
 }
 
 /// Parse the model's output into produced definitions. Tolerates code
@@ -288,16 +288,15 @@ pub fn run_task(
         generator.set_grammar(None);
     }
     let mut feedback: Vec<String> = Vec::new();
-    let mut last: Option<GradeResult> = None;
+    let mut best: Option<GradeResult> = None;
 
     for attempt in 0..=cfg.max_retries {
         let prompt = build_prompt(task, cfg.arm, &feedback);
         let raw = generator.generate(&prompt)?;
-        match parse_output(&raw) {
+        let result = match parse_output(&raw) {
             Err(e) => {
                 feedback.push(format!("output did not parse as Def JSON: {e}"));
-                // record a failed attempt so an unparseable final round grades as failure
-                last = Some(GradeResult {
+                GradeResult {
                     task_id: task.id.clone(),
                     compiled: false,
                     tests_passed: (0, task.grade.tests.len() as u32),
@@ -308,26 +307,53 @@ pub fn run_task(
                     pass: false,
                     retries_used: attempt,
                     tokens: generator.tokens_used(),
-                });
+                }
             }
-            Ok(defs) => {
-                let result = grade(task, &defs, &cdb, attempt, generator.tokens_used())?;
-                let done = result.pass || result.compiled;
-                if !done {
-                    feedback.push(format!(
-                        "hallucinated symbols: [{}]. Use only in-scope symbols.",
-                        result.hallucinated_symbols.join(", ")
-                    ));
-                }
-                let finished = result.pass;
-                last = Some(result);
-                if finished {
-                    break;
-                }
+            Ok(defs) => grade(task, &defs, &cdb, attempt, generator.tokens_used())?,
+        };
+
+        // Feedback for every non-pass failure class, so retries have signal
+        // (not just hallucination — contracts/forbidden too).
+        if !result.pass {
+            if !result.hallucinated_symbols.is_empty() {
+                feedback.push(format!(
+                    "hallucinated symbols: [{}]. Use only in-scope symbols.",
+                    result.hallucinated_symbols.join(", ")
+                ));
+            } else if result.contracts_held.1 > 0
+                && result.contracts_held.0 < result.contracts_held.1
+            {
+                feedback.push(
+                    "output compiled but violated a contract — check the postconditions.".into(),
+                );
+            } else if !result.forbidden_hit.is_empty() {
+                feedback.push(format!("forbidden: {}", result.forbidden_hit.join(", ")));
             }
         }
+
+        let is_pass = result.pass;
+        // Keep the BEST attempt (pass > compiled > fewest hallucinations),
+        // so a regressed retry never worsens the reported metric.
+        if best.as_ref().map(|b| better(&result, b)).unwrap_or(true) {
+            best = Some(result);
+        }
+        if is_pass {
+            break;
+        }
     }
-    last.ok_or_else(|| anyhow::anyhow!("no attempts ran"))
+    best.ok_or_else(|| anyhow::anyhow!("no attempts ran"))
+}
+
+/// Quality ordering: pass beats compiled beats fewer hallucinations.
+fn better(a: &GradeResult, b: &GradeResult) -> bool {
+    let key = |r: &GradeResult| {
+        (
+            r.pass,
+            r.compiled,
+            std::cmp::Reverse(r.hallucinated_symbols.len()),
+        )
+    };
+    key(a) > key(b)
 }
 
 // ---------------------------------------------------------------------
@@ -357,7 +383,9 @@ pub fn aggregate(arm: Arm, results: Vec<GradeResult>) -> Report {
             .filter(|r| !r.hallucinated_symbols.is_empty())
             .count(),
         total_hallucinated_symbols: results.iter().map(|r| r.hallucinated_symbols.len()).sum(),
-        total_tokens: results.iter().map(|r| r.tokens).max().unwrap_or(0),
+        // Sum: generators are per-task, so run-wide cost is the total, not
+        // the single most expensive task.
+        total_tokens: results.iter().map(|r| r.tokens).sum(),
         results,
     }
 }

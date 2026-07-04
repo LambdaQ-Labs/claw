@@ -194,9 +194,16 @@ fn distill(tasks: &[Task], out: &std::path::Path, use_cmd: bool) -> anyhow::Resu
             Ok(d) => d,
             Err(_) => continue, // unparseable → not verified
         };
-        // Verify with the grader (compiled ∧ no hallucination).
+        // Verify with the grader: compiled ∧ no hallucination ∧ all
+        // contracts held ∧ nothing forbidden. A completion that computes the
+        // wrong answer (fails a postcondition) must NOT become training data.
         match grade_produced(task, &defs) {
-            Ok(r) if r.compiled && r.hallucinated_symbols.is_empty() => {
+            Ok(r)
+                if r.compiled
+                    && r.hallucinated_symbols.is_empty()
+                    && r.contracts_held.0 == r.contracts_held.1
+                    && r.forbidden_hit.is_empty() =>
+            {
                 let normalized = serde_json::to_string(&defs)?;
                 let ex = serde_json::json!({
                     "prompt": task.prompt,

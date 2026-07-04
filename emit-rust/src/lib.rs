@@ -72,10 +72,12 @@ pub fn emit_expr(e: &Expr, names: &NameMap) -> Result<String, EmitError> {
         Expr::Lit(Lit::Int(n)) => Ok(n.to_string()),
         Expr::Lit(Lit::Str(s)) => Ok(format!("{s:?}.to_string()")),
         Expr::Var(v) => Ok(sanitize_ident(v)),
-        Expr::Ref(h) => Ok(names
+        // An unresolved reference is a loud error, not a comment silently
+        // emitted into expression position (which never compiles).
+        Expr::Ref(h) => names
             .get(&h.0)
             .cloned()
-            .unwrap_or_else(|| format!("/*unresolved:{h}*/"))),
+            .ok_or_else(|| EmitError::Unsupported(format!("unresolved reference {h}"))),
         Expr::Lam { params, body } => {
             let ps: Vec<String> = params.iter().map(|p| sanitize_ident(p)).collect();
             Ok(format!("|{}| {}", ps.join(", "), emit_expr(body, names)?))
@@ -88,13 +90,27 @@ pub fn emit_expr(e: &Expr, names: &NameMap) -> Result<String, EmitError> {
     }
 }
 
-/// Rust reserves some words; a lowercase Claw ident like `fn` must escape.
+// The four keywords Rust forbids as raw identifiers — they must be
+// escaped by appending `_`, not `r#`.
+const NON_RAW: &[&str] = &["self", "crate", "super", "Self"];
+
+// The full Rust keyword set (2015 + 2018 + reserved). A Claw ident equal to
+// any of these must be escaped or the emitted Rust won't compile.
+const KEYWORDS: &[&str] = &[
+    "as", "break", "const", "continue", "crate", "dyn", "else", "enum", "extern", "false", "fn",
+    "for", "if", "impl", "in", "let", "loop", "match", "mod", "move", "mut", "pub", "ref",
+    "return", "self", "Self", "static", "struct", "super", "trait", "true", "type", "unsafe",
+    "use", "where", "while", "async", "await", "abstract", "become", "box", "do", "final", "macro",
+    "override", "priv", "typeof", "unsized", "virtual", "yield", "try",
+];
+
+/// Escape a Claw identifier so it is a valid Rust identifier: dots → `_`,
+/// keywords → `r#kw` (or `kw_` for the four that can't be raw).
 fn sanitize_ident(v: &str) -> String {
-    const RESERVED: &[&str] = &[
-        "fn", "let", "match", "move", "type", "impl", "mod", "use", "ref", "self",
-    ];
     let base = v.replace('.', "_");
-    if RESERVED.contains(&base.as_str()) {
+    if NON_RAW.contains(&base.as_str()) {
+        format!("{base}_")
+    } else if KEYWORDS.contains(&base.as_str()) {
         format!("r#{base}")
     } else {
         base
@@ -133,11 +149,23 @@ pub fn emit_fn(name: &str, def: &claw_core::Def, names: &NameMap) -> Result<Stri
                 emit_expr(body, names)?
             ))
         }
-        (ty, expr) => Ok(format!(
-            "pub const {rname}: {} = {};",
-            emit_type(ty),
-            emit_expr(expr, names)?
-        )),
+        // Function-typed value with a non-lambda body (point-free) can't be
+        // a `const` — `impl Fn` is illegal in const type position. Refuse
+        // loudly rather than emit non-compiling Rust.
+        (Type::Fn(..), _) => Err(EmitError::Unsupported(format!(
+            "point-free function `{rname}` (non-lambda body of function type)"
+        ))),
+        (ty, expr) => {
+            // `const x: String = "..".to_string()` isn't const-evaluable;
+            // emit a `&'static str` const for string values instead.
+            let (ty_s, val_s) = match (ty, expr) {
+                (Type::Named(n), Expr::Lit(Lit::Str(s))) if n == "Str" => {
+                    ("&str".to_string(), format!("{s:?}"))
+                }
+                _ => (emit_type(ty), emit_expr(expr, names)?),
+            };
+            Ok(format!("pub const {rname}: {ty_s} = {val_s};"))
+        }
     }
 }
 
@@ -239,6 +267,28 @@ mod tests {
             out,
             "pub fn double(p0: u64) -> u64 {\n    Nat_add(p0, p0)\n}"
         );
+    }
+
+    #[test]
+    fn reserved_words_escape_correctly() {
+        // `self` can't be raw (→ self_); `struct` can (→ r#struct); `move` too.
+        assert_eq!(sanitize_ident("self"), "self_");
+        assert_eq!(sanitize_ident("crate"), "crate_");
+        assert_eq!(sanitize_ident("struct"), "r#struct");
+        assert_eq!(sanitize_ident("return"), "r#return");
+        assert_eq!(sanitize_ident("ok"), "ok"); // ordinary ident untouched
+    }
+
+    #[test]
+    fn unresolved_ref_is_a_loud_error() {
+        let e = Expr::App {
+            func: Box::new(Expr::Ref(claw_core::Hash("deadbeef".into()))),
+            args: vec![],
+        };
+        assert!(matches!(
+            emit_expr(&e, &NameMap::new()),
+            Err(EmitError::Unsupported(_))
+        ));
     }
 
     #[test]

@@ -135,25 +135,34 @@ impl Cdb {
     // ------------------------------------------------------------------
 
     pub fn resolve(&self, name: &str) -> Result<Hash> {
-        self.conn
-            .query_row(
-                "SELECT hash FROM names WHERE name = ?1",
-                params![name],
-                |r| r.get::<_, String>(0),
-            )
-            .map(Hash)
-            .map_err(|_| CdbError::UnknownName(name.to_string()))
+        // Map ONLY "no such row" to the domain not-found error; a locked or
+        // corrupt DB must surface as a real error, not masquerade as an
+        // absent symbol (the invariant this store exists to uphold).
+        match self.conn.query_row(
+            "SELECT hash FROM names WHERE name = ?1",
+            params![name],
+            |r| r.get::<_, String>(0),
+        ) {
+            Ok(h) => Ok(Hash(h)),
+            Err(rusqlite::Error::QueryReturnedNoRows) => {
+                Err(CdbError::UnknownName(name.to_string()))
+            }
+            Err(e) => Err(CdbError::Sqlite(e)),
+        }
     }
 
     pub fn get(&self, hash: &Hash) -> Result<Def> {
-        let json: String = self
-            .conn
-            .query_row(
-                "SELECT def_json FROM definitions WHERE hash = ?1",
-                params![hash.0],
-                |r| r.get(0),
-            )
-            .map_err(|_| CdbError::UnknownHash(hash.clone()))?;
+        let json: String = match self.conn.query_row(
+            "SELECT def_json FROM definitions WHERE hash = ?1",
+            params![hash.0],
+            |r| r.get(0),
+        ) {
+            Ok(j) => j,
+            Err(rusqlite::Error::QueryReturnedNoRows) => {
+                return Err(CdbError::UnknownHash(hash.clone()))
+            }
+            Err(e) => return Err(CdbError::Sqlite(e)),
+        };
         Ok(serde_json::from_str(&json)?)
     }
 
@@ -188,7 +197,11 @@ impl Cdb {
         let mut out = Vec::new();
         for (name, hash) in self.symbols()? {
             let def = self.get(&hash)?;
-            if let Some(subst) = unify(query, &def.ty) {
+            // Freshen the candidate's type vars into a disjoint namespace so
+            // a shared var name (`a` in both query and def) can't capture and
+            // wrongly reject a legal polymorphic candidate.
+            let cand_ty = claw_core::freshen(&def.ty, "$c.");
+            if let Some(subst) = unify(query, &cand_ty) {
                 out.push(Candidate {
                     name,
                     hash,

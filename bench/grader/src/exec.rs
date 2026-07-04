@@ -78,13 +78,16 @@ pub fn run_contracts(
     if params.is_empty() || ensures.is_empty() {
         return ContractRun::Skipped;
     }
-    // Find the single lambda to run.
-    let lam = match produced
+    // The function under test must be unambiguous. If several defs are
+    // lambdas (a helper plus the main function), we can't tell which is the
+    // entry point, so Skip (honest) rather than grade a helper by position.
+    let lams: Vec<&ProducedDef> = produced
         .iter()
-        .find(|p| matches!(p.def.expr, Expr::Lam { .. }))
-    {
-        Some(p) => &p.def.expr,
-        None => return ContractRun::Skipped,
+        .filter(|p| matches!(p.def.expr, Expr::Lam { .. }))
+        .collect();
+    let lam = match lams.as_slice() {
+        [only] => &only.def.expr,
+        _ => return ContractRun::Skipped,
     };
 
     let pnames: Vec<&str> = params.iter().map(|p| p.name.as_str()).collect();

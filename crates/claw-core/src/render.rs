@@ -6,7 +6,7 @@
 //! surface follows Roc/Claw conventions (`name : Type` then
 //! `name = |params| body`, application as `f(a, b)`).
 
-use crate::{Def, Expr, Lit, Type};
+use crate::{Def, Expr, Lit};
 
 /// Render a named definition as a `.claw` declaration:
 /// ```text
@@ -31,7 +31,13 @@ pub fn render_expr(e: &Expr) -> String {
         }
         Expr::App { func, args } => {
             let a: Vec<String> = args.iter().map(render_expr).collect();
-            format!("{}({})", render_expr(func), a.join(", "))
+            // A lambda in function position must be parenthesized, else
+            // `(|x| x)(5)` renders as `|x| x(5)` — a different tree.
+            let head = match &**func {
+                Expr::Lam { .. } => format!("({})", render_expr(func)),
+                _ => render_expr(func),
+            };
+            format!("{}({})", head, a.join(", "))
         }
     }
 }
@@ -47,6 +53,7 @@ pub fn render_module(defs: &[(String, Def)]) -> String {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::Type;
 
     fn named(n: &str) -> Type {
         Type::Named(n.into())

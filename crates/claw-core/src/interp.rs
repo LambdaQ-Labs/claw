@@ -48,22 +48,44 @@ pub enum RunError {
 }
 
 const MAX_STEPS: u32 = 100_000;
+// Native recursion-depth cap. eval_inner/apply recurse on the Rust stack;
+// without a depth bound a term like the omega combinator overflows the
+// native stack (SIGSEGV) before MAX_STEPS trips. A modest cap returns
+// RunError::Depth cleanly, well under the default 8 MB stack.
+const MAX_DEPTH: u32 = 1024;
+
+struct Budget {
+    steps: u32,
+    depth: u32,
+}
 
 pub fn eval(expr: &Expr, env: &Env, res: &dyn Resolver) -> Result<Value, RunError> {
-    let mut steps = 0;
-    eval_inner(expr, env, res, &mut steps)
+    let mut b = Budget { steps: 0, depth: 0 };
+    eval_inner(expr, env, res, &mut b)
 }
 
 fn eval_inner(
     expr: &Expr,
     env: &Env,
     res: &dyn Resolver,
-    steps: &mut u32,
+    b: &mut Budget,
 ) -> Result<Value, RunError> {
-    *steps += 1;
-    if *steps > MAX_STEPS {
+    b.steps += 1;
+    if b.steps > MAX_STEPS || b.depth > MAX_DEPTH {
         return Err(RunError::Depth);
     }
+    b.depth += 1;
+    let out = eval_step(expr, env, res, b);
+    b.depth -= 1;
+    out
+}
+
+fn eval_step(
+    expr: &Expr,
+    env: &Env,
+    res: &dyn Resolver,
+    b: &mut Budget,
+) -> Result<Value, RunError> {
     match expr {
         Expr::Lit(Lit::Int(n)) => Ok(Value::Int(*n)),
         Expr::Lit(Lit::Str(s)) => Ok(Value::Str(s.clone())),
@@ -80,18 +102,18 @@ fn eval_inner(
                 }
             }
             match res.resolve(h) {
-                Some(e) => eval_inner(&e, env, res, steps),
+                Some(e) => eval_inner(&e, env, res, b),
                 None => Err(RunError::Unresolved(h.clone())),
             }
         }
         Expr::Lam { params, body } => Ok(Value::Closure(params.clone(), body.clone(), env.clone())),
         Expr::App { func, args } => {
-            let f = eval_inner(func, env, res, steps)?;
+            let f = eval_inner(func, env, res, b)?;
             let mut argv = Vec::with_capacity(args.len());
             for a in args {
-                argv.push(eval_inner(a, env, res, steps)?);
+                argv.push(eval_inner(a, env, res, b)?);
             }
-            apply(f, argv, res, steps)
+            apply(f, argv, res, b)
         }
     }
 }
@@ -100,15 +122,23 @@ fn apply(
     f: Value,
     args: Vec<Value>,
     res: &dyn Resolver,
-    steps: &mut u32,
+    b: &mut Budget,
 ) -> Result<Value, RunError> {
     match f {
         Value::Closure(params, body, captured) => {
+            // Arity mismatch is a diagnosable error, not a silent mis-bind.
+            if params.len() != args.len() {
+                return Err(RunError::Builtin(format!(
+                    "arity: closure expects {} arg(s), got {}",
+                    params.len(),
+                    args.len()
+                )));
+            }
             let mut env = captured;
             for (p, a) in params.iter().zip(args) {
                 env.insert(p.clone(), a);
             }
-            eval_inner(&body, &env, res, steps)
+            eval_inner(&body, &env, res, b)
         }
         Value::Builtin(name) => builtin(&name, &args),
         _ => Err(RunError::NotAFunction),
@@ -140,8 +170,10 @@ fn as_int(v: &Value) -> Result<i64, RunError> {
 
 fn builtin(name: &str, args: &[Value]) -> Result<Value, RunError> {
     match (name, args) {
-        ("Nat.add", [a, b]) => Ok(Value::Int(as_int(a)? + as_int(b)?)),
-        ("Nat.mul", [a, b]) => Ok(Value::Int(as_int(a)? * as_int(b)?)),
+        // Saturating (consistent with Nat.sub's clamp): a Nat never wraps
+        // negative, and overflow can't panic the interpreter.
+        ("Nat.add", [a, b]) => Ok(Value::Int(as_int(a)?.saturating_add(as_int(b)?))),
+        ("Nat.mul", [a, b]) => Ok(Value::Int(as_int(a)?.saturating_mul(as_int(b)?))),
         ("Nat.sub", [a, b]) => Ok(Value::Int((as_int(a)? - as_int(b)?).max(0))),
         ("Nat.max", [a, b]) => Ok(Value::Int(as_int(a)?.max(as_int(b)?))),
         ("Nat.min", [a, b]) => Ok(Value::Int(as_int(a)?.min(as_int(b)?))),
@@ -257,5 +289,44 @@ mod tests {
             eval(&Expr::Var("nope".into()), &Env::new(), &BuiltinResolver),
             Err(RunError::Unbound("nope".into()))
         );
+    }
+
+    #[test]
+    fn omega_returns_depth_not_stack_overflow() {
+        // (\x -> x x)(\x -> x x) — diverges. Must return RunError::Depth,
+        // not blow the native stack (SIGSEGV). Regression for the review's
+        // #1 bug (step bound didn't cap native recursion).
+        let self_app = Expr::Lam {
+            params: vec!["x".into()],
+            body: Box::new(Expr::App {
+                func: Box::new(Expr::Var("x".into())),
+                args: vec![Expr::Var("x".into())],
+            }),
+        };
+        let omega = Expr::App {
+            func: Box::new(self_app.clone()),
+            args: vec![self_app],
+        };
+        assert_eq!(
+            eval(&omega, &Env::new(), &BuiltinResolver),
+            Err(RunError::Depth)
+        );
+    }
+
+    #[test]
+    fn arity_mismatch_is_an_error_not_a_misbind() {
+        // (\p0 p1 -> p0) applied to one arg → arity error, not Unbound(p1).
+        let f = Expr::Lam {
+            params: vec!["p0".into(), "p1".into()],
+            body: Box::new(Expr::Var("p0".into())),
+        };
+        let call = Expr::App {
+            func: Box::new(f),
+            args: vec![Expr::Lit(Lit::Int(1))],
+        };
+        assert!(matches!(
+            eval(&call, &Env::new(), &BuiltinResolver),
+            Err(RunError::Builtin(_))
+        ));
     }
 }
