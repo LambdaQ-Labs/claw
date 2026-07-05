@@ -17,6 +17,8 @@ claw-corpus = { path = "../corpus" }
 claw-contract = { path = "../contract" }
 claw-bench-grader = { path = "../bench/grader" }
 claw-telemetry = { path = "../telemetry" }
+ureq = { version = "2", features = ["json"] }
+sha2 = "0.10"
 serde = { workspace = true }
 serde_json = { workspace = true }
 anyhow = { workspace = true }

@@ -12,8 +12,8 @@ import glob, json, os, re, torch
 from transformers import AutoModelForCausalLM, AutoTokenizer
 from peft import PeftModel
 
-BASE = "Qwen/Qwen2.5-Coder-0.5B-Instruct"
-BS = 24
+BASE = os.environ.get("CLAW_BASE_MODEL", "Qwen/Qwen2.5-Coder-0.5B-Instruct")
+BS = int(os.environ.get("CLAW_BS", "24"))
 PROTO = open("train.py").read().split('PROTOCOL = """')[1].split('"""')[0]
 
 tok = AutoTokenizer.from_pretrained(BASE, padding_side="left")

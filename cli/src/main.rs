@@ -72,6 +72,8 @@ fn real_main() -> anyhow::Result<()> {
         // Full grade (compile proxy + contract EXECUTION) as JSON — the
         // Claw side of the cross-language parity harness.
         Some("defs-grade") => defs_grade_cmd(&args[1..]),
+        // Self-update from GitHub Releases (packaged installs only).
+        Some("upgrade") => upgrade_cmd(&args[1..]),
         // WS-H: generate a synthetic SFT corpus (JSONL). `--stdlib` uses the
         // built-in stdlib scope; otherwise reads the CDB at --db.
         Some("corpus") if args.get(1).map(String::as_str) == Some("gen") => {
@@ -317,6 +319,130 @@ fn defs_check_cmd(args: &[String]) -> anyhow::Result<()> {
     } else {
         println!("COMPILE-FAIL ({} errors)\n{}", r.errors, r.detail);
     }
+    Ok(())
+}
+
+/// `claw upgrade [--check]` — self-update from GitHub Releases.
+///
+/// Flow: resolve the latest tag via the GitHub API, compare with this
+/// binary's version, download `claw-<tag>-<os>-<arch>.tar.gz`, verify the
+/// `.sha256` sidecar when the release ships one, unpack next to the
+/// current install and swap binaries in place (unix rename semantics).
+/// Refuses to run from a dev checkout (target/…) — use git + cargo there.
+fn upgrade_cmd(args: &[String]) -> anyhow::Result<()> {
+    const REPO: &str = "LambdaQ-Labs/claw";
+    let current = env!("CARGO_PKG_VERSION");
+
+    let latest: serde_json::Value = match ureq::get(&format!(
+        "https://api.github.com/repos/{REPO}/releases/latest"
+    ))
+    .set("user-agent", "claw-upgrade")
+    .call()
+    {
+        Ok(r) => r.into_json()?,
+        Err(ureq::Error::Status(404, _)) => {
+            println!("installed: {current}\nno releases published yet — nothing to upgrade to");
+            return Ok(());
+        }
+        Err(e) => return Err(e.into()),
+    };
+    let tag = latest["tag_name"]
+        .as_str()
+        .ok_or_else(|| anyhow::anyhow!("no releases published yet"))?
+        .to_string();
+    let latest_v = tag.trim_start_matches('v');
+
+    let newer = {
+        let parse = |s: &str| -> Vec<u64> {
+            s.split('.').map(|p| p.parse().unwrap_or(0)).collect()
+        };
+        parse(latest_v) > parse(current)
+    };
+    println!("installed: {current}
+latest:    {latest_v}");
+    if !newer {
+        println!("already up to date");
+        return Ok(());
+    }
+    if args.iter().any(|a| a == "--check") {
+        println!("run `claw upgrade` to install {latest_v}");
+        return Ok(());
+    }
+
+    // Only self-update a packaged install (…/bin/claw), never a dev build.
+    let exe = std::env::current_exe()?;
+    let bin_dir = exe
+        .parent()
+        .ok_or_else(|| anyhow::anyhow!("cannot locate the install dir"))?
+        .to_path_buf();
+    anyhow::ensure!(
+        bin_dir.file_name().map(|n| n == "bin").unwrap_or(false),
+        "not a packaged install ({}) — update with git + cargo instead",
+        exe.display()
+    );
+
+    let (os, arch) = (
+        match std::env::consts::OS {
+            "macos" => "macos",
+            "linux" => "linux",
+            other => anyhow::bail!("no prebuilt upgrade for {other}"),
+        },
+        match std::env::consts::ARCH {
+            "aarch64" => "arm64",
+            "x86_64" => "x64",
+            other => anyhow::bail!("no prebuilt upgrade for {other}"),
+        },
+    );
+    let asset = format!("claw-{tag}-{os}-{arch}.tar.gz");
+    let url =
+        format!("https://github.com/{REPO}/releases/download/{tag}/{asset}");
+    eprintln!("downloading {asset} …");
+    let mut buf = Vec::new();
+    ureq::get(&url)
+        .set("user-agent", "claw-upgrade")
+        .call()?
+        .into_reader()
+        .read_to_end(&mut buf)?;
+
+    // Integrity: the CI publishes a .sha256 sidecar; verify when present.
+    match ureq::get(&format!("{url}.sha256"))
+        .set("user-agent", "claw-upgrade")
+        .call()
+    {
+        Ok(resp) => {
+            use sha2::Digest;
+            let want = resp.into_string()?.split_whitespace().next().unwrap_or("").to_lowercase();
+            let got = format!("{:x}", sha2::Sha256::digest(&buf));
+            anyhow::ensure!(want == got, "checksum mismatch — aborting upgrade");
+            eprintln!("checksum ok");
+        }
+        Err(_) => eprintln!("(no checksum published for this asset — skipping verification)"),
+    }
+
+    // Unpack to a staging dir, then rename each binary over the old one —
+    // on unix a running executable can be replaced this way.
+    let stage = bin_dir.parent().unwrap().join(format!(".upgrade-{tag}"));
+    let _ = std::fs::remove_dir_all(&stage);
+    std::fs::create_dir_all(&stage)?;
+    let tarball = stage.join(&asset);
+    std::fs::write(&tarball, &buf)?;
+    let ok = std::process::Command::new("tar")
+        .args(["-xzf"])
+        .arg(&tarball)
+        .arg("-C")
+        .arg(&stage)
+        .status()?
+        .success();
+    anyhow::ensure!(ok, "unpacking failed");
+    let mut swapped = 0;
+    for entry in std::fs::read_dir(stage.join("bin"))? {
+        let entry = entry?;
+        let dest = bin_dir.join(entry.file_name());
+        std::fs::rename(entry.path(), &dest)?;
+        swapped += 1;
+    }
+    let _ = std::fs::remove_dir_all(&stage);
+    println!("upgraded to {latest_v} ({swapped} binaries swapped)");
     Ok(())
 }
 

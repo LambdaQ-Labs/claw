@@ -59,6 +59,9 @@ def main():
     print(f"corpus: {len(ds)} examples")
 
     model = AutoModelForCausalLM.from_pretrained(args.model, torch_dtype="auto", device_map="auto")
+    if os.environ.get("CLAW_GRAD_CKPT"):
+        model.gradient_checkpointing_enable()
+        model.enable_input_require_grads()
 
     lora = LoraConfig(
         r=16, lora_alpha=32, lora_dropout=0.05, bias="none", task_type="CAUSAL_LM",
