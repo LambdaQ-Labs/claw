@@ -24,8 +24,8 @@ steps:
     commands:
       - apt-get update && apt-get install -y curl xz-utils musl-tools zstd
       # zig 0.16.0
-      - curl -fsSL https://ziglang.org/download/0.16.0/zig-linux-x86_64-0.16.0.tar.xz | tar -xJ -C /opt
-      - export PATH=/opt/zig-linux-x86_64-0.16.0:$PATH
+      - curl -fsSL https://ziglang.org/download/0.16.0/zig-x86_64-linux-0.16.0.tar.xz | tar -xJ -C /opt
+      - export PATH=/opt/zig-x86_64-linux-0.16.0:$PATH
       - rustup target add x86_64-unknown-linux-musl
       # compiler (clawc + snapshot), Linux x64
       - cd compiler && zig build roc -Dtarget=x86_64-linux-musl && zig build build-snapshot-tool -Dtarget=x86_64-linux-musl && cd ..
@@ -67,8 +67,8 @@ steps:
     image: rust:1-bookworm
     commands:
       - apt-get update && apt-get install -y curl xz-utils gcc-mingw-w64-x86-64 zip zstd
-      - curl -fsSL https://ziglang.org/download/0.16.0/zig-linux-x86_64-0.16.0.tar.xz | tar -xJ -C /opt
-      - export PATH=/opt/zig-linux-x86_64-0.16.0:$PATH
+      - curl -fsSL https://ziglang.org/download/0.16.0/zig-x86_64-linux-0.16.0.tar.xz | tar -xJ -C /opt
+      - export PATH=/opt/zig-x86_64-linux-0.16.0:$PATH
       - rustup target add x86_64-pc-windows-gnu
       # compiler, Windows x64
       - cd compiler && zig build roc -Dtarget=x86_64-windows-gnu && zig build build-snapshot-tool -Dtarget=x86_64-windows-gnu && cd ..
