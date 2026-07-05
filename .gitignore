@@ -35,3 +35,5 @@ Cargo.lock
 /dist
 model/claw-0.5b-q8.gguf
 model/claw-infer
+train/adapter-e4b.tar.gz
+train/claw-lora-e4b/

@@ -18,8 +18,12 @@ PROTO = open("train.py").read().split('PROTOCOL = """')[1].split('"""')[0]
 tok = AutoTokenizer.from_pretrained(BASE, padding_side="left")
 if tok.pad_token is None:
     tok.pad_token = tok.eos_token
-m = AutoModelForCausalLM.from_pretrained(BASE, torch_dtype=torch.bfloat16, device_map="auto")
-m = PeftModel.from_pretrained(m, "claw-lora")  # one model; toggle the adapter
+_kw = {"torch_dtype": torch.bfloat16, "device_map": "auto"}
+if os.environ.get("CLAW_4BIT"):
+    from transformers import BitsAndBytesConfig
+    _kw["quantization_config"] = BitsAndBytesConfig(load_in_4bit=True, bnb_4bit_compute_dtype=torch.bfloat16)
+m = AutoModelForCausalLM.from_pretrained(BASE, **_kw)
+m = PeftModel.from_pretrained(m, os.environ.get("CLAW_ADAPTER", "claw-lora"))  # one model; toggle the adapter
 
 
 def gen_batch(prompts, tag):
