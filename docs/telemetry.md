@@ -42,9 +42,8 @@ claw telemetry share      # gzip + upload, clear local log on success
 claw telemetry clear      # delete the local log
 ```
 
-`CLAW_TELEMETRY_URL` overrides the ingest endpoint (default: the deployed
-worker at `claw-telemetry.ninad2471.workers.dev`; moves to
-`telemetry.clawlang.dev` when the domain routes).
+`CLAW_TELEMETRY_URL` overrides the ingest endpoint (default:
+`https://telemetry.clawlang.dev/v1/ingest`).
 
 ## Server side (why this costs ~nothing)
 
@@ -57,8 +56,8 @@ egress when training runs pull the data.
 **Deployed 2026-07-05** — bucket `claw-telemetry` (APAC), worker
 `claw-telemetry` at `claw-telemetry.ninad2471.workers.dev`, verified
 end-to-end (events → gzip → 200 → R2; worker tail shows outcome:ok, and
-the gzip round-trips through standard decoders). Remaining: route
-`telemetry.clawlang.dev` to the worker when DNS moves to Cloudflare.
+the gzip round-trips through standard decoders). Routed live at
+`telemetry.clawlang.dev` (Cloudflare custom domain) since 2026-07-05.
 
 ```sh
 cd telemetry/worker      # to redeploy after changes

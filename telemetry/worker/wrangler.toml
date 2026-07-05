@@ -1,6 +1,7 @@
 name = "claw-telemetry"
 main = "index.js"
 compatibility_date = "2026-07-01"
+routes = [{ pattern = "telemetry.clawlang.dev", custom_domain = true }]
 
 # R2 binding — create with: wrangler r2 bucket create claw-telemetry
 [[r2_buckets]]
