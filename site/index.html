@@ -3,146 +3,207 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Claw — the language AI can't hallucinate in</title>
-<meta name="description" content="Claw is an AI-first programming language. Code lives in a queryable database, generation is grammar-constrained, and a bundled model writes it better than Python.">
-<meta property="og:title" content="Claw — the language AI can't hallucinate in">
-<meta property="og:description" content="0% → 100% hallucination-free. A $0.03 fine-tune beats stock Python, JS, Go and Rust on functional correctness.">
+<title>Claw — the programming language built for AI to write</title>
+<meta name="description" content="Claw stores code in a queryable database, constrains AI generation with grammars, and verifies every definition with a real compiler and executable contracts.">
+<meta property="og:title" content="Claw — the programming language built for AI to write">
+<meta property="og:description" content="Hallucinated APIs: 38 → 0. A $0.03 fine-tune beats stock Python on functional correctness. Receipts included.">
 <meta property="og:image" content="https://clawlang.dev/og.png">
-<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Cpath d='M6 26 Q10 12 16 6 Q14 16 12 26 Z M13 26 Q17 13 23 7 Q20 17 18 26 Z M19 26 Q23 15 28 10 Q25 19 24 26 Z' fill='%23f4a261'/%3E%3C/svg%3E">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Cpath d='M6 26 Q10 12 16 6 Q14 16 12 26 Z M13 26 Q17 13 23 7 Q20 17 18 26 Z M19 26 Q23 15 28 10 Q25 19 24 26 Z' fill='%23b45309'/%3E%3C/svg%3E">
 <style>
 :root{
-  --bg:#0d1117; --panel:#161b22; --line:#21262d;
-  --fg:#e6edf3; --dim:#8b949e;
-  --amber:#f4a261; --green:#4ade80; --red:#f87171;
-  --mono:ui-monospace,'SF Mono',Menlo,Consolas,monospace;
+  --bg:#f7f6f3; --panel:#ffffff; --panel2:#eef0ec; --line:#e0ddd4;
+  --ink:#1c2a28; --dim:#5c6b67; --teal:#0f766e; --teal-ink:#0b5a54;
+  --copper:#b45309; --good:#15803d; --bad:#b91c1c;
+  --mono:ui-monospace,'SF Mono','Cascadia Code',Menlo,Consolas,monospace;
+  --sans:'Avenir Next','Segoe UI Variable','Segoe UI',-apple-system,BlinkMacSystemFont,sans-serif;
 }
+@media(prefers-color-scheme:dark){
+  :root{--bg:#0d1615; --panel:#132220; --panel2:#0f1c1a; --line:#22332f;
+  --ink:#e9edea; --dim:#8fa39d; --teal:#2fbdb0; --teal-ink:#5eead4;
+  --copper:#e08a2e; --good:#4ade80; --bad:#f87171}
+}
+:root[data-theme="light"]{--bg:#f7f6f3;--panel:#ffffff;--panel2:#eef0ec;--line:#e0ddd4;--ink:#1c2a28;--dim:#5c6b67;--teal:#0f766e;--teal-ink:#0b5a54;--copper:#b45309;--good:#15803d;--bad:#b91c1c}
+:root[data-theme="dark"]{--bg:#0d1615;--panel:#132220;--panel2:#0f1c1a;--line:#22332f;--ink:#e9edea;--dim:#8fa39d;--teal:#2fbdb0;--teal-ink:#5eead4;--copper:#e08a2e;--good:#4ade80;--bad:#f87171}
 *{margin:0;padding:0;box-sizing:border-box}
-body{background:var(--bg);color:var(--fg);font:16px/1.65 -apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif}
-a{color:var(--amber);text-decoration:none}
+html{scroll-behavior:smooth}
+@media(prefers-reduced-motion:reduce){html{scroll-behavior:auto}}
+body{background:var(--bg);color:var(--ink);font-family:var(--sans);font-size:16.5px;line-height:1.65}
+a{color:var(--teal);text-decoration:none}
 a:hover{text-decoration:underline}
-.wrap{max-width:960px;margin:0 auto;padding:0 24px}
-header{padding:18px 0;border-bottom:1px solid var(--line)}
-header .wrap{display:flex;align-items:center;gap:12px}
-header nav{margin-left:auto;display:flex;gap:20px;font-size:14px}
-header nav a{color:var(--dim)}
-.logo{display:flex;align-items:center;gap:10px;font-weight:700;font-size:18px}
-.hero{padding:88px 0 56px;text-align:center}
-.hero h1{font-size:clamp(28px,5vw,46px);line-height:1.15;letter-spacing:-.02em}
-.hero h1 em{color:var(--amber);font-style:normal}
-.hero p.sub{margin:20px auto 0;max-width:640px;color:var(--dim);font-size:18px}
-.install{margin:36px auto 0;display:inline-flex;align-items:center;gap:14px;background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:14px 20px;font-family:var(--mono);font-size:15px}
-.install .p{color:var(--green)}
-.badges{margin-top:22px;font-size:13px;color:var(--dim)}
-.badges span{margin:0 10px}
-section{padding:56px 0;border-top:1px solid var(--line)}
-h2{font-size:26px;margin-bottom:8px;letter-spacing:-.01em}
-.lead{color:var(--dim);max-width:680px;margin-bottom:32px}
-table{width:100%;border-collapse:collapse;font-size:15px;overflow-x:auto;display:block}
-th,td{text-align:left;padding:10px 14px;border-bottom:1px solid var(--line);white-space:nowrap}
-th{color:var(--dim);font-weight:600;font-size:13px;text-transform:uppercase;letter-spacing:.05em}
-td.num{font-family:var(--mono)}
-.win td{color:var(--green);font-weight:600}
-.gates{display:grid;grid-template-columns:repeat(auto-fit,minmax(210px,1fr));gap:16px;margin-top:8px}
-.gate{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:20px}
-.gate .n{font-family:var(--mono);color:var(--amber);font-size:13px}
-.gate h3{font-size:16px;margin:6px 0 8px}
-.gate p{font-size:14px;color:var(--dim)}
-pre{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:20px;overflow-x:auto;font-family:var(--mono);font-size:14px;line-height:1.6}
-pre .c{color:var(--dim)} pre .k{color:#79c0ff} pre .s{color:#a5d6ff} pre .f{color:var(--amber)} pre .t{color:#7ee787}
-.cols{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:24px}
-.foot{padding:40px 0;color:var(--dim);font-size:14px;border-top:1px solid var(--line);text-align:center}
-.cta{display:inline-block;margin-top:8px;background:var(--amber);color:#0d1117;font-weight:600;padding:10px 22px;border-radius:8px}
-.cta:hover{text-decoration:none;filter:brightness(1.1)}
-@media(prefers-color-scheme:light){
-  :root{--bg:#ffffff;--panel:#f6f8fa;--line:#d0d7de;--fg:#1f2328;--dim:#57606a}
-  pre .k{color:#0550ae} pre .s{color:#0a3069} pre .t{color:#116329}
-}
+a:focus-visible,button:focus-visible{outline:2px solid var(--copper);outline-offset:2px}
+.wrap{max-width:1040px;margin:0 auto;padding:0 24px}
+header{padding:16px 0;border-bottom:1px solid var(--line);position:sticky;top:0;background:var(--bg);z-index:5}
+header .wrap{display:flex;align-items:center;gap:10px}
+.logo{display:flex;align-items:center;gap:9px;font-weight:700;font-size:19px;letter-spacing:-.01em;color:var(--ink)}
+header nav{margin-left:auto;display:flex;gap:22px;font-size:14.5px;flex-wrap:wrap}
+header nav a{color:var(--dim)} header nav a:hover{color:var(--teal)}
+
+.hero{padding:72px 0 64px}
+.hero .wrap{display:grid;grid-template-columns:1.05fr .95fr;gap:48px;align-items:center}
+@media(max-width:860px){.hero .wrap{grid-template-columns:1fr}}
+.eyebrow{font-family:var(--mono);font-size:12.5px;letter-spacing:.14em;text-transform:uppercase;color:var(--copper);margin-bottom:14px}
+h1{font-size:clamp(30px,4.6vw,44px);line-height:1.12;letter-spacing:-.025em;text-wrap:balance;font-weight:700}
+h1 .t{color:var(--teal)}
+.hero p.sub{margin:18px 0 26px;color:var(--dim);font-size:18px;max-width:30em}
+.ctas{display:flex;gap:12px;flex-wrap:wrap;align-items:center}
+.btn{display:inline-block;padding:11px 20px;border-radius:8px;font-weight:600;font-size:15px}
+.btn.primary{background:var(--teal);color:#fff}
+.btn.primary:hover{background:var(--teal-ink);text-decoration:none}
+:root[data-theme="dark"] .btn.primary,:root:not([data-theme="light"]) .btn.primary{color:#08201d}
+@media(prefers-color-scheme:light){:root:not([data-theme="dark"]) .btn.primary{color:#fff}}
+.btn.ghost{border:1.5px solid var(--line);color:var(--ink)}
+.btn.ghost:hover{border-color:var(--teal);text-decoration:none}
+.install{margin-top:22px;font-family:var(--mono);font-size:13.5px;color:var(--dim)}
+.install code{background:var(--panel2);border:1px solid var(--line);padding:8px 12px;border-radius:7px;display:inline-block;color:var(--ink)}
+
+.demo{background:var(--panel);border:1px solid var(--line);border-radius:12px;overflow:hidden;box-shadow:0 1px 3px rgba(0,0,0,.06)}
+.demo .bar{display:flex;gap:6px;padding:10px 14px;border-bottom:1px solid var(--line);background:var(--panel2)}
+.demo .bar i{width:10px;height:10px;border-radius:50%;background:var(--line)}
+.demo pre{padding:18px;font-family:var(--mono);font-size:13px;line-height:1.7;overflow-x:auto}
+.demo .p{color:var(--teal)} .demo .err{color:var(--bad)} .demo .ok{color:var(--good)} .demo .dim{color:var(--dim)}
+
+section{padding:64px 0;border-top:1px solid var(--line)}
+h2{font-size:27px;letter-spacing:-.02em;margin-bottom:10px;text-wrap:balance}
+.lead{color:var(--dim);max-width:42em;margin-bottom:34px;font-size:17px}
+
+.pillars{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:20px}
+.pillar h3{font-size:18px;margin-bottom:8px;display:flex;align-items:center;gap:9px}
+.pillar h3 .dot{width:9px;height:9px;border-radius:2px;background:var(--copper);display:inline-block;transform:rotate(45deg)}
+.pillar p{color:var(--dim);font-size:15.5px}
+
+.tabs{display:flex;gap:2px;flex-wrap:wrap;border-bottom:1px solid var(--line)}
+.tabs button{font:600 14px var(--sans);color:var(--dim);background:none;border:none;border-bottom:2.5px solid transparent;padding:10px 16px;cursor:pointer}
+.tabs button.on{color:var(--teal);border-bottom-color:var(--teal)}
+.tabpanes pre{display:none;background:var(--panel);border:1px solid var(--line);border-top:none;border-radius:0 0 10px 10px;padding:22px;font-family:var(--mono);font-size:13.5px;line-height:1.7;overflow-x:auto}
+.tabpanes pre.on{display:block}
+pre .c{color:var(--dim)} pre .k{color:var(--teal)} pre .s{color:var(--copper)} pre .f{color:var(--teal-ink);font-weight:600} pre .t{color:var(--good)}
+
+.receipts{background:var(--panel2)}
+.rgrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:26px;align-items:start}
+.rcard{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:24px}
+.rcard h3{font-size:15px;color:var(--dim);font-weight:600;text-transform:uppercase;letter-spacing:.07em;margin-bottom:16px}
+.big{font-size:40px;font-weight:700;letter-spacing:-.03em;line-height:1.1;font-variant-numeric:tabular-nums}
+.big .from{color:var(--bad)} .big .to{color:var(--good)} .big .arr{color:var(--dim);font-size:28px}
+.rcard p{color:var(--dim);font-size:14.5px;margin-top:10px}
+table{width:100%;border-collapse:collapse;font-size:15px;font-variant-numeric:tabular-nums}
+th,td{text-align:left;padding:9px 6px;border-bottom:1px solid var(--line)}
+th{color:var(--dim);font-weight:600;font-size:12.5px;text-transform:uppercase;letter-spacing:.06em}
+td.n{font-family:var(--mono);font-size:14px}
+tr.win td{color:var(--good);font-weight:650}
+.method{font-size:13.5px;color:var(--dim);margin-top:14px}
+
+.cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:18px}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:22px}
+.card h3{font-size:16.5px;margin-bottom:7px}
+.card p{font-size:14.5px;color:var(--dim)}
+.card .more{display:inline-block;margin-top:10px;font-size:14px;font-weight:600}
+
+.paths{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:18px}
+.path{border:1.5px solid var(--line);border-radius:12px;padding:20px;color:var(--ink)}
+.path:hover{border-color:var(--teal);text-decoration:none}
+.path .k{font-family:var(--mono);font-size:12px;color:var(--copper);letter-spacing:.1em;text-transform:uppercase}
+.path h3{font-size:17px;margin:6px 0 4px}
+.path p{font-size:14px;color:var(--dim)}
+
+.foot{padding:44px 0;border-top:1px solid var(--line);color:var(--dim);font-size:14.5px}
+.foot .wrap{display:flex;gap:28px;flex-wrap:wrap;align-items:center}
+.foot .logo{font-size:16px}
 </style>
 </head>
 <body>
 
 <header>
   <div class="wrap">
-    <div class="logo">
-      <svg width="26" height="26" viewBox="0 0 32 32"><path d="M6 26 Q10 12 16 6 Q14 16 12 26 Z M13 26 Q17 13 23 7 Q20 17 18 26 Z M19 26 Q23 15 28 10 Q25 19 24 26 Z" fill="#f4a261"/></svg>
-      claw
-    </div>
+    <a class="logo" href="#">
+      <svg width="24" height="24" viewBox="0 0 32 32" aria-hidden="true"><path d="M6 26 Q10 12 16 6 Q14 16 12 26 Z M13 26 Q17 13 23 7 Q20 17 18 26 Z M19 26 Q23 15 28 10 Q25 19 24 26 Z" fill="#b45309"/></svg>
+      Claw
+    </a>
     <nav>
-      <a href="#numbers">Numbers</a>
-      <a href="#how">How</a>
-      <a href="#start">Start</a>
+      <a href="#why">Why Claw</a>
+      <a href="#examples">Examples</a>
+      <a href="#receipts">Receipts</a>
       <a href="#ai">For AI teams</a>
+      <a href="playground.html">Playground</a>
       <a href="https://github.com/LambdaQ-Labs/claw">GitHub</a>
     </nav>
   </div>
 </header>
 
-<div class="hero wrap">
-  <h1>The programming language<br><em>AI can't hallucinate in</em></h1>
-  <p class="sub">Claw stores code in a queryable database, constrains generation with a
-  type-directed grammar, and verifies every definition with a real compiler and
-  executable contracts. Then it ships a model that writes it — measurably better
-  than the same model writes Python.</p>
-  <div class="install"><span class="p">$</span> curl -fsSL https://clawlang.dev/install.sh | sh</div>
-  <div class="badges">
-    <span>⚖ UPL-1.0</span><span>⚙ compiler + LSP + MCP included</span><span>⬇ zero system deps</span>
+<div class="hero">
+  <div class="wrap">
+    <div>
+      <div class="eyebrow">A language and a proof</div>
+      <h1>Built for AI to write.<br>Impossible to <span class="t">hallucinate</span> in.</h1>
+      <p class="sub">Claw is a fast, functional language where code lives in a queryable
+      database, generation is grammar-constrained, and every definition is verified
+      by a real compiler and executable contracts — before a human reads the diff.</p>
+      <div class="ctas">
+        <a class="btn primary" href="https://github.com/LambdaQ-Labs/claw#quick-start">Get started</a>
+        <a class="btn ghost" href="playground.html">Try the playground</a>
+      </div>
+      <div class="install"><code>$ curl -fsSL https://clawlang.dev/install.sh | sh</code></div>
+    </div>
+    <div class="demo" role="img" aria-label="Terminal: the compiler catching a hallucinated API">
+      <div class="bar"><i></i><i></i><i></i></div>
+      <pre><span class="dim"># Your agent just invented an API.</span>
+<span class="p">$</span> claw defs-check clamp.json task.json
+<span class="err">COMPILE-FAIL (1 error)</span>
+<span class="dim">  `Nat.clamp` is not in scope — nothing
+  with that name exists in this project.</span>
+
+<span class="dim"># Ask what actually exists instead:</span>
+<span class="p">$</span> claw db candidates "Nat, Nat -> Nat"
+Nat.max : Nat, Nat -> Nat
+Nat.min : Nat, Nat -> Nat
+
+<span class="ok">✓ min(max(x, lo), hi) — verified, 2/2 contracts hold</span></pre>
+    </div>
   </div>
 </div>
 
-<section id="numbers">
+<section id="why">
   <div class="wrap">
-    <h2>Numbers, not adjectives</h2>
-    <p class="lead">One 0.5B model, five arms, identical execution-based grading:
-    every generated function is run against generated test cases and checked
-    against contracts. The Claw arm had a ~$0.03 fine-tune on machine-generated
-    data. The other arms had the model's entire pretraining corpus.</p>
-    <table>
-      <tr><th>arm (same model)</th><th>functional pass@1</th></tr>
-      <tr class="win"><td>Claw&nbsp;(tuned, $0.03)</td><td class="num">110/116&nbsp;&nbsp;94%</td></tr>
-      <tr><td>JavaScript (stock)</td><td class="num">104/116&nbsp;&nbsp;89%</td></tr>
-      <tr><td>Python (stock)</td><td class="num">66/116&nbsp;&nbsp;56%</td></tr>
-      <tr><td>Rust (stock)</td><td class="num">41/116&nbsp;&nbsp;35%</td></tr>
-      <tr><td>Go (stock)</td><td class="num">9/116&nbsp;&nbsp;7%</td></tr>
-    </table>
-    <p class="lead" style="margin-top:24px">And the discipline holds:
-    <b style="color:var(--fg)">0/121 → 121/121 hallucination-free</b> on the
-    reference gate after fine-tuning — including declared effect rows for
-    file, environment, and stdout access. Every number reproduces from the
-    <a href="https://github.com/LambdaQ-Labs/claw/tree/main/bench">committed harness</a>.</p>
-  </div>
-</section>
-
-<section id="how">
-  <div class="wrap">
-    <h2>Four gates, one guarantee</h2>
-    <p class="lead">No single layer makes a model reliable. The pipeline is the product.</p>
-    <div class="gates">
-      <div class="gate"><div class="n">gate 1</div><h3>Code as database</h3>
-        <p>Every definition is content-addressed and queryable. An agent asks
-        <i>what exists with this type?</i> instead of guessing an API. Measured:
-        hallucinated symbols 38 → 0 from context alone.</p></div>
-      <div class="gate"><div class="n">gate 2</div><h3>Constrained decoding</h3>
-        <p>The scope projects to a grammar. Out-of-scope calls and undeclared
-        effects are <i>ungeneratable at the token level</i> — a guarantee, not a
-        prompt.</p></div>
-      <div class="gate"><div class="n">gate 3</div><h3>Real typecheck</h3>
-        <p>Generated code round-trips through the actual compiler. Wrong arity,
-        undefined helpers, ignored parameters — caught before a human ever
-        reads the diff.</p></div>
-      <div class="gate"><div class="n">gate 4</div><h3>Executable contracts</h3>
-        <p>Definitions carry postconditions that run on generated inputs.
-        <code>area(2,3)</code> typechecks; <code>result == w*h</code> doesn't lie.</p></div>
+    <h2>Why Claw</h2>
+    <p class="lead">Every language claims safety. Claw's claim is narrower and checkable:
+    an AI writing Claw cannot reference what doesn't exist, cannot skip declaring its
+    effects, and cannot ship code that fails its contracts.</p>
+    <div class="pillars">
+      <div class="pillar">
+        <h3><span class="dot"></span>Verifiable by construction</h3>
+        <p>Four independent gates — a code database that answers "what exists?",
+        a decode grammar that makes out-of-scope calls ungeneratable, the real
+        compiler's typecheck, and contracts that execute. No single gate is trusted;
+        the pipeline is.</p>
+      </div>
+      <div class="pillar">
+        <h3><span class="dot"></span>AI-native, not AI-flavored</h3>
+        <p>The database, the grammar, and the verifier are APIs — an MCP server any
+        agent can call today, from Claude Code to Cursor to Gemini CLI. A bundled
+        fine-tuned model ships with the toolchain, and opt-in telemetry makes the
+        next one better.</p>
+      </div>
+      <div class="pillar">
+        <h3><span class="dot"></span>Small, fast, complete</h3>
+        <p>A functional language with effect types, pattern matching, and 100–200 ms
+        typechecks. Compiler, formatter, test runner, LSP, MCP server, and
+        self-updates in one tarball. No system dependencies.</p>
+      </div>
     </div>
   </div>
 </section>
 
-<section id="start">
+<section id="examples">
   <div class="wrap">
-    <h2>Sixty seconds in</h2>
-    <div class="cols">
-      <div>
-<pre><span class="c"># fizzbuzz.claw</span>
-<span class="f">fizz</span> : <span class="t">U64</span> -&gt; <span class="t">Str</span>
+    <h2>What it looks like</h2>
+    <p class="lead">Real programs from the repository — click through.</p>
+    <div class="tabs" role="tablist">
+      <button class="on" data-tab="t1">FizzBuzz</button>
+      <button data-tab="t2">Pattern matching</button>
+      <button data-tab="t3">Effects</button>
+      <button data-tab="t4">Ask the database</button>
+    </div>
+    <div class="tabpanes">
+<pre class="on" id="t1"><span class="f">fizz</span> : <span class="t">U64</span> -> <span class="t">Str</span>
 <span class="f">fizz</span> = |n| {
     <span class="k">if</span> n % 15 == 0 <span class="s">"FizzBuzz"</span>
     <span class="k">else if</span> n % 3 == 0 <span class="s">"Fizz"</span>
@@ -151,21 +212,67 @@ pre .c{color:var(--dim)} pre .k{color:#79c0ff} pre .s{color:#a5d6ff} pre .f{colo
 }
 
 <span class="f">main!</span> = |_args| {
-    <span class="f">echo!</span>(fizz(<span class="s">15</span>))
+    <span class="f">echo!</span>(fizz(15))
     Ok({})
 }</pre>
-      </div>
-      <div>
-<pre><span class="p">$</span> claw run fizzbuzz.claw
-FizzBuzz
+<pre id="t2"><span class="c"># Tags and match — how Claw handles absence and failure.</span>
+<span class="f">classify</span> = |n| <span class="k">match</span> n {
+    0 => <span class="s">"zero"</span>
+    1 => <span class="s">"one"</span>
+    _ => <span class="s">"many"</span>
+}
 
-<span class="p">$</span> claw check app.claw     <span class="c"># 100–200 ms</span>
-<span class="p">$</span> claw index . &amp;&amp; claw db symbols
-<span class="p">$</span> claw upgrade             <span class="c"># self-updating</span></pre>
-        <p style="color:var(--dim);font-size:14px;margin-top:14px">
-        Functional, effect-typed, whitespace-honest. Compiler, formatter,
-        test runner, LSP, and the MCP server ship in one tarball.
-        <a href="https://github.com/LambdaQ-Labs/claw/blob/main/docs/tour.md">Take the tour →</a></p>
+<span class="f">main!</span> = |_args| {
+    labels = [0, 1, 2, 3].map(classify)
+    <span class="f">echo!</span>(Str.join_with(labels, <span class="s">", "</span>))
+    Ok({})
+}</pre>
+<pre id="t3"><span class="c"># Effects are visible in the name (!) and checked in the type.</span>
+<span class="c"># A pure function cannot quietly start reading files.</span>
+<span class="f">cat_file!</span> : <span class="t">Str</span> => <span class="t">Str</span>
+<span class="f">cat_file!</span> = |path| {
+    contents = <span class="f">File.read!</span>(path)
+    <span class="f">Stdout.line!</span>(contents)
+    contents
+}</pre>
+<pre id="t4"><span class="c"># The code IS a database. Agents query it instead of guessing.</span>
+<span class="p">$</span> claw db candidates <span class="s">"Str -> Str"</span>
+Str.upper  : Str -> Str
+File.read! : Str -> Str  [effects: Fs]
+
+<span class="p">$</span> claw db callers Nat.add        <span class="c"># impact analysis, O(1)</span>
+<span class="p">$</span> claw db rename old new          <span class="c"># no caller ever breaks</span>
+<span class="p">$</span> claw task-grammar task.json     <span class="c"># the decode grammar for this scope</span></pre>
+    </div>
+  </div>
+</section>
+
+<section id="receipts" class="receipts">
+  <div class="wrap">
+    <h2>Receipts, not testimonials</h2>
+    <p class="lead">New languages can't show you Fortune-500 logos. We show measurements
+    instead — every number below reproduces from the committed benchmark harness.</p>
+    <div class="rgrid">
+      <div class="rcard">
+        <h3>Hallucinated APIs per run</h3>
+        <div class="big"><span class="from">38</span> <span class="arr">→</span> <span class="to">0</span></div>
+        <p>Same model, same tasks. The difference is the code database in context —
+        gate 1 of 4. After fine-tuning, the reference gate holds at
+        <b>121/121 hallucination-free</b>, effect declarations included.</p>
+      </div>
+      <div class="rcard">
+        <h3>Functional pass@1 · same 0.5B model, five languages</h3>
+        <table>
+          <tr><th>arm</th><th>pass@1</th></tr>
+          <tr class="win"><td>Claw — tuned for $0.03</td><td class="n">110/116 · 94%</td></tr>
+          <tr><td>JavaScript — stock</td><td class="n">104/116 · 89%</td></tr>
+          <tr><td>Python — stock</td><td class="n">66/116 · 56%</td></tr>
+          <tr><td>Rust — stock</td><td class="n">41/116 · 35%</td></tr>
+          <tr><td>Go — stock</td><td class="n">9/116 · 7%</td></tr>
+        </table>
+        <p class="method">Every generated function is executed against generated test
+        cases and checked against contracts. Identical grading and normalization for
+        all arms. <a href="https://github.com/LambdaQ-Labs/claw/blob/main/docs/parity-2026-07-05.md">Method + caveats</a></p>
       </div>
     </div>
   </div>
@@ -173,33 +280,84 @@ FizzBuzz
 
 <section id="ai">
   <div class="wrap">
-    <h2>For AI teams</h2>
-    <p class="lead">Claw is an agent target, not just a language. Everything your
-    model needs to write verified code is an API:</p>
-    <div class="cols">
-      <div class="gate"><h3>MCP server, 5 tools</h3><p>symbols · type-directed candidates ·
-        decode grammar · render · real-compiler check. Configs for Claude Code &amp;
-        Desktop, Cursor, Windsurf, VS Code, Zed, Gemini CLI, Codex CLI.
-        <a href="https://github.com/LambdaQ-Labs/claw/blob/main/docs/mcp.md">docs/mcp.md</a></p></div>
-      <div class="gate"><h3>Run your model on the gate</h3><p>The five-language parity harness
-        is committed and reproducible. Point it at your checkpoint; publish your
-        numbers. <a href="https://github.com/LambdaQ-Labs/claw/blob/main/docs/parity-2026-07-05.md">the method</a></p></div>
-      <div class="gate"><h3>A data flywheel</h3><p>Opt-in telemetry captures
-        (prompt, definition, verdict) triples in the training schema. The bundled
-        model improves from real usage — and so can yours.</p></div>
+    <h2>Build with Claw</h2>
+    <p class="lead">What people point Claw at today.</p>
+    <div class="cards">
+      <div class="card">
+        <h3>An agent target</h3>
+        <p>Give any MCP client — Claude Code, Cursor, Windsurf, Zed, Gemini CLI,
+        Codex — five tools: what exists, what fits this type, the decode grammar,
+        rendered source, and a real-compiler check.</p>
+        <a class="more" href="https://github.com/LambdaQ-Labs/claw/blob/main/docs/mcp.md">Wire up your agent →</a>
+      </div>
+      <div class="card">
+        <h3>An eval for your model</h3>
+        <p>The five-language parity harness is committed and reproducible. Point it
+        at your checkpoint, publish your numbers. Adding a benchmark task is the
+        repo's good-first-issue.</p>
+        <a class="more" href="https://github.com/LambdaQ-Labs/claw/tree/main/bench">Run the gate →</a>
+      </div>
+      <div class="card">
+        <h3>Verified codegen in CI</h3>
+        <p><code>claw defs-check</code> turns "the model said so" into a compiler
+        verdict — grade generated code by machine before review by human.</p>
+        <a class="more" href="https://github.com/LambdaQ-Labs/claw/blob/main/docs/benchmark-harness.md">The grading contract →</a>
+      </div>
+      <div class="card">
+        <h3>Programs, today</h3>
+        <p>CLIs, scripts, and services with real File/Env/Stdout effects. Bring the
+        speed of a compiled functional language; skip the borrow checker.</p>
+        <a class="more" href="https://github.com/LambdaQ-Labs/claw/blob/main/docs/tour.md">Take the tour →</a>
+      </div>
     </div>
-    <p style="margin-top:28px"><a class="cta" href="https://github.com/LambdaQ-Labs/claw">Read the code on GitHub</a></p>
+  </div>
+</section>
+
+<section id="start">
+  <div class="wrap">
+    <h2>Get started</h2>
+    <div class="paths">
+      <a class="path" href="https://github.com/LambdaQ-Labs/claw#quick-start">
+        <div class="k">60 seconds</div><h3>Install &amp; run</h3>
+        <p>One curl, no sudo, no toolchain. <code>claw run hello.claw</code>.</p>
+      </a>
+      <a class="path" href="playground.html">
+        <div class="k">0 seconds</div><h3>Playground</h3>
+        <p>The type engine and decode grammar, live in your browser.</p>
+      </a>
+      <a class="path" href="https://github.com/LambdaQ-Labs/claw/blob/main/docs/tour.md">
+        <div class="k">15 minutes</div><h3>The tour</h3>
+        <p>Functions, tags, match, effects, contracts — with runnable examples.</p>
+      </a>
+      <a class="path" href="https://github.com/LambdaQ-Labs/claw/tree/main/editors/vscode">
+        <div class="k">Your editor</div><h3>VS Code / Cursor</h3>
+        <p>Syntax, snippets, LSP, and the MCP server for your AI.</p>
+      </a>
+    </div>
   </div>
 </section>
 
 <div class="foot">
   <div class="wrap">
-    Claw, by LambdaQ Labs · UPL-1.0 ·
-    <a href="https://github.com/LambdaQ-Labs/claw">GitHub</a> ·
-    <a href="playground.html">Playground</a> ·
+    <span class="logo"><svg width="18" height="18" viewBox="0 0 32 32" aria-hidden="true"><path d="M6 26 Q10 12 16 6 Q14 16 12 26 Z M13 26 Q17 13 23 7 Q20 17 18 26 Z M19 26 Q23 15 28 10 Q25 19 24 26 Z" fill="#b45309"/></svg> Claw · LambdaQ Labs</span>
+    <a href="https://github.com/LambdaQ-Labs/claw">GitHub</a>
     <a href="https://github.com/LambdaQ-Labs/claw/tree/main/docs">Docs</a>
+    <a href="playground.html">Playground</a>
+    <a href="https://github.com/LambdaQ-Labs/claw/blob/main/CONTRIBUTING.md">Contribute</a>
+    <span style="margin-left:auto">UPL-1.0 · no tracking on this site</span>
   </div>
 </div>
+
+<script>
+document.querySelectorAll('.tabs button').forEach(function(b){
+  b.addEventListener('click', function(){
+    document.querySelectorAll('.tabs button').forEach(function(x){x.classList.remove('on')});
+    document.querySelectorAll('.tabpanes pre').forEach(function(x){x.classList.remove('on')});
+    b.classList.add('on');
+    document.getElementById(b.dataset.tab).classList.add('on');
+  });
+});
+</script>
 
 </body>
 </html>
