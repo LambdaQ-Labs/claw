@@ -69,6 +69,7 @@ async fn main() {
         .route("/publish", post(publish))
         .route("/packages/:name", get(package_meta))
         .route("/b/:filename", get(serve_blob)) // the compiler fetches this
+        .route("/defs/:name/:version", get(serve_defs)) // the AI layer fetches this
         .with_state(state)
         .layer(DefaultBodyLimit::max(64 * 1024 * 1024));
 
@@ -84,6 +85,7 @@ async fn main() {
 async fn publish(State(st): State<AppState>, mut mp: Multipart) -> ApiResult {
     let (mut name, mut version, mut filename, mut bytes) =
         (None, None, None, None::<Vec<u8>>);
+    let mut defs_bytes = None::<Vec<u8>>;
     while let Some(field) = mp.next_field().await.map_err(|e| err(StatusCode::BAD_REQUEST, e))? {
         match field.name().unwrap_or("") {
             "name" => name = Some(field.text().await.map_err(|e| err(StatusCode::BAD_REQUEST, e))?),
@@ -100,6 +102,15 @@ async fn publish(State(st): State<AppState>, mut mp: Multipart) -> ApiResult {
                         .to_vec(),
                 );
             }
+            "defs" => {
+                defs_bytes = Some(
+                    field
+                        .bytes()
+                        .await
+                        .map_err(|e| err(StatusCode::BAD_REQUEST, e))?
+                        .to_vec(),
+                );
+            }
             _ => {}
         }
     }
@@ -107,10 +118,38 @@ async fn publish(State(st): State<AppState>, mut mp: Multipart) -> ApiResult {
     let version = version.ok_or_else(|| err(StatusCode::BAD_REQUEST, "missing version"))?;
     let filename = filename.ok_or_else(|| err(StatusCode::BAD_REQUEST, "missing bundle"))?;
     let bytes = bytes.ok_or_else(|| err(StatusCode::BAD_REQUEST, "missing bundle bytes"))?;
+    // MCP-compatibility gate: every package MUST carry its definitions
+    // (name : type [+ effects, doc]) so a consumer's code database — and
+    // therefore any AI wired to it — understands the package on install.
+    let defs_bytes = defs_bytes.ok_or_else(|| {
+        err(
+            StatusCode::BAD_REQUEST,
+            "missing defs — packages must publish their definitions \
+             (claw publish generates these; update your claw CLI)",
+        )
+    })?;
+    let defs: Vec<serde_json::Value> = serde_json::from_slice(&defs_bytes)
+        .map_err(|e| err(StatusCode::BAD_REQUEST, format!("defs is not JSON: {e}")))?;
+    if defs.is_empty() {
+        return Err(err(StatusCode::BAD_REQUEST, "defs is empty — a package must expose at least one definition"));
+    }
+    for d in &defs {
+        let n = d["name"].as_str().unwrap_or("");
+        let t = d["ty"].as_str().unwrap_or("");
+        if n.is_empty() {
+            return Err(err(StatusCode::BAD_REQUEST, "a def is missing its name"));
+        }
+        claw_core::parse::parse_type(t).map_err(|e| {
+            err(StatusCode::BAD_REQUEST, format!("def `{n}` has an unparseable type `{t}`: {e}"))
+        })?;
+    }
+
     // Hash = the bundle's base filename (content-addressed by `claw bundle`).
     let hash = filename.trim_end_matches(".tar.zst").to_string();
 
     std::fs::write(st.blobs.join(&filename), &bytes)
+        .map_err(|e| err(StatusCode::INTERNAL_SERVER_ERROR, e))?;
+    std::fs::write(st.blobs.join(format!("{name}-{version}.defs.json")), &defs_bytes)
         .map_err(|e| err(StatusCode::INTERNAL_SERVER_ERROR, e))?;
     sqlx::query(
         "INSERT INTO packages (name, version, hash, filename, size)
@@ -161,6 +200,18 @@ async fn package_meta(State(st): State<AppState>, Path(name): Path<String>) -> A
 
 /// `GET /b/:filename` — the raw bundle. This is the URL the Claw compiler
 /// downloads (and verifies against the hash in the filename).
+/// `GET /defs/:name/:version` — the package's definitions for the
+/// consumer's code database (the MCP-compatibility payload).
+async fn serve_defs(
+    State(st): State<AppState>,
+    Path((name, version)): Path<(String, String)>,
+) -> impl IntoResponse {
+    match std::fs::read(st.blobs.join(format!("{name}-{version}.defs.json"))) {
+        Ok(b) => ([("content-type", "application/json")], b).into_response(),
+        Err(_) => StatusCode::NOT_FOUND.into_response(),
+    }
+}
+
 async fn serve_blob(State(st): State<AppState>, Path(filename): Path<String>) -> impl IntoResponse {
     // No path traversal.
     if filename.contains('/') || filename.contains("..") {

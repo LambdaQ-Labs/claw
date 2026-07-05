@@ -29,6 +29,8 @@ fn main() {
     }
 }
 
+mod ai;
+
 fn real_main() -> anyhow::Result<()> {
     let mut args: Vec<String> = std::env::args().skip(1).collect();
 
@@ -74,6 +76,8 @@ fn real_main() -> anyhow::Result<()> {
         Some("defs-grade") => defs_grade_cmd(&args[1..]),
         // Self-update from GitHub Releases (packaged installs only).
         Some("upgrade") => upgrade_cmd(&args[1..]),
+        // The bundled model: generate -> grammar-constrain -> compiler-verify.
+        Some("ai") => ai::ai_cmd(&db_path, &args[1..]),
         // WS-H: generate a synthetic SFT corpus (JSONL). `--stdlib` uses the
         // built-in stdlib scope; otherwise reads the CDB at --db.
         Some("corpus") if args.get(1).map(String::as_str) == Some("gen") => {
@@ -730,7 +734,7 @@ fn eval_real(cdb: &Cdb, name: &str, call_args: &[String]) -> anyhow::Result<()> 
 
 /// The registry base URL: $CLAW_REGISTRY, else the local default.
 fn registry_url() -> String {
-    std::env::var("CLAW_REGISTRY").unwrap_or_else(|_| "http://127.0.0.1:8888".into())
+    std::env::var("CLAW_REGISTRY").unwrap_or_else(|_| "https://registry.clawlang.dev".into())
 }
 
 /// Read a `key = "value"` from claw.toml's [project] section.
@@ -770,6 +774,28 @@ fn publish_cmd(args: &[String]) -> anyhow::Result<()> {
         .find(|p| p.extension().and_then(|x| x.to_str()) == Some("zst"))
         .ok_or_else(|| anyhow::anyhow!("no .tar.zst produced"))?;
 
+    // MCP-compatibility contract: a package publishes WITH its definitions
+    // (names, types, effects, docs) so every consumer's code database — and
+    // therefore their AI — understands it the moment it is installed.
+    let mut tmp_cdb = Cdb::in_memory()?;
+    let n_defs = ingest(&mut tmp_cdb, &root.join(&entry))?;
+    anyhow::ensure!(
+        n_defs > 0,
+        "`{entry}` exposes no definitions — a package must export at least one \
+         (the registry requires MCP-compatible metadata)"
+    );
+    let mut defs = Vec::new();
+    for (dname, h) in tmp_cdb.symbols()? {
+        let d = tmp_cdb.get(&h)?;
+        defs.push(serde_json::json!({
+            "name": dname, "ty": d.ty.to_string(),
+            "effects": d.effects, "doc": d.doc,
+        }));
+    }
+    let defs_path = outdir.join("defs.json");
+    std::fs::write(&defs_path, serde_json::to_vec(&defs)?)?;
+    eprintln!("  {} definitions exported for the AI layer", defs.len());
+
     let reg = registry_url();
     eprintln!("publishing {name}@{version} → {reg}");
     let out = std::process::Command::new("curl")
@@ -778,6 +804,8 @@ fn publish_cmd(args: &[String]) -> anyhow::Result<()> {
         .args(["-F", &format!("version={version}")])
         .arg("-F")
         .arg(format!("bundle=@{}", bundle.display()))
+        .arg("-F")
+        .arg(format!("defs=@{}", defs_path.display()))
         .output()?;
     let _ = std::fs::remove_dir_all(&outdir);
     anyhow::ensure!(out.status.success(), "upload failed");
@@ -828,6 +856,35 @@ fn add_cmd(args: &[String]) -> anyhow::Result<()> {
     if !toml.contains("[dependencies]") {
         toml.push_str("\n[dependencies]\n");
     }
+    // Pull the package's definitions into the project's code database:
+    // from this moment `claw db candidates`, the MCP server, and `claw ai`
+    // all know the package's names, types, and effects.
+    let defs_out = std::process::Command::new("curl")
+        .args(["-s", &format!("{reg}/defs/{name}/{version}")])
+        .output()?;
+    if let Ok(pkg_defs) = serde_json::from_slice::<Vec<serde_json::Value>>(&defs_out.stdout) {
+        let mut cdb = Cdb::open(&root.join("claw.cdb"))?;
+        let mut added = 0usize;
+        for d in &pkg_defs {
+            let (Some(dn), Some(ts)) = (d["name"].as_str(), d["ty"].as_str()) else { continue };
+            let Ok(ty) = claw_core::parse::parse_type(ts) else { continue };
+            let mut def = Def::new(
+                claw_core::Expr::Lit(claw_core::Lit::Str(format!("{name}::{dn}"))),
+                ty,
+            );
+            def.effects = d["effects"].as_array().map(|a| a.iter().filter_map(|e| e.as_str().map(String::from)).collect()).unwrap_or_default();
+            def.doc = format!("from package {name}@{version}. {}", d["doc"].as_str().unwrap_or(""));
+            if cdb.resolve(dn).is_err() {
+                let h = cdb.put(&def)?;
+                cdb.bind(dn, &h)?;
+                added += 1;
+            }
+        }
+        eprintln!("  {added} definitions added to the code database (AI-visible)");
+    } else {
+        eprintln!("  warning: package has no defs metadata — pre-MCP package; the AI won't see inside it");
+    }
+
     let dep_line = format!("{name} = {{ version = \"{version}\", url = \"{url}\" }}\n");
     if let Some(pos) = toml.find("[dependencies]") {
         let insert_at = toml[pos..]

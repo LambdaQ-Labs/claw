@@ -33,3 +33,5 @@ Cargo.lock
 .env.local
 
 /dist
+model/claw-0.5b-q8.gguf
+model/claw-infer

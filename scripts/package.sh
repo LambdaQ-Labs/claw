@@ -30,12 +30,23 @@ esac
 echo ">> building Rust binaries (release)"
 cargo build --release --bin claw --bin claw-mcp --bin claw-lsp
 
+# --- the bundled model + inference server ---------------------------------
+# model/claw-0.5b-q8.gguf (quantized fine-tune) and a llama.cpp server
+# binary must exist before packaging — the bundle ships AI batteries.
+MODEL_FILE="${CLAW_MODEL_FILE:-$ROOT/model/claw-0.5b-q8.gguf}"
+INFER_BIN="${CLAW_INFER_BIN:-$ROOT/model/claw-infer}"
+[ -f "$MODEL_FILE" ] || { echo "missing model: $MODEL_FILE (set CLAW_MODEL_FILE)" >&2; exit 1; }
+[ -f "$INFER_BIN" ] || { echo "missing inference server: $INFER_BIN (set CLAW_INFER_BIN)" >&2; exit 1; }
+
 echo ">> building the compiler (clawc + snapshot)"
 ( cd compiler && zig build roc -Doptimize=ReleaseFast && zig build build-snapshot-tool -Doptimize=ReleaseFast )
 
 # --- assemble --------------------------------------------------------------
 STAGE="$(mktemp -d)"; trap 'rm -rf "$STAGE"' EXIT
 mkdir -p "$STAGE/bin"
+mkdir -p "$STAGE/model"
+cp "$MODEL_FILE" "$STAGE/model/claw-0.5b-q8.gguf"
+cp "$INFER_BIN" "$STAGE/bin/claw-infer"
 cp target/release/claw "$STAGE/bin/"
 cp target/release/claw-mcp "$STAGE/bin/"
 cp target/release/claw-lsp "$STAGE/bin/"
