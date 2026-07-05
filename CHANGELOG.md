@@ -19,8 +19,29 @@
   **real-compile grading** (every graded solution goes through `clawc`).
 
 ### Added
+- **`claw ai` (gen/serve/status/stop):** the bundled model wired to the
+  guardrails. `claw ai gen "<task>"` prompts with the project CDB's real
+  symbols, constrains decoding with the scope's GBNF grammar, and
+  verifies the result with the real compiler (prints `verified` /
+  `REJECTED`). The server (bundled llama.cpp, `bin/claw-infer`)
+  auto-starts on port 8873; `CLAW_MODEL_PATH`/`CLAW_INFER_PATH` override
+  discovery in dev checkouts.
+- **One-bundle artifacts:** release tarballs now ship the fine-tuned
+  model (`model/claw-0.5b-q8.gguf`, ~506 MB q8_0 of Qwen2.5-Coder-0.5B)
+  and `bin/claw-infer` alongside the toolchain — no separate model
+  download. `NOTICE` credits llama.cpp (MIT) and Qwen (Apache-2.0).
+- **Registry live** at https://registry.clawlang.dev (the CLI default),
+  with the MCP-compatibility gate: `claw publish` exports every
+  definition's name/type/effects/doc (`defs.json`) and the registry
+  rejects packages without parseable defs; `claw add` ingests a
+  package's defs into the project `claw.cdb`, so MCP,
+  `claw db candidates`, and `claw ai` know installed packages.
+- **Live domains:** https://clawlang.dev (site, wasm playground,
+  `install.sh` at the web root) and https://telemetry.clawlang.dev
+  (now the default ingest endpoint).
 - CLI: `claw defs-check`, `claw defs-grade`, `claw task-grammar`,
-  `claw telemetry (status|share|clear)`, `claw upgrade`.
+  `claw telemetry (status|share|clear)`, `claw upgrade`,
+  `claw publish` / `claw add`.
 - MCP: two new tools — `claw_render` (Def-JSON → `.claw` source) and
   `claw_check` (real-compile with structured errors) — five total.
 - **VS Code extension** (`editors/vscode`): tmLanguage grammar + snippets,

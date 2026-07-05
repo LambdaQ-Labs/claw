@@ -12,6 +12,8 @@ git tag vX.Y.Z && git push --tags
         │     linux-x64 + windows-x64: zig cross-compiles clawc,
         │     cargo builds claw/claw-mcp/claw-lsp, tarball/zip +
         │     sha256 → uploaded to the GitHub Release
+        │     (does not yet stage model/ + claw-infer — the v0.1.0
+        │      one-bundles were assembled from the mac cross-build)
         │
         └── macOS (manual until a mac runner exists):
               scripts/package.sh vX.Y.Z → dist/claw-vX.Y.Z-macos-arm64.tar.gz
@@ -39,13 +41,22 @@ source; tag `vX.Y.Z` must match it. Compiler (`clawc`) ships inside the
 same tarball, so language + tooling always move together — no version
 skew between the CLI and the compiler a user has.
 
-## The model channel (design; activates with the first model release)
+## The model channel
 
-The bundled model is an adapter (~35 MB) + a base checkpoint reference —
-too big for git, ideal as release assets:
+**The model ships IN the release bundle.** Every artifact packages
+`model/claw-0.5b-q8.gguf` (a ~506 MB q8_0 quantization of the
+Qwen2.5-Coder-0.5B fine-tune) plus `bin/claw-infer` (llama.cpp's
+llama-server) next to the toolchain — `claw ai` finds both by the install
+layout, no separate download or configuration. `scripts/package.sh`
+requires both files (override with `CLAW_MODEL_FILE` / `CLAW_INFER_BIN`);
+attribution for llama.cpp (MIT) and Qwen (Apache-2.0) lives in `NOTICE`.
+The model dominates artifact size: linux-x64 ~597 MB, windows-x64 ~578 MB.
 
-- `claw-model-<ver>-adapter.tar.gz` attached to a `model-<ver>` release
-  (or hosted on R2 next to telemetry — no egress fees either way).
+A *separate* model channel remains future work — for shipping model
+updates between toolchain releases:
+
+- `claw-model-<ver>.tar.gz` attached to a `model-<ver>` release (or
+  hosted on R2 next to telemetry — no egress fees either way).
 - Future `claw model upgrade`: same flow as `claw upgrade` — check,
   download, sha256, swap under `~/.claw/model/`. The gate report
   (hallucination-free %, parity numbers) is published in the release
@@ -67,7 +78,9 @@ Known requirements / cleanups before the public tag:
   in install.sh output or vendor a linker later.
 - ~~clawc ships as a debug build~~ **Done**: artifacts are ReleaseFast
   with git version stamps (`release-fast-<hash>`); linux tarball dropped
-  323→85 MB, macOS 161→72 MB, windows 88→58 MB.
+  323→85 MB, macOS 161→72 MB, windows 88→58 MB. (Toolchain-only sizes —
+  measured before the model was bundled in; see the model channel above
+  for shipped one-bundle sizes.)
 - **zig 0.16.0's x86_64-linux toolchain SEGVs building clawc at ANY
   optimize level** (ReleaseFast/Safe/Small, -j1, 188 GB RAM box — upstream
   bug; debug builds fine; zig master rejects the build script for other

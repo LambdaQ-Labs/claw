@@ -34,8 +34,9 @@ content-addressed, machine-verified language makes possible.
 
 ### Registry — "the registry where every package is machine-verified"
 
-We already have: `claw publish` / `claw add`, a registry service prototype
-(axum + Postgres + content-addressed blobs), and a package format. What
+We already have: `claw publish` / `claw add`, the registry service
+(axum + Postgres + content-addressed blobs) **hosted at
+registry.clawlang.dev** (the CLI default), and a package format. What
 makes ours different is not parity — it's what content-addressing + the
 grading pipeline enable that npm/crates structurally cannot do:
 
@@ -55,7 +56,11 @@ grading pipeline enable that npm/crates structurally cannot do:
    ecosystem, not just the project. That's the npm-for-agents story.
 
 Build order (infra ≈ one small VPS or free-tier fly/CF):
-- v0 (now): host the existing service, static-render package pages
+- ~~v0: host the existing service~~ **done** — live at
+  registry.clawlang.dev, with the MCP-compat invariant shipped: publish
+  requires parseable defs (name/type/effects/doc, served at
+  `GET /defs/:name/:version`), and `claw add` ingests them into the
+  project CDB (point 5 above, delivered)
 - v1: web UI — search, package page (defs, types, docs, verify badge),
   install snippet, versions
 - v2: ecosystem type-search + MCP endpoint + provenance (sig over hash)
@@ -77,8 +82,9 @@ playground covers the teach-and-try loop (define, query, run, share).
 Share links = code in the URL fragment — no storage backend at all.
 
 Build order:
-- v0 (now): wasm-pack claw-core + claw-cdb(in-memory) + claw-constraint;
-  swap the playground's hand-written JS mirror for the real engine
+- ~~v0: wasm-pack claw-core + claw-cdb(in-memory) + claw-constraint;
+  swap the playground's hand-written JS mirror for the real engine~~
+  **done** — the wasm playground is live at clawlang.dev
 - v1: examples menu (repo examples), share-by-URL, format
 - v2: `claw test` semantics in-browser via contracts; embed on docs pages
 

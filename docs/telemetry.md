@@ -2,7 +2,7 @@
 
 Claw's bundled model was cold-started on synthetic data. The fastest way it
 improves is real usage: (prompt, produced definition, compiler verdict)
-triples from actual sessions. Telemetry collects exactly that — under three
+triples from actual sessions. Telemetry collects exactly that — under four
 hard rules.
 
 ## The rules
@@ -30,14 +30,15 @@ hard rules.
 | `off` | nothing — zero writes |
 | `full` *(explicit opt-in)* | also the produced Def-JSON and task prompt — the training-grade signal |
 
-Currently instrumented: `claw defs-check` (single-task mode) and the MCP
-`claw_check` tool — the two places a model's output meets the real
-compiler.
+Currently instrumented: `claw ai gen`, `claw defs-check` (single-task
+mode), and the MCP `claw_check` tool — the three places a model's output
+meets the real compiler.
 
 ## Commands
 
 ```sh
 claw telemetry            # status: level, log size, event count
+claw telemetry off        # persistently disable (on|metrics|full set a level)
 claw telemetry share      # gzip + upload, clear local log on success
 claw telemetry clear      # delete the local log
 ```

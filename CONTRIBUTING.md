@@ -19,7 +19,7 @@ New here? The fastest way to understand the project is [`docs/master-plan.md`](d
 ### 🔴 Deep work (come talk to us first)
 - **Compiler** (`compiler/`, the Roc fork, Zig) — `.claw` semantics, `clawc defs --json`, wiring the test runner so tasks actually *pass* not just compile.
 - **Contracts & effects** — the P3 language layer (see the master plan).
-- **The cold-start problem** — synthetic corpus + a bundled model. The hardest and most important open problem.
+- **The cold-start problem** — synthetic corpus + the bundled model (v1 ships in the release bundle; `claw ai`). Making it *better* — bigger corpora, the telemetry flywheel, stronger gates — is the hardest and most important open problem.
 
 ## Dev setup
 

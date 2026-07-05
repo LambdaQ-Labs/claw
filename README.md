@@ -58,15 +58,20 @@ The research is blunt: [every prior "AI-first" language died](docs/master-plan.m
 - **📜 Contracts that execute** — `requires`/`ensures` are run on generated inputs, so "compiles" becomes "provably correct"
 - **⚡ Effects & capabilities** — every effect visible in the type; a sandbox rejects ungranted I/O
 - **🦀 Rust interop** — `emit-rust` lowers Claw to compilable Rust, so you inherit crates.io instead of dying of isolation
-- **🌱 A bundled model** — a fine-tuned model that already speaks Claw, trained on a self-verifying synthetic corpus (the cold-start escape)
+- **🌱 A bundled model** — every install ships a fine-tuned model that already speaks Claw (`claw ai gen`), trained on a self-verifying synthetic corpus (the cold-start escape)
 
 ## Quickstart
 
-Install the self-contained toolchain (no system compiler or linker needed):
+Install the self-contained toolchain (no system compiler or linker needed).
+It's **one bundle**: compiler, tooling, *and* the fine-tuned model with its
+inference server — nothing else to download:
 
 ```bash
 curl -fsSL https://clawlang.dev/install.sh | sh
 ```
+
+Or try it without installing: the [playground](https://clawlang.dev/playground.html)
+runs the real engine (wasm) in your browser.
 
 Write and run a program:
 
@@ -76,7 +81,15 @@ cd hello
 claw run                 # → Hello, world!
 ```
 
-Let an AI agent write Claw for you — grounded in your *real* code so it can't
+Let the **bundled model** write Claw for you — prompted from your project's
+real symbols, grammar-constrained at decode time, and verified by the real
+compiler before you see it:
+
+```bash
+claw ai gen "define double : Nat -> Nat"
+```
+
+Or wire *your* agent in — grounded in your *real* code so it can't
 invent APIs:
 
 ```bash
@@ -87,6 +100,11 @@ claw index               # (re)index your project's real symbols
 Now Claude Code can call `claw_symbols` / `claw_candidates` / `claw_mask` /
 `claw_render` / `claw_check` and only ever reference functions that actually
 exist.
+
+Packages carry the same guarantee: the [registry](https://registry.clawlang.dev)
+rejects a publish without machine-readable definitions, and `claw add` ingests
+them into your project's database — so the AI knows an installed package's
+names, types, and effects the moment it lands.
 
 **New here?** Read [Getting started](docs/getting-started.md) and
 [the language in 10 minutes](docs/tour.md), or browse runnable
@@ -131,7 +149,8 @@ Or open [`playground/index.html`](playground/index.html) — an in-browser demo.
 | **Real call graph on real code** — `claw db deps` / `callers` from lowered bodies (body-lowering: CIR → AST) | ✅ works |
 | **Run + property-check your real code** — `claw db eval` runs a def from the DB; `claw db check` property-tests a contract against it | ✅ works |
 | Decode-time grammar that makes out-of-scope calls ungeneratable | ✅ works (Def-JSON protocol) |
-| Bundled fine-tuned model (**121/121 (100%)** hallucination-free + effect-sound, [P4 v3 gate](docs/p4-v3-gate-2026-07-05.md); **94%** functional Pass@1, [parity](docs/parity-2026-07-05.md)) | 🧪 research (separate download) |
+| Bundled fine-tuned model (**121/121 (100%)** hallucination-free + effect-sound, [P4 v3 gate](docs/p4-v3-gate-2026-07-05.md); **94%** functional Pass@1, [parity](docs/parity-2026-07-05.md)) — `claw ai gen` ships in the bundle | ✅ works |
+| **Packages**: `claw publish` / `claw add` against the [live registry](https://registry.clawlang.dev); every package publishes its defs so the AI layer knows it on install | ✅ works |
 | `emit-rust` on real bodies | 🧪 experimental |
 | Records / tag-unions / `match` in lowered bodies (currently opaque markers) | 🗺️ roadmap (needs AST + interp support) |
 | File / stdin platform I/O beyond print | 🗺️ roadmap (needs a new host) |
@@ -168,16 +187,17 @@ The load-bearing trick: the model never references a symbol by guessing its name
 | `effects/` | Effect-row inference + capability sandbox |
 | `emit-rust/` | Claw → Rust transpiler (ecosystem interop) |
 | `corpus/` | Synthetic, self-verifying training-corpus generator (the cold-start seed) |
-| `cli/` | The `claw` CLI (db / compiler / emit-rust / corpus) |
+| `cli/` | The `claw` CLI (db / compiler passthrough / `claw ai` / publish + add / emit-rust / corpus) |
 | `mcp/` · `lsp/` | MCP server (agents) and Language Server (editors) over the CDB |
 | `bench/` | Benchmark harness — `tasks/` (31), `tasks-holdout/` (25), `tasks-large/` (121), `grammars/` (146), parity arms, grader with executable contracts |
 | `train/` | LoRA fine-tune pipeline — `corpus-v4.jsonl`, four gate runs, parity harness |
-| `telemetry/` | Opt-in usage telemetry crate + collection worker |
+| `telemetry/` | Usage telemetry (anonymous metrics by default, `claw telemetry off`; code sharing opt-in) + collection worker |
+| `model/` | Build staging for the bundled model (`claw-0.5b-q8.gguf` + the `claw-infer` llama.cpp server) — packaged into every release tarball |
 | `editors/` | VS Code extension (tmLanguage grammar + snippets, packaged vsix) |
 | `platforms/` | Bundled platforms (print, cli, http) for macOS arm64 + Linux musl |
 | `examples/` · `scripts/` | Runnable examples · packaging + release scripts |
-| `playground/` · `registry/` | In-browser demo · content-addressed package format |
-| `site/` | The clawlang.dev website |
+| `playground/` · `registry/` | In-browser playground (real engine, wasm) · the package registry service — both live at [clawlang.dev](https://clawlang.dev) / [registry.clawlang.dev](https://registry.clawlang.dev) |
+| `site/` | The [clawlang.dev](https://clawlang.dev) website (serves `install.sh`, docs, and the playground) |
 | `docs/` | Master plan, specs, and the honest benchmark writeups |
 
 ## Status (honest)
@@ -186,7 +206,7 @@ The load-bearing trick: the model never references a symbol by guessing its name
 
 The survival test — does the tuned model beat a general model on Claw? — **passed on 2026-07-05, at both scales**: 121/121 (100%) hallucination-free + effect-sound on the reference gate, and 94% functional Pass@1 vs 89% JS / 56% Python (0.5B) and 94% vs 87% Rust / 85% Go / 71% Python / 68% JS (7B). See the [gate](docs/p4-v3-gate-2026-07-05.md) and [parity](docs/parity-2026-07-05.md) writeups.
 
-What's next: a bigger holdout, records in the type system, registry hosting, and launch. This is a research bet with real, measured evidence — not a finished product. If that's your kind of thing — **★ star it and watch where it goes.**
+The ecosystem is live: [clawlang.dev](https://clawlang.dev) (site, playground, installer), [registry.clawlang.dev](https://registry.clawlang.dev) (packages), and the model ships **in** the install bundle (`claw ai`). What's next: a bigger holdout, records in the type system, and launch. This is a research bet with real, measured evidence — not a finished product. If that's your kind of thing — **★ star it and watch where it goes.**
 
 ## Contributing
 

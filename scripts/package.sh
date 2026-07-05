@@ -76,6 +76,6 @@ fi
 
 mkdir -p "$ROOT/dist"
 OUT="$ROOT/dist/claw-$VERSION-$TARGET.tar.gz"
-tar -czf "$OUT" -C "$STAGE" bin platforms
+tar -czf "$OUT" -C "$STAGE" bin model platforms
 echo ">> wrote $OUT"
 tar -tzf "$OUT" | head

@@ -34,4 +34,12 @@ execution-graded, `docs/parity-2026-07-05.md`) the Claw-tuned model scores
 **94%** at both scales — vs JS 89% / Python 56% / Rust 35% / Go 7% at 0.5B,
 and Rust 87% / Go 85% / Python 71% / JS 68% at 7B. The 7B run: train loss
 0.039, ~54 min, ~$0.25. The parity harness is `parity_gen.py` /
-`parity_grade.py` here. Next: scale with real usage telemetry (the flywheel).
+`parity_grade.py` here.
+
+## Shipping
+
+The 0.5B fine-tune ships **inside every release bundle**, quantized to
+q8_0 (`model/claw-0.5b-q8.gguf`, ~506 MB) next to a llama.cpp server
+(`bin/claw-infer`); `claw ai gen` drives it with grammar-constrained
+decoding and real-compiler verification. Next: scale with real usage
+telemetry (the flywheel).

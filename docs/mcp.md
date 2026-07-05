@@ -15,6 +15,12 @@ This is the anti-hallucination loop: an agent asks `claw_candidates` before
 writing a call, and verifies with `claw_check` after — instead of inventing
 an API and finding out at review time.
 
+It's the same loop the bundled model uses: `claw ai gen` prompts from the
+same CDB, constrains decoding with the same grammar `claw_mask` serves, and
+verifies with the same real compiler as `claw_check`. MCP hands that loop
+to *your* agent. And because `claw add` ingests a package's published defs
+into the project CDB, these tools answer over installed packages too.
+
 ## Build / locate the binary
 
 ```sh
@@ -34,6 +40,15 @@ Below, replace `/abs/path/to/` with your actual paths. Every client speaks
 the same stdio protocol — only the config file differs.
 
 ## Claude Code
+
+Inside a Claw project, one command does everything (writes `.mcp.json`,
+locates `claw-mcp`, indexes the project):
+
+```sh
+claw mcp install
+```
+
+Or by hand:
 
 ```sh
 claude mcp add claw -- /abs/path/to/claw-mcp --db /abs/path/to/claw.cdb
