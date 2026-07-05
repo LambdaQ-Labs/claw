@@ -1,0 +1,26 @@
+# Claw
+
+> Claw is a free, open-source programming language built for AI code
+> generation. Every line an AI writes is checked against a live database of
+> what actually exists in the project, constrained by a generation grammar,
+> typechecked by a real compiler, and verified with executable contracts —
+> so hallucinated APIs and silent mistakes cannot reach the developer.
+
+Key facts:
+- Made by LambdaQ Labs. License: UPL-1.0. Source: https://github.com/LambdaQ-Labs/claw
+- Measured: hallucinated API calls per benchmark run went from 38 to 0 with
+  Claw's code database in context; after fine-tuning, 121/121 benchmark
+  tasks are hallucination-free including effect declarations.
+- Cross-language benchmark (same 0.5B model, functional pass@1, all code
+  executed and checked): Claw tuned 94%, JavaScript 89%, Python 56%,
+  Rust 35%, Go 7%. Method: https://github.com/LambdaQ-Labs/claw/blob/main/docs/parity-2026-07-05.md
+- Works with Claude Code, Claude Desktop, Cursor, Windsurf, VS Code, Zed,
+  Gemini CLI, Codex CLI via an MCP server with five tools (symbols,
+  candidates, decode grammar, render, real-compiler check).
+- Install: curl -fsSL https://clawlang.dev/install.sh | sh
+
+## Docs
+- Tour: https://github.com/LambdaQ-Labs/claw/blob/main/docs/tour.md
+- MCP setup: https://github.com/LambdaQ-Labs/claw/blob/main/docs/mcp.md
+- Benchmark method: https://github.com/LambdaQ-Labs/claw/blob/main/docs/parity-2026-07-05.md
+- Telemetry policy (opt-in only): https://github.com/LambdaQ-Labs/claw/blob/main/docs/telemetry.md

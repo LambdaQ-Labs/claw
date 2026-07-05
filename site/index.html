@@ -3,11 +3,34 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Claw — the programming language built for AI to write</title>
-<meta name="description" content="Claw stores code in a queryable database, constrains AI generation with grammars, and verifies every definition with a real compiler and executable contracts.">
-<meta property="og:title" content="Claw — the programming language built for AI to write">
-<meta property="og:description" content="Hallucinated APIs: 38 → 0. A $0.03 fine-tune beats stock Python on functional correctness. Receipts included.">
+<title>Claw — the AI programming language where generated code can't be fake</title>
+<meta name="description" content="Claw is a programming language built for AI code generation. It checks every line an AI writes against what really exists in your project — so invented functions, wrong types, and silent bugs never reach you. Free and open source.">
+<meta name="keywords" content="AI programming language, AI code generation, hallucination-free code, programming language for AI agents, MCP server, verified code generation, Claw language, clawlang">
+<link rel="canonical" href="https://clawlang.dev/">
+<meta name="theme-color" content="#ea580c">
+<meta property="og:type" content="website">
+<meta property="og:url" content="https://clawlang.dev/">
+<meta property="og:site_name" content="Claw">
+<meta property="og:title" content="Claw — the AI programming language where generated code can't be fake">
+<meta property="og:description" content="AI writes code. Claw checks every line against reality. Invented functions: 38 → 0. Beats the same AI writing Python, measured. Free and open source.">
 <meta property="og:image" content="https://clawlang.dev/og.png">
+<meta property="og:image:width" content="1280">
+<meta property="og:image:height" content="640">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="Claw — the AI programming language where generated code can't be fake">
+<meta name="twitter:description" content="AI writes code. Claw checks every line against reality. Free and open source.">
+<meta name="twitter:image" content="https://clawlang.dev/og.png">
+<script type="application/ld+json">
+{"@context":"https://schema.org","@graph":[
+{"@type":"SoftwareApplication","name":"Claw","url":"https://clawlang.dev","applicationCategory":"DeveloperApplication","operatingSystem":"macOS, Linux, Windows","offers":{"@type":"Offer","price":"0","priceCurrency":"USD"},"description":"Claw is a free, open-source programming language built for AI code generation. Every line an AI writes is checked against the project's real code, typechecked by a real compiler, and verified with executable contracts.","publisher":{"@type":"Organization","name":"LambdaQ Labs","url":"https://clawlang.dev"},"sameAs":["https://github.com/LambdaQ-Labs/claw"]},
+{"@type":"FAQPage","mainEntity":[
+{"@type":"Question","name":"What is Claw?","acceptedAnswer":{"@type":"Answer","text":"Claw is a free, open-source programming language designed for AI code generation. Unlike ordinary languages, Claw keeps a live database of everything that exists in your project, so an AI writing Claw code cannot invent functions that don't exist — the toolchain catches it instantly."}},
+{"@type":"Question","name":"Why does AI-generated code need its own language?","acceptedAnswer":{"@type":"Answer","text":"AI coding assistants regularly 'hallucinate' — they confidently call functions that don't exist or pass the wrong arguments. In Claw, that entire class of error is caught by four independent checks: a code database, a generation grammar, a real compiler, and executable tests. Measured result: invented API calls went from 38 per benchmark run to zero."}},
+{"@type":"Question","name":"Is Claw free?","acceptedAnswer":{"@type":"Answer","text":"Yes. Claw is open source under the UPL-1.0 license. The compiler, editor tools, AI integration, and the bundled AI model are all free."}},
+{"@type":"Question","name":"Does Claw work with Claude, Cursor, and other AI tools?","acceptedAnswer":{"@type":"Answer","text":"Yes. Claw ships an MCP server that plugs into Claude Code, Claude Desktop, Cursor, Windsurf, VS Code, Zed, Gemini CLI, and Codex CLI — giving any of these assistants the ability to check what really exists in your project before writing code."}},
+{"@type":"Question","name":"Do I need to know machine learning to use Claw?","acceptedAnswer":{"@type":"Answer","text":"No. Claw is a normal programming language — install it, write code, run it. The AI features work out of the box if you want them, and stay out of the way if you don't."}}
+]}]}
+</script>
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Cpath d='M6 26 Q10 12 16 6 Q14 16 12 26 Z M13 26 Q17 13 23 7 Q20 17 18 26 Z M19 26 Q23 15 28 10 Q25 19 24 26 Z' fill='%23b45309'/%3E%3C/svg%3E">
 <style>
 :root{
@@ -123,6 +146,7 @@ tr.win td{color:var(--good);font-weight:650}
       <a href="#examples">Examples</a>
       <a href="#receipts">Receipts</a>
       <a href="#ai">For AI teams</a>
+      <a href="#faq">FAQ</a>
       <a href="playground.html">Playground</a>
       <a href="https://github.com/LambdaQ-Labs/claw">GitHub</a>
     </nav>
@@ -132,11 +156,12 @@ tr.win td{color:var(--good);font-weight:650}
 <div class="hero">
   <div class="wrap">
     <div>
-      <div class="eyebrow">A language and a proof</div>
-      <h1>Built for AI to write.<br>Impossible to <span class="t">hallucinate</span> in.</h1>
-      <p class="sub">Claw is a fast, functional language where code lives in a queryable
-      database, generation is grammar-constrained, and every definition is verified
-      by a real compiler and executable contracts — before a human reads the diff.</p>
+      <div class="eyebrow">A new programming language, with proof</div>
+      <h1>AI writes the code.<br>Claw makes sure it's <span class="t">real</span>.</h1>
+      <p class="sub">AI assistants often invent functions that don't exist — and you find
+      out after the bug ships. Claw is a programming language that checks every line an
+      AI writes against what actually exists in your project, typechecks it with a real
+      compiler, and runs the tests — before you ever read it.</p>
       <div class="ctas">
         <a class="btn primary" href="https://github.com/LambdaQ-Labs/claw#quick-start">Get started</a>
         <a class="btn ghost" href="playground.html">Try the playground</a>
@@ -145,13 +170,13 @@ tr.win td{color:var(--good);font-weight:650}
     </div>
     <div class="demo" role="img" aria-label="Terminal: the compiler catching a hallucinated API">
       <div class="bar"><i></i><i></i><i></i></div>
-      <pre><span class="dim"># Your agent just invented an API.</span>
+      <pre><span class="dim"># Your AI assistant just invented a function.</span>
 <span class="p">$</span> claw defs-check clamp.json task.json
 <span class="err">COMPILE-FAIL (1 error)</span>
-<span class="dim">  `Nat.clamp` is not in scope — nothing
-  with that name exists in this project.</span>
+<span class="dim">  `Nat.clamp` does not exist in this
+  project. Caught before you saw it.</span>
 
-<span class="dim"># Ask what actually exists instead:</span>
+<span class="dim"># The AI asks what really exists instead:</span>
 <span class="p">$</span> claw db candidates "Nat, Nat -> Nat"
 Nat.max : Nat, Nat -> Nat
 Nat.min : Nat, Nat -> Nat
@@ -164,29 +189,27 @@ Nat.min : Nat, Nat -> Nat
 <section id="why">
   <div class="wrap">
     <h2>Why Claw</h2>
-    <p class="lead">Every language claims safety. Claw's claim is narrower and checkable:
-    an AI writing Claw cannot reference what doesn't exist, cannot skip declaring its
-    effects, and cannot ship code that fails its contracts.</p>
+    <p class="lead">Every language promises safety. Claw's promise is simpler, and you can
+    verify it yourself: an AI writing Claw can't call things that don't exist, can't
+    secretly touch your files or network, and can't ship code that fails its own tests.</p>
     <div class="pillars">
       <div class="pillar">
-        <h3><span class="dot"></span>Verifiable by construction</h3>
-        <p>Four independent gates — a code database that answers "what exists?",
-        a decode grammar that makes out-of-scope calls ungeneratable, the real
-        compiler's typecheck, and contracts that execute. No single gate is trusted;
-        the pipeline is.</p>
+        <h3><span class="dot"></span>Four safety checks, zero trust</h3>
+        <p>A live map of your project answers "what exists?". A grammar makes
+        made-up names literally impossible to generate. The compiler checks the
+        types. The tests actually run. No single check is trusted — all four are.</p>
       </div>
       <div class="pillar">
-        <h3><span class="dot"></span>AI-native, not AI-flavored</h3>
-        <p>The database, the grammar, and the verifier are APIs — an MCP server any
-        agent can call today, from Claude Code to Cursor to Gemini CLI. A bundled
-        fine-tuned model ships with the toolchain, and opt-in telemetry makes the
-        next one better.</p>
+        <h3><span class="dot"></span>Works with your AI today</h3>
+        <p>Claude Code, Cursor, Windsurf, VS Code, Zed, Gemini CLI, Codex — one
+        config block connects any of them to your project's live code map. Claw
+        even ships its own small AI model, trained to write it correctly.</p>
       </div>
       <div class="pillar">
-        <h3><span class="dot"></span>Small, fast, complete</h3>
-        <p>A functional language with effect types, pattern matching, and 100–200 ms
-        typechecks. Compiler, formatter, test runner, LSP, MCP server, and
-        self-updates in one tarball. No system dependencies.</p>
+        <h3><span class="dot"></span>Everything in one download</h3>
+        <p>Compiler, formatter, test runner, editor support, and AI integration in a
+        single install — one command, no dependencies, updates itself. Checks your
+        code in about a tenth of a second.</p>
       </div>
     </div>
   </div>
@@ -250,29 +273,30 @@ File.read! : Str -> Str  [effects: Fs]
 <section id="receipts" class="receipts">
   <div class="wrap">
     <h2>Receipts, not testimonials</h2>
-    <p class="lead">New languages can't show you Fortune-500 logos. We show measurements
-    instead — every number below reproduces from the committed benchmark harness.</p>
+    <p class="lead">A new language can't show you famous logos. We show measurements
+    instead — and publish the exact tools to reproduce every number yourself.</p>
     <div class="rgrid">
       <div class="rcard">
-        <h3>Hallucinated APIs per run</h3>
+        <h3>Invented function calls per test run</h3>
         <div class="big"><span class="from">38</span> <span class="arr">→</span> <span class="to">0</span></div>
-        <p>Same model, same tasks. The difference is the code database in context —
-        gate 1 of 4. After fine-tuning, the reference gate holds at
-        <b>121/121 hallucination-free</b>, effect declarations included.</p>
+        <p>Same AI, same tasks. The only change: Claw's code map was in the room.
+        After training, the AI stayed clean on <b>121 out of 121</b> benchmark
+        tasks — including honestly declaring when code touches files or the screen.</p>
       </div>
       <div class="rcard">
-        <h3>Functional pass@1 · same 0.5B model, five languages</h3>
+        <h3>Same AI, five languages — how often the code actually works</h3>
         <table>
           <tr><th>arm</th><th>pass@1</th></tr>
-          <tr class="win"><td>Claw — tuned for $0.03</td><td class="n">110/116 · 94%</td></tr>
-          <tr><td>JavaScript — stock</td><td class="n">104/116 · 89%</td></tr>
-          <tr><td>Python — stock</td><td class="n">66/116 · 56%</td></tr>
-          <tr><td>Rust — stock</td><td class="n">41/116 · 35%</td></tr>
-          <tr><td>Go — stock</td><td class="n">9/116 · 7%</td></tr>
+          <tr class="win"><td>Claw — with 3¢ of training</td><td class="n">110/116 · 94%</td></tr>
+          <tr><td>JavaScript — as-is</td><td class="n">104/116 · 89%</td></tr>
+          <tr><td>Python — as-is</td><td class="n">66/116 · 56%</td></tr>
+          <tr><td>Rust — as-is</td><td class="n">41/116 · 35%</td></tr>
+          <tr><td>Go — as-is</td><td class="n">9/116 · 7%</td></tr>
         </table>
-        <p class="method">Every generated function is executed against generated test
-        cases and checked against contracts. Identical grading and normalization for
-        all arms. <a href="https://github.com/LambdaQ-Labs/claw/blob/main/docs/parity-2026-07-05.md">Method + caveats</a></p>
+        <p class="method">One small AI model wrote solutions in all five languages; we ran
+        every solution and checked the answers. Claw got a 4-minute, 3-cent training
+        session; the others rely on everything the model already learned from the
+        internet. <a href="https://github.com/LambdaQ-Labs/claw/blob/main/docs/parity-2026-07-05.md">Full method and caveats</a></p>
       </div>
     </div>
   </div>
@@ -333,6 +357,35 @@ File.read! : Str -> Str  [effects: Fs]
         <div class="k">Your editor</div><h3>VS Code / Cursor</h3>
         <p>Syntax, snippets, LSP, and the MCP server for your AI.</p>
       </a>
+    </div>
+  </div>
+</section>
+
+
+<section id="faq">
+  <div class="wrap">
+    <h2>Questions people ask</h2>
+    <div class="cards" style="margin-top:26px">
+      <div class="card"><h3>What is Claw, in one sentence?</h3>
+        <p>A free, open-source programming language where code written by AI is
+        checked against reality — so invented functions and silent mistakes never
+        reach you.</p></div>
+      <div class="card"><h3>Why does AI need its own language?</h3>
+        <p>AI assistants confidently call functions that don't exist. Existing
+        languages can't stop that; Claw was designed so it's caught — or can't be
+        generated at all. Measured: 38 invented calls per test run → 0.</p></div>
+      <div class="card"><h3>Do I need to know AI or machine learning?</h3>
+        <p>No. Claw is a normal language — install, write, run. The AI features
+        work when you want them and stay out of the way when you don't.</p></div>
+      <div class="card"><h3>Does it work with Claude, Cursor, Copilot?</h3>
+        <p>Yes — one config block connects Claude Code &amp; Desktop, Cursor,
+        Windsurf, VS Code, Zed, Gemini CLI, or Codex to your project's code map.</p></div>
+      <div class="card"><h3>Is it really free?</h3>
+        <p>Yes. UPL-1.0 license — compiler, tools, AI model, everything. No
+        tracking on this site, and usage telemetry is strictly opt-in.</p></div>
+      <div class="card"><h3>Who makes Claw?</h3>
+        <p>LambdaQ Labs. The language builds on the open-source Roc compiler; the
+        AI layer, benchmark, and tooling are developed in the open on GitHub.</p></div>
     </div>
   </div>
 </section>
