@@ -54,6 +54,27 @@ too big for git, ideal as release assets:
   a clock. Every model release must re-pass the reference gate before
   tagging.
 
+## Artifact test findings (v0.1.0 dry run, 2026-07-05)
+
+All three artifacts built and tested: macOS-arm64 (full workflow, 8/8 —
+check/run/fmt/db/defs-check/grammar/mcp/telemetry), linux-x64 (same suite
+in docker; static musl binaries run on alpine AND debian), windows-x64
+(valid PE32+ executables; needs a Windows box or wine for execution).
+
+Known requirements / cleanups before the public tag:
+- **Linux `claw run` needs a system linker** (`gcc` or `binutils`) — the
+  compiler's link step shells out. `claw check` needs nothing. Document
+  in install.sh output or vendor a linker later.
+- **clawc ships as a debug build** ("version debug-no-git", 300+ MB):
+  switch to release mode + strip and wire git version info — sizes drop
+  dramatically.
+- Cross-building the compiler is impossible under qemu emulation (the
+  build-time builtin_compiler miscomputes) — build on real hardware per
+  target family, as the Drone runners do.
+- Zig ≥0.14 tarballs are named `zig-<arch>-<os>` (already fixed in CI).
+- Never run two zig builds concurrently in one checkout — the shared
+  .zig-cache corrupts.
+
 ## Release checklist
 
 1. `cargo test --workspace` green, clippy clean.
