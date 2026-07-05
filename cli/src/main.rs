@@ -67,7 +67,7 @@ fn real_main() -> anyhow::Result<()> {
         // A2 support: print the GBNF grammar for a task's scope (the same
         // projection the bench runner uses to constrain decoding).
         Some("task-grammar") => task_grammar_cmd(&args[1..]),
-        // Opt-in usage capture (off unless CLAW_TELEMETRY is set).
+        // Anonymous usage metrics (on by default; `claw telemetry off`).
         Some("telemetry") => telemetry_cmd(&args[1..]),
         // Full grade (compile proxy + contract EXECUTION) as JSON — the
         // Claw side of the cross-language parity harness.
@@ -470,6 +470,12 @@ fn telemetry_cmd(args: &[String]) -> anyhow::Result<()> {
             Err(e) => anyhow::bail!(e),
         },
         Some("clear") => println!("{}", claw_telemetry::clear()),
+        Some(l @ ("on" | "off" | "full" | "metrics")) => {
+            match claw_telemetry::set_level(l) {
+                Ok(msg) => println!("{msg}"),
+                Err(e) => anyhow::bail!(e),
+            }
+        }
         _ => println!("{}", claw_telemetry::status()),
     }
     Ok(())

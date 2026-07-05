@@ -1,4 +1,4 @@
-# Telemetry — opt-in, local-first, near-zero cost
+# Telemetry — anonymous metrics by default, one command to turn off
 
 Claw's bundled model was cold-started on synthetic data. The fastest way it
 improves is real usage: (prompt, produced definition, compiler verdict)
@@ -7,21 +7,28 @@ hard rules.
 
 ## The rules
 
-1. **Off by default.** Claw writes NO telemetry unless you set
-   `CLAW_TELEMETRY=metrics` or `CLAW_TELEMETRY=full`. There is no silent
-   phone-home; uploads only happen when you run `claw telemetry share`.
-2. **Local and readable.** Events are plain JSONL at
-   `~/.claw/telemetry/events.jsonl` — `cat` it, grep it, delete it.
-3. **Bounded.** The log caps at 4 MiB with one rotation (~8 MiB worst
-   case). Uploads are one gzipped request.
+1. **Metrics only, and it says so.** By default claw records command
+   kinds, verdict flags, and error counts — never your source code, file
+   paths, or prompts. The first recorded event prints a notice with the
+   off switch. Uploads happen automatically once the local log crosses
+   ~64 KiB (one gzipped request; failures are silent and retried later).
+2. **One command to stop.** `claw telemetry off` persists your choice;
+   `CLAW_TELEMETRY=off` does the same per-environment and wins over the
+   file. Off means zero writes, not "collected but not sent".
+3. **Local and readable.** Events are plain JSONL at
+   `~/.claw/telemetry/events.jsonl` — cat it, grep it, delete it. Capped
+   at 4 MiB with one rotation.
+4. **Code sharing stays opt-in.** The `full` level (produced Def-JSON +
+   prompts — the training-grade signal) is only ever enabled explicitly:
+   `claw telemetry full`.
 
 ## Levels
 
 | level | what is recorded |
 |---|---|
-| *(unset)* | nothing |
-| `metrics` | command kind, duration, verdict flags, error counts — no code |
-| `full` | also the produced Def-JSON and task prompt — the training-grade signal |
+| `metrics` *(default)* | command kind, verdict flags, error counts — no code |
+| `off` | nothing — zero writes |
+| `full` *(explicit opt-in)* | also the produced Def-JSON and task prompt — the training-grade signal |
 
 Currently instrumented: `claw defs-check` (single-task mode) and the MCP
 `claw_check` tool — the two places a model's output meets the real

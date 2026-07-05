@@ -23,4 +23,4 @@ Key facts:
 - Tour: https://github.com/LambdaQ-Labs/claw/blob/main/docs/tour.md
 - MCP setup: https://github.com/LambdaQ-Labs/claw/blob/main/docs/mcp.md
 - Benchmark method: https://github.com/LambdaQ-Labs/claw/blob/main/docs/parity-2026-07-05.md
-- Telemetry policy (opt-in only): https://github.com/LambdaQ-Labs/claw/blob/main/docs/telemetry.md
+- Telemetry policy (anonymous metrics by default, never code, one command to disable; code-sharing strictly opt-in): https://github.com/LambdaQ-Labs/claw/blob/main/docs/telemetry.md

@@ -26,7 +26,7 @@
 - **VS Code extension** (`editors/vscode`): tmLanguage grammar + snippets,
   packaged vsix.
 - **Website** (`site/`, clawlang.dev).
-- **Telemetry**: opt-in crate + collection worker.
+- **Telemetry**: anonymous metrics by default (never code; `claw telemetry off` to disable, loud first-run notice); `full` code-sharing level stays opt-in. Ingest worker deployed (Cloudflare + R2).
 - **Registry + playground plan**: `docs/registry-playground-plan.md`.
 
 ## v0.1.0 — first downloadable release (2026-07-04)

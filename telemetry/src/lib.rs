@@ -1,22 +1,20 @@
-//! claw-telemetry — opt-in, local-first usage capture.
+//! claw-telemetry — anonymous usage metrics, on by default, one command
+//! to turn off.
 //!
 //! The cold-start corpus is synthetic; the model gets better fastest from
-//! REAL (prompt, produced-def, verdict) triples. This crate collects them
-//! with three hard rules:
+//! real usage. The rules:
 //!
-//! 1. **Off by default.** Nothing is written unless `CLAW_TELEMETRY` is
-//!    set to `metrics` or `full`. No phone-home, ever, without opt-in.
-//! 2. **Local-first.** Events append to a plain JSONL file the user can
-//!    read (`~/.claw/telemetry/events.jsonl`); upload happens only when
-//!    they run `claw telemetry share` (or set `CLAW_TELEMETRY_AUTOSHARE=1`).
-//! 3. **Bounded.** The log rotates at 4 MiB into a single `.1` backup —
-//!    worst case ~8 MiB of disk; uploads are gzipped (one request, no
-//!    server round-trips per event). The ingest side is a Cloudflare
-//!    Worker writing to R2 — free-tier scale by design.
-//!
-//! Levels: `metrics` = command, duration, outcome, counts — no code.
-//! `full`  = also the produced Def-JSON and grading verdicts (the
-//! training-grade signal).
+//! 1. **Metrics only by default.** Command kinds, verdict flags, error
+//!    counts — never source code, never file paths, never prompts. The
+//!    `full` level (code payloads, the training-grade signal) is and
+//!    stays explicit opt-in.
+//! 2. **Loud and reversible.** The first event prints a one-time notice
+//!    with the off switch: `claw telemetry off` (persisted) or
+//!    `CLAW_TELEMETRY=off` (env, wins over the file).
+//! 3. **Local-first, bounded.** Events append to a readable JSONL
+//!    (`~/.claw/telemetry/events.jsonl`, 4 MiB cap + one rotation);
+//!    upload is one gzipped request when the log crosses ~64 KiB, or
+//!    manually via `claw telemetry share`.
 
 use serde_json::{json, Value};
 use std::io::Write;
@@ -25,7 +23,9 @@ use std::time::{SystemTime, UNIX_EPOCH};
 
 const MAX_BYTES: u64 = 4 * 1024 * 1024;
 
-/// The opt-in level, read from `CLAW_TELEMETRY`.
+/// The telemetry level. Default: `Metrics`. Resolution order: the
+/// `CLAW_TELEMETRY` env var (off|metrics|full) wins; else the persisted
+/// choice (`claw telemetry off|on|full`); else Metrics.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum Level {
     Off,
@@ -33,11 +33,59 @@ pub enum Level {
     Full,
 }
 
+fn config_path() -> PathBuf {
+    dir().join("config")
+}
+
+/// Persist a level choice (the `claw telemetry on|off|full` command).
+pub fn set_level(l: &str) -> Result<String, String> {
+    match l {
+        "off" | "on" | "metrics" | "full" => {
+            let v = if l == "on" { "metrics" } else { l };
+            std::fs::create_dir_all(dir()).map_err(|e| e.to_string())?;
+            std::fs::write(config_path(), v).map_err(|e| e.to_string())?;
+            Ok(format!("telemetry set to `{v}` (env CLAW_TELEMETRY overrides)"))
+        }
+        other => Err(format!("unknown level `{other}` (off | on | full)")),
+    }
+}
+
 pub fn level() -> Level {
     match std::env::var("CLAW_TELEMETRY").as_deref() {
-        Ok("metrics") => Level::Metrics,
+        Ok("off") => return Level::Off,
+        Ok("metrics") => return Level::Metrics,
+        Ok("full") => return Level::Full,
+        _ => {}
+    }
+    match std::fs::read_to_string(config_path()).as_deref().map(str::trim) {
+        Ok("off") => Level::Off,
         Ok("full") => Level::Full,
-        _ => Level::Off,
+        _ => Level::Metrics,
+    }
+}
+
+/// One-time stderr notice on the very first recorded event — telemetry
+/// that is on by default must announce itself.
+fn first_run_notice() {
+    let marker = dir().join(".notified");
+    if marker.exists() {
+        return;
+    }
+    let _ = std::fs::create_dir_all(dir());
+    let _ = std::fs::write(&marker, b"1");
+    eprintln!(
+        "note: claw collects anonymous usage metrics (command kinds and verdicts — never your code).\n      turn off: claw telemetry off   details: https://github.com/LambdaQ-Labs/claw/blob/main/docs/telemetry.md"
+    );
+}
+
+/// Auto-upload once the log crosses ~64 KiB; failures are silent (the
+/// log simply keeps accumulating up to its cap and retries next time).
+fn maybe_autoshare() {
+    if std::env::var("CLAW_TELEMETRY_AUTOSHARE").as_deref() == Ok("0") {
+        return;
+    }
+    if std::fs::metadata(log_path()).map(|m| m.len() > 64 * 1024).unwrap_or(false) {
+        let _ = share();
     }
 }
 
@@ -86,17 +134,19 @@ pub fn event(kind: &str, fields: Value, code_payload: Option<Value>) {
             let _ = std::fs::rename(&path, dir().join("events.jsonl.1"));
         }
     }
+    first_run_notice();
     if let Ok(mut f) = std::fs::OpenOptions::new().create(true).append(true).open(&path) {
         let _ = writeln!(f, "{obj}");
     }
+    maybe_autoshare();
 }
 
 /// Human-readable status line for `claw telemetry status`.
 pub fn status() -> String {
     let lvl = match level() {
-        Level::Off => "off (set CLAW_TELEMETRY=metrics|full to opt in)",
-        Level::Metrics => "metrics",
-        Level::Full => "full",
+        Level::Off => "off",
+        Level::Metrics => "metrics (default — anonymous, no code; `claw telemetry off` to disable)",
+        Level::Full => "full (includes code payloads — thank you)",
     };
     let size = std::fs::metadata(log_path()).map(|m| m.len()).unwrap_or(0);
     let lines = std::fs::read_to_string(log_path())
@@ -205,11 +255,29 @@ mod tests {
     }
 
     #[test]
-    fn off_by_default_writes_nothing() {
-        with_tmp("off", || {
+    fn metrics_by_default_and_off_silences() {
+        with_tmp("default", || {
             std::env::remove_var("CLAW_TELEMETRY");
+            event("test", json!({"a": 1}), Some(json!({"defs": "SECRET"})));
+            let s = std::fs::read_to_string(log_path()).unwrap();
+            assert!(s.contains("\"kind\":\"test\""), "default level records metrics");
+            assert!(!s.contains("SECRET"), "default level must never record code");
+
+            std::env::set_var("CLAW_TELEMETRY", "off");
+            let before = std::fs::metadata(log_path()).unwrap().len();
+            event("test2", json!({"a": 2}), None);
+            assert_eq!(before, std::fs::metadata(log_path()).unwrap().len(), "off must mean zero writes");
+            std::env::remove_var("CLAW_TELEMETRY");
+        });
+    }
+
+    #[test]
+    fn persisted_off_wins_without_env() {
+        with_tmp("persist", || {
+            std::env::remove_var("CLAW_TELEMETRY");
+            set_level("off").unwrap();
             event("test", json!({"a": 1}), None);
-            assert!(!log_path().exists(), "opt-out must mean zero writes");
+            assert!(!log_path().exists(), "persisted off must mean zero writes");
         });
     }
 
