@@ -39,6 +39,8 @@ pub struct Candidate {
     pub hash: Hash,
     pub ty: Type,
     pub deprecated: bool,
+    /// Declared effect row (drives the grammar's legal effect strings).
+    pub effects: Vec<String>,
     /// The substitution under which this candidate's type matched the query.
     pub subst: Subst,
 }
@@ -214,6 +216,7 @@ impl Cdb {
                     hash,
                     ty: def.ty.clone(),
                     deprecated: def.deprecated,
+                    effects: def.effects.clone(),
                     subst,
                 });
             }

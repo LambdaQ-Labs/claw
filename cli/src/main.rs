@@ -64,6 +64,9 @@ fn real_main() -> anyhow::Result<()> {
         // as a .claw module and run `clawc check` on it. `--batch` grades an
         // outputs.jsonl ({"task": <file>, "defs": [...]} per line).
         Some("defs-check") => defs_check_cmd(&args[1..]),
+        // A2 support: print the GBNF grammar for a task's scope (the same
+        // projection the bench runner uses to constrain decoding).
+        Some("task-grammar") => task_grammar_cmd(&args[1..]),
         // WS-H: generate a synthetic SFT corpus (JSONL). `--stdlib` uses the
         // built-in stdlib scope; otherwise reads the CDB at --db.
         Some("corpus") if args.get(1).map(String::as_str) == Some("gen") => {
@@ -304,6 +307,26 @@ fn defs_check_cmd(args: &[String]) -> anyhow::Result<()> {
     } else {
         println!("COMPILE-FAIL ({} errors)\n{}", r.errors, r.detail);
     }
+    Ok(())
+}
+
+/// `claw task-grammar <task.json>` — the GBNF grammar constraining
+/// generation to the task's scope (the bench runner's A2 projection).
+fn task_grammar_cmd(args: &[String]) -> anyhow::Result<()> {
+    use claw_bench_grader::Task;
+    use claw_constraint::{legal_continuations, HoleContext};
+    let task: Task = serde_json::from_str(&std::fs::read_to_string(need(
+        args,
+        0,
+        "path to task.json",
+    )?)?)?;
+    let cdb = task.build_scope_cdb()?;
+    let hole = HoleContext {
+        editing: None,
+        expected: claw_core::Type::Var("any".into()),
+    };
+    let mask = legal_continuations(&cdb, &hole)?;
+    println!("{}", mask.to_gbnf());
     Ok(())
 }
 

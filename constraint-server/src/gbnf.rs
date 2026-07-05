@@ -33,9 +33,35 @@ pub fn def_json_grammar(mask: &[Continuation]) -> String {
     let mut g = String::new();
 
     g.push_str("root ::= ws \"[\" ws def (ws \",\" ws def)* ws \"]\" ws\n");
+    // Named-defs protocol: an optional leading "name" field (a NEW lowercase
+    // identifier — a definition, not a reference, so it is free-form), then
+    // the def body. The effect row is constrained to the effect strings the
+    // mask's symbols actually declare — [] stays legal for pure code, and an
+    // effect name absent from scope is ungeneratable, like a symbol.
     g.push_str(
-        "def ::= \"{\" ws \"\\\"expr\\\"\" ws \":\" ws expr ws \",\" ws \"\\\"ty\\\"\" ws \":\" ws type ws \",\" ws \"\\\"effects\\\"\" ws \":\" ws \"[]\" ws \",\" ws \"\\\"deprecated\\\"\" ws \":\" ws \"false\" ws \",\" ws \"\\\"doc\\\"\" ws \":\" ws \"\\\"\\\"\" ws \"}\"\n",
+        "def ::= \"{\" ws namefield? \"\\\"expr\\\"\" ws \":\" ws expr ws \",\" ws \"\\\"ty\\\"\" ws \":\" ws type ws \",\" ws \"\\\"effects\\\"\" ws \":\" ws effrow ws \",\" ws \"\\\"deprecated\\\"\" ws \":\" ws \"false\" ws \",\" ws \"\\\"doc\\\"\" ws \":\" ws \"\\\"\\\"\" ws \"}\"\n",
     );
+    g.push_str(
+        "namefield ::= \"\\\"name\\\"\" ws \":\" ws \"\\\"\" [a-z_] [a-zA-Z0-9_]* \"\\\"\" ws \",\" ws\n",
+    );
+    let mut effs: Vec<String> = mask
+        .iter()
+        .flat_map(|c| c.effects.iter().cloned())
+        .collect();
+    effs.sort();
+    effs.dedup();
+    if effs.is_empty() {
+        g.push_str("effrow ::= \"[]\"\n");
+    } else {
+        let alts: Vec<String> = effs
+            .iter()
+            .map(|e| format!("\"\\\"{}\\\"\"", escape(e)))
+            .collect();
+        g.push_str(&format!("effname ::= {}\n", alts.join(" | ")));
+        g.push_str(
+            "effrow ::= \"[]\" | \"[\" ws effname (ws \",\" ws effname)* ws \"]\"\n",
+        );
+    }
     // Depth-bounded expression rules. `expr` is recursive (App/Lam nest
     // exprs), so without a bound a weak decoder can nest App forever until
     // it hits max_tokens. Leveling expr0..exprN, where exprN is a leaf
@@ -107,6 +133,7 @@ mod tests {
     fn cont(name: &str) -> Continuation {
         Continuation {
             name: name.into(),
+            effects: Vec::new(),
             hash: Hash("00".repeat(32)),
             ty: Type::Named("T".into()),
             subst: BTreeMap::new(),

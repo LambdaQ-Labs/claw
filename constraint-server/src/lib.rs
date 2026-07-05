@@ -34,6 +34,8 @@ pub struct Continuation {
     pub name: String,
     pub hash: Hash,
     pub ty: Type,
+    /// Declared effect row — the grammar's set of legal effect strings.
+    pub effects: Vec<String>,
     /// What the query's type variables resolved to for this candidate —
     /// tells the decoder what the expression's type becomes if chosen.
     pub subst: Subst,
@@ -74,6 +76,7 @@ pub fn legal_continuations(cdb: &Cdb, hole: &HoleContext) -> Result<Mask> {
             name: c.name,
             hash: c.hash,
             ty: c.ty,
+            effects: c.effects,
             subst: c.subst,
         })
         .collect();
