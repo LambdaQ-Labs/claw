@@ -1,0 +1,47 @@
+{
+ "id": "ho-pick",
+ "category": "contract",
+ "prompt": "Define `pick` : Nat, Nat, Nat -> Nat (parameters p0, p1, p2 named n, a, b): when n is zero produce a, otherwise produce b. `Bool.if` is in scope.",
+ "scope": [
+  {
+   "name": "Nat.isZero",
+   "ty": "Nat -> Bool"
+  },
+  {
+   "name": "Nat.isEven",
+   "ty": "Nat -> Bool"
+  },
+  {
+   "name": "Nat.isOdd",
+   "ty": "Nat -> Bool"
+  },
+  {
+   "name": "Nat.isPositive",
+   "ty": "Nat -> Bool"
+  },
+  {
+   "name": "Bool.if",
+   "ty": "Bool, a, a -> a"
+  }
+ ],
+ "params": [
+  {
+   "name": "n"
+  },
+  {
+   "name": "a"
+  },
+  {
+   "name": "b"
+  }
+ ],
+ "grade": {
+  "compile": true,
+  "requires": [],
+  "contracts": [],
+  "forbidden": [
+   "hallucinated-symbol",
+   "effect-unsound"
+  ]
+ }
+}

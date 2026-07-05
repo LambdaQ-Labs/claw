@@ -6,7 +6,7 @@
 //! writes Claw without inventing APIs — the CDB answers "what's real."
 //!
 //! Transport: newline-delimited JSON-RPC 2.0 on stdio (MCP stdio).
-//! Tools: claw_symbols, claw_candidates, claw_mask.
+//! Tools: claw_symbols, claw_candidates, claw_mask, claw_render, claw_check.
 //!
 //! Usage: claw-mcp --db <file>   (default ./claw.cdb)
 
@@ -92,6 +92,16 @@ fn tool_specs() -> Value {
             "inputSchema": {"type": "object", "properties": {"type": {"type": "string", "description": "type signature, e.g. 'Nat, Nat -> a'"}}, "required": ["type"]}
         },
         {
+            "name": "claw_render",
+            "description": "Render a definition from the code-as-database as .claw source text (name, signature, body).",
+            "inputSchema": {"type": "object", "properties": {"name": {"type": "string", "description": "bound definition name, e.g. 'identity'"}}, "required": ["name"]}
+        },
+        {
+            "name": "claw_check",
+            "description": "Typecheck produced Claw code with the REAL compiler. Pass a Def-JSON array (the output protocol); every symbol in the database is in scope. Returns COMPILE-OK or the compiler errors.",
+            "inputSchema": {"type": "object", "properties": {"defs": {"type": "array", "description": "Def-JSON array: [{name, expr, ty, effects, deprecated, doc}]"}}, "required": ["defs"]}
+        },
+        {
             "name": "claw_mask",
             "description": "Given a target type, return the legal symbols plus the GBNF grammar that constrains generation so out-of-scope calls are ungeneratable.",
             "inputSchema": {"type": "object", "properties": {"type": {"type": "string"}}, "required": ["type"]}
@@ -150,6 +160,39 @@ fn call_tool(name: &str, args: &Value, db_path: &str) -> anyhow::Result<String> 
                 }
                 Mask::EmptyWithDiagnostic(d) => Ok(format!("no legal symbols: {}", d.render())),
             }
+        }
+        "claw_render" => {
+            let name = args
+                .get("name")
+                .and_then(|v| v.as_str())
+                .ok_or_else(|| anyhow::anyhow!("missing 'name'"))?;
+            let h = cdb
+                .resolve(name)
+                .map_err(|_| anyhow::anyhow!("no such definition: {name}"))?;
+            let def = cdb.get(&h)?;
+            Ok(claw_core::render::render_def(name, &def))
+        }
+        "claw_check" => {
+            use claw_bench_grader::{realc, ProducedDef};
+            let defs: Vec<ProducedDef> = serde_json::from_value(
+                args.get("defs")
+                    .cloned()
+                    .ok_or_else(|| anyhow::anyhow!("missing 'defs'"))?,
+            )
+            .map_err(|e| anyhow::anyhow!("defs not in the Def-JSON protocol: {e}"))?;
+            // Every symbol in the CDB is in scope, as signature-true stubs.
+            let mut scope = Vec::new();
+            for (n, h) in cdb.symbols()? {
+                let d = cdb.get(&h)?;
+                scope.push((n, d.ty));
+            }
+            let module = realc::to_module(&scope, &defs);
+            let r = realc::clawc_check(&module)?;
+            Ok(if r.compiled {
+                "COMPILE-OK".to_string()
+            } else {
+                format!("COMPILE-FAIL ({} errors)\n{}", r.errors, r.detail)
+            })
         }
         other => anyhow::bail!("unknown tool: {other}"),
     }

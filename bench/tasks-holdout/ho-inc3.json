@@ -1,0 +1,43 @@
+{
+ "id": "ho-inc3",
+ "category": "from-scratch",
+ "prompt": "Two definitions: a helper `bump` : Nat -> Nat that increments, and `inc3` : Nat -> Nat that applies bump three times to its parameter p0.",
+ "scope": [
+  {
+   "name": "Nat.inc",
+   "ty": "Nat -> Nat"
+  },
+  {
+   "name": "Nat.dec",
+   "ty": "Nat -> Nat"
+  },
+  {
+   "name": "Nat.double",
+   "ty": "Nat -> Nat"
+  },
+  {
+   "name": "Nat.half",
+   "ty": "Nat -> Nat"
+  },
+  {
+   "name": "Nat.sqr",
+   "ty": "Nat -> Nat"
+  }
+ ],
+ "params": [
+  {
+   "name": "x"
+  }
+ ],
+ "grade": {
+  "compile": true,
+  "requires": [],
+  "contracts": [
+   "result == x + 3"
+  ],
+  "forbidden": [
+   "hallucinated-symbol",
+   "effect-unsound"
+  ]
+ }
+}

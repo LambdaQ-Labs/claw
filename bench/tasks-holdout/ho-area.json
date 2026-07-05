@@ -1,0 +1,46 @@
+{
+ "id": "ho-area",
+ "category": "from-scratch",
+ "prompt": "Geometry helper: `area` : Nat, Nat -> Nat (parameters p0, p1 are width and height of a rectangle). Return its area.",
+ "scope": [
+  {
+   "name": "Nat.add",
+   "ty": "Nat, Nat -> Nat"
+  },
+  {
+   "name": "Nat.sub",
+   "ty": "Nat, Nat -> Nat"
+  },
+  {
+   "name": "Nat.mul",
+   "ty": "Nat, Nat -> Nat"
+  },
+  {
+   "name": "Nat.max",
+   "ty": "Nat, Nat -> Nat"
+  },
+  {
+   "name": "Nat.min",
+   "ty": "Nat, Nat -> Nat"
+  }
+ ],
+ "params": [
+  {
+   "name": "w"
+  },
+  {
+   "name": "h"
+  }
+ ],
+ "grade": {
+  "compile": true,
+  "requires": [],
+  "contracts": [
+   "result == w * h"
+  ],
+  "forbidden": [
+   "hallucinated-symbol",
+   "effect-unsound"
+  ]
+ }
+}

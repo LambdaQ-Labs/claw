@@ -60,6 +60,10 @@ fn real_main() -> anyhow::Result<()> {
         }
         // WS-G: transpile a Def-JSON file (the benchmark protocol) to Rust.
         Some("emit-rust") => emit_rust_cmd(&args[1..]),
+        // WS-J: real-compiler compile signal — render Def-JSON + task scope
+        // as a .claw module and run `clawc check` on it. `--batch` grades an
+        // outputs.jsonl ({"task": <file>, "defs": [...]} per line).
+        Some("defs-check") => defs_check_cmd(&args[1..]),
         // WS-H: generate a synthetic SFT corpus (JSONL). `--stdlib` uses the
         // built-in stdlib scope; otherwise reads the CDB at --db.
         Some("corpus") if args.get(1).map(String::as_str) == Some("gen") => {
@@ -240,6 +244,65 @@ fn emit_rust_cmd(args: &[String]) -> anyhow::Result<()> {
             Ok(rust) => println!("\n{rust}"),
             Err(e) => eprintln!("// skipped {name}: {e}"),
         }
+    }
+    Ok(())
+}
+
+/// `claw defs-check <defs.json> <task.json>` (or `--batch <outputs.jsonl>`)
+/// — the REAL compile signal: render the task's scope as signature-true
+/// crash-stubs plus the produced defs, and run `clawc check` on the module.
+fn defs_check_cmd(args: &[String]) -> anyhow::Result<()> {
+    use claw_bench_grader::{realc, ProducedDef, Task};
+    if std::env::var("CLAW_CLAWC").is_err() {
+        std::env::set_var("CLAW_CLAWC", find_clawc()?);
+    }
+
+    let check_one = |task: &Task, defs: &[ProducedDef]| -> anyhow::Result<realc::RealCheck> {
+        let module = realc::task_module(&task.scope, defs)?;
+        realc::clawc_check(&module)
+    };
+
+    if args.first().map(String::as_str) == Some("--batch") {
+        let batch = need(args, 1, "path to outputs.jsonl")?;
+        #[derive(serde::Deserialize)]
+        struct Line {
+            task: String,
+            defs: serde_json::Value,
+        }
+        let (mut ok, mut fail, mut skip) = (0u32, 0u32, 0u32);
+        for line in std::fs::read_to_string(batch)?.lines().filter(|l| !l.trim().is_empty()) {
+            let l: Line = serde_json::from_str(line)?;
+            let task: Task = serde_json::from_str(&std::fs::read_to_string(&l.task)?)?;
+            let defs: Vec<ProducedDef> = match serde_json::from_value(l.defs) {
+                Ok(d) => d,
+                Err(_) => {
+                    skip += 1;
+                    println!("SKIP {} (defs not parseable)", l.task);
+                    continue;
+                }
+            };
+            let r = check_one(&task, &defs)?;
+            if r.compiled {
+                ok += 1;
+            } else {
+                fail += 1;
+                println!("FAIL {} ({} errors)", l.task, r.errors);
+            }
+        }
+        let total = ok + fail + skip;
+        println!("real-compile: {ok}/{total} ok, {fail} failed, {skip} unparseable");
+        return Ok(());
+    }
+
+    let defs_path = need(args, 0, "path to defs.json")?;
+    let task_path = need(args, 1, "path to task.json")?;
+    let defs: Vec<ProducedDef> = serde_json::from_str(&std::fs::read_to_string(defs_path)?)?;
+    let task: Task = serde_json::from_str(&std::fs::read_to_string(task_path)?)?;
+    let r = check_one(&task, &defs)?;
+    if r.compiled {
+        println!("COMPILE-OK");
+    } else {
+        println!("COMPILE-FAIL ({} errors)\n{}", r.errors, r.detail);
     }
     Ok(())
 }

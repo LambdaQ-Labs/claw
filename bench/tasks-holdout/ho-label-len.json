@@ -1,0 +1,37 @@
+{
+ "id": "ho-label-len",
+ "category": "from-scratch",
+ "prompt": "Define `label_len` : Str -> Str (parameter p0): render the length of the input as text (e.g. a 5-character string becomes \"5\").",
+ "scope": [
+  {
+   "name": "Str.concat",
+   "ty": "Str, Str -> Str"
+  },
+  {
+   "name": "Str.upper",
+   "ty": "Str -> Str"
+  },
+  {
+   "name": "Str.len",
+   "ty": "Str -> Nat"
+  },
+  {
+   "name": "Str.isEmpty",
+   "ty": "Str -> Bool"
+  },
+  {
+   "name": "Nat.toStr",
+   "ty": "Nat -> Str"
+  }
+ ],
+ "params": [],
+ "grade": {
+  "compile": true,
+  "requires": [],
+  "contracts": [],
+  "forbidden": [
+   "hallucinated-symbol",
+   "effect-unsound"
+  ]
+ }
+}

@@ -1,0 +1,63 @@
+{
+ "id": "ho-guard-dec",
+ "category": "contract",
+ "prompt": "Define `guard_dec` : Nat -> Nat (parameter p0 named x) that subtracts one, but never moves below zero: zero stays zero. Use `Bool.if` with the in-scope predicate and helpers.",
+ "scope": [
+  {
+   "name": "Nat.isZero",
+   "ty": "Nat -> Bool"
+  },
+  {
+   "name": "Nat.isEven",
+   "ty": "Nat -> Bool"
+  },
+  {
+   "name": "Nat.isOdd",
+   "ty": "Nat -> Bool"
+  },
+  {
+   "name": "Nat.isPositive",
+   "ty": "Nat -> Bool"
+  },
+  {
+   "name": "Nat.inc",
+   "ty": "Nat -> Nat"
+  },
+  {
+   "name": "Nat.dec",
+   "ty": "Nat -> Nat"
+  },
+  {
+   "name": "Nat.double",
+   "ty": "Nat -> Nat"
+  },
+  {
+   "name": "Nat.half",
+   "ty": "Nat -> Nat"
+  },
+  {
+   "name": "Nat.sqr",
+   "ty": "Nat -> Nat"
+  },
+  {
+   "name": "Bool.if",
+   "ty": "Bool, a, a -> a"
+  }
+ ],
+ "params": [
+  {
+   "name": "x"
+  }
+ ],
+ "grade": {
+  "compile": true,
+  "requires": [],
+  "contracts": [
+   "result <= x"
+  ],
+  "forbidden": [
+   "hallucinated-symbol",
+   "effect-unsound"
+  ]
+ }
+}

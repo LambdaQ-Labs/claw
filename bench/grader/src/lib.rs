@@ -8,6 +8,7 @@
 //! Spec: docs/benchmark-harness.md §3.
 
 mod exec;
+pub mod realc;
 
 use claw_cdb::Cdb;
 use claw_core::Def;

@@ -1,0 +1,58 @@
+{
+ "id": "ho-pure-note",
+ "category": "effect",
+ "prompt": "Define `note` : Str, Str -> Str (parameters p0, p1): concatenate the two strings. Several effectful symbols are in scope but this function must stay pure \u2014 its effect row is empty.",
+ "scope": [
+  {
+   "name": "File.read!",
+   "ty": "Str -> Str",
+   "effects": [
+    "Fs"
+   ]
+  },
+  {
+   "name": "Env.get!",
+   "ty": "Str -> Str",
+   "effects": [
+    "Env"
+   ]
+  },
+  {
+   "name": "Stdout.line!",
+   "ty": "Str -> Unit",
+   "effects": [
+    "Stdout"
+   ]
+  },
+  {
+   "name": "Str.concat",
+   "ty": "Str, Str -> Str"
+  },
+  {
+   "name": "Str.upper",
+   "ty": "Str -> Str"
+  },
+  {
+   "name": "Str.len",
+   "ty": "Str -> Nat"
+  },
+  {
+   "name": "Str.isEmpty",
+   "ty": "Str -> Bool"
+  },
+  {
+   "name": "Nat.toStr",
+   "ty": "Nat -> Str"
+  }
+ ],
+ "params": [],
+ "grade": {
+  "compile": true,
+  "requires": [],
+  "contracts": [],
+  "forbidden": [
+   "hallucinated-symbol",
+   "effect-unsound"
+  ]
+ }
+}

@@ -1,0 +1,43 @@
+{
+ "id": "ho-tip",
+ "category": "from-scratch",
+ "prompt": "In a billing module, define `with_fee` : Nat -> Nat (parameter p0, the amount in cents). The function adds a flat 250-cent processing fee.",
+ "scope": [
+  {
+   "name": "Nat.add",
+   "ty": "Nat, Nat -> Nat"
+  },
+  {
+   "name": "Nat.sub",
+   "ty": "Nat, Nat -> Nat"
+  },
+  {
+   "name": "Nat.mul",
+   "ty": "Nat, Nat -> Nat"
+  },
+  {
+   "name": "Nat.max",
+   "ty": "Nat, Nat -> Nat"
+  },
+  {
+   "name": "Nat.min",
+   "ty": "Nat, Nat -> Nat"
+  }
+ ],
+ "params": [
+  {
+   "name": "amount"
+  }
+ ],
+ "grade": {
+  "compile": true,
+  "requires": [],
+  "contracts": [
+   "result == amount + 250"
+  ],
+  "forbidden": [
+   "hallucinated-symbol",
+   "effect-unsound"
+  ]
+ }
+}

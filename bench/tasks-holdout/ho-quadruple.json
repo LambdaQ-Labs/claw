@@ -1,0 +1,43 @@
+{
+ "id": "ho-quadruple",
+ "category": "from-scratch",
+ "prompt": "Define `quadruple` : Nat -> Nat (parameter p0) by doubling twice.",
+ "scope": [
+  {
+   "name": "Nat.inc",
+   "ty": "Nat -> Nat"
+  },
+  {
+   "name": "Nat.dec",
+   "ty": "Nat -> Nat"
+  },
+  {
+   "name": "Nat.double",
+   "ty": "Nat -> Nat"
+  },
+  {
+   "name": "Nat.half",
+   "ty": "Nat -> Nat"
+  },
+  {
+   "name": "Nat.sqr",
+   "ty": "Nat -> Nat"
+  }
+ ],
+ "params": [
+  {
+   "name": "x"
+  }
+ ],
+ "grade": {
+  "compile": true,
+  "requires": [],
+  "contracts": [
+   "result == x + x + x + x"
+  ],
+  "forbidden": [
+   "hallucinated-symbol",
+   "effect-unsound"
+  ]
+ }
+}

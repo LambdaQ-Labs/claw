@@ -12,5 +12,6 @@ path = "src/main.rs"
 claw-core = { path = "../crates/claw-core" }
 claw-cdb = { path = "../cdb" }
 claw-constraint = { path = "../constraint-server" }
+claw-bench-grader = { path = "../bench/grader" }
 serde_json = { workspace = true }
 anyhow = { workspace = true }

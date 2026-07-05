@@ -1,0 +1,52 @@
+{
+ "id": "ho-neither-zero",
+ "category": "from-scratch",
+ "prompt": "Define `neither_zero` : Nat, Nat -> Bool (parameters p0, p1): true when NEITHER argument is zero. (Hint: negate.)",
+ "scope": [
+  {
+   "name": "Nat.isZero",
+   "ty": "Nat -> Bool"
+  },
+  {
+   "name": "Nat.isEven",
+   "ty": "Nat -> Bool"
+  },
+  {
+   "name": "Nat.isOdd",
+   "ty": "Nat -> Bool"
+  },
+  {
+   "name": "Nat.isPositive",
+   "ty": "Nat -> Bool"
+  },
+  {
+   "name": "Bool.and",
+   "ty": "Bool, Bool -> Bool"
+  },
+  {
+   "name": "Bool.or",
+   "ty": "Bool, Bool -> Bool"
+  },
+  {
+   "name": "Bool.not",
+   "ty": "Bool -> Bool"
+  }
+ ],
+ "params": [
+  {
+   "name": "a"
+  },
+  {
+   "name": "b"
+  }
+ ],
+ "grade": {
+  "compile": true,
+  "requires": [],
+  "contracts": [],
+  "forbidden": [
+   "hallucinated-symbol",
+   "effect-unsound"
+  ]
+ }
+}

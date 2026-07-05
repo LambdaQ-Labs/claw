@@ -1,0 +1,43 @@
+{
+ "id": "ho-clamp01",
+ "category": "from-scratch",
+ "prompt": "Two definitions: `floor0` : Nat -> Nat is the identity on naturals (max with zero), and `clamp01` : Nat -> Nat squeezes p0 into [0, 1] by flooring at 0 then capping at 1.",
+ "scope": [
+  {
+   "name": "Nat.add",
+   "ty": "Nat, Nat -> Nat"
+  },
+  {
+   "name": "Nat.sub",
+   "ty": "Nat, Nat -> Nat"
+  },
+  {
+   "name": "Nat.mul",
+   "ty": "Nat, Nat -> Nat"
+  },
+  {
+   "name": "Nat.max",
+   "ty": "Nat, Nat -> Nat"
+  },
+  {
+   "name": "Nat.min",
+   "ty": "Nat, Nat -> Nat"
+  }
+ ],
+ "params": [
+  {
+   "name": "x"
+  }
+ ],
+ "grade": {
+  "compile": true,
+  "requires": [],
+  "contracts": [
+   "result <= 1"
+  ],
+  "forbidden": [
+   "hallucinated-symbol",
+   "effect-unsound"
+  ]
+ }
+}

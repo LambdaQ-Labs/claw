@@ -1,0 +1,52 @@
+{
+ "id": "ho-fresh-add",
+ "category": "repo-feature",
+ "prompt": "Define `total` : Nat, Nat -> Nat (parameters p0, p1) that adds its arguments. Note: `Nat.plusOld` is deprecated \u2014 use the current API.",
+ "scope": [
+  {
+   "name": "Nat.plusOld",
+   "ty": "Nat, Nat -> Nat",
+   "deprecated": true
+  },
+  {
+   "name": "Nat.add",
+   "ty": "Nat, Nat -> Nat"
+  },
+  {
+   "name": "Nat.sub",
+   "ty": "Nat, Nat -> Nat"
+  },
+  {
+   "name": "Nat.mul",
+   "ty": "Nat, Nat -> Nat"
+  },
+  {
+   "name": "Nat.max",
+   "ty": "Nat, Nat -> Nat"
+  },
+  {
+   "name": "Nat.min",
+   "ty": "Nat, Nat -> Nat"
+  }
+ ],
+ "params": [
+  {
+   "name": "a"
+  },
+  {
+   "name": "b"
+  }
+ ],
+ "grade": {
+  "compile": true,
+  "requires": [],
+  "contracts": [
+   "result == a + b"
+  ],
+  "forbidden": [
+   "hallucinated-symbol",
+   "effect-unsound",
+   "deprecated-symbol"
+  ]
+ }
+}

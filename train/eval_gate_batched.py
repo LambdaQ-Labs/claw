@@ -7,7 +7,7 @@ so a 3090 finishes in minutes instead of ~40. The adapter is toggled with
 
     python eval_gate_batched.py            # expects ./claw-lora and ../bench/tasks-large
 """
-import json, glob, torch, re
+import json, glob, os, torch, re
 from transformers import AutoModelForCausalLM, AutoTokenizer
 from peft import PeftModel
 
@@ -85,7 +85,9 @@ def check(raw, scope):
     return (True, len(hall) == 0, required <= declared)
 
 
-tasks = [json.load(open(f)) for f in sorted(glob.glob("../bench/tasks-large/*.json"))]
+TASKS_DIR = os.environ.get("CLAW_TASKS", "../bench/tasks-large")
+files = sorted(glob.glob(TASKS_DIR + "/*.json"))
+tasks = [json.load(open(f)) for f in files]
 scopes, prompts = [], []
 for t in tasks:
     scope = [(s["name"], s["ty"], s.get("effects", [])) for s in t.get("scope", [])]
@@ -108,3 +110,14 @@ for k in ("base", "tuned"):
         v += vi; c += ci; e += ei; clean += (ci and ei)
     print(f"{k}: valid_json={v}/{n} ({100 * v // n}%)  no_halluc={c}/{n} ({100 * c // n}%)  "
           f"effects_sound={e}/{n} ({100 * e // n}%)  clean={clean}/{n} ({100 * clean // n}%)")
+
+# Dump the tuned arm's raw parses for the real-compiler pass back home:
+# `claw defs-check --batch outputs.jsonl` (task file path + Def-JSON).
+with open("outputs.jsonl", "w") as fh:
+    for f, raw in zip(files, res["tuned"]):
+        try:
+            defs = json.loads(raw.strip().strip('`').replace('json', '', 1).strip())
+        except Exception:
+            defs = None
+        fh.write(json.dumps({"task": f, "defs": defs}) + "\n")
+print("wrote outputs.jsonl (tuned arm) for real-compile grading")

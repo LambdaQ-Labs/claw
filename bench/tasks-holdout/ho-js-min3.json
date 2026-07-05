@@ -1,0 +1,51 @@
+{
+ "id": "ho-js-min3",
+ "category": "translate",
+ "prompt": "Port this JavaScript to Claw:\n\nconst min3 = (a, b, c) => Math.min(a, Math.min(b, c));\n\nTarget `min3` : Nat, Nat, Nat -> Nat, parameters a, b, c arrive as p0, p1, p2.",
+ "scope": [
+  {
+   "name": "Nat.add",
+   "ty": "Nat, Nat -> Nat"
+  },
+  {
+   "name": "Nat.sub",
+   "ty": "Nat, Nat -> Nat"
+  },
+  {
+   "name": "Nat.mul",
+   "ty": "Nat, Nat -> Nat"
+  },
+  {
+   "name": "Nat.max",
+   "ty": "Nat, Nat -> Nat"
+  },
+  {
+   "name": "Nat.min",
+   "ty": "Nat, Nat -> Nat"
+  }
+ ],
+ "params": [
+  {
+   "name": "a"
+  },
+  {
+   "name": "b"
+  },
+  {
+   "name": "c"
+  }
+ ],
+ "grade": {
+  "compile": true,
+  "requires": [],
+  "contracts": [
+   "result <= a",
+   "result <= b",
+   "result <= c"
+  ],
+  "forbidden": [
+   "hallucinated-symbol",
+   "effect-unsound"
+  ]
+ }
+}

@@ -1,0 +1,44 @@
+{
+ "id": "ho-headroom",
+ "category": "from-scratch",
+ "prompt": "Define `headroom` : Nat, Nat -> Nat (parameters p0 = limit, p1 = used). How much is left before the limit? (Nat subtraction saturates at zero.)",
+ "scope": [
+  {
+   "name": "Nat.add",
+   "ty": "Nat, Nat -> Nat"
+  },
+  {
+   "name": "Nat.sub",
+   "ty": "Nat, Nat -> Nat"
+  },
+  {
+   "name": "Nat.mul",
+   "ty": "Nat, Nat -> Nat"
+  },
+  {
+   "name": "Nat.max",
+   "ty": "Nat, Nat -> Nat"
+  },
+  {
+   "name": "Nat.min",
+   "ty": "Nat, Nat -> Nat"
+  }
+ ],
+ "params": [
+  {
+   "name": "limit"
+  },
+  {
+   "name": "used"
+  }
+ ],
+ "grade": {
+  "compile": true,
+  "requires": [],
+  "contracts": [],
+  "forbidden": [
+   "hallucinated-symbol",
+   "effect-unsound"
+  ]
+ }
+}

@@ -1,0 +1,61 @@
+{
+ "id": "ho-even-double",
+ "category": "contract",
+ "prompt": "Define `even_double` : Nat -> Nat (parameter p0 named x): if x is even, return x doubled; if it is odd, return x unchanged.",
+ "scope": [
+  {
+   "name": "Nat.isZero",
+   "ty": "Nat -> Bool"
+  },
+  {
+   "name": "Nat.isEven",
+   "ty": "Nat -> Bool"
+  },
+  {
+   "name": "Nat.isOdd",
+   "ty": "Nat -> Bool"
+  },
+  {
+   "name": "Nat.isPositive",
+   "ty": "Nat -> Bool"
+  },
+  {
+   "name": "Nat.inc",
+   "ty": "Nat -> Nat"
+  },
+  {
+   "name": "Nat.dec",
+   "ty": "Nat -> Nat"
+  },
+  {
+   "name": "Nat.double",
+   "ty": "Nat -> Nat"
+  },
+  {
+   "name": "Nat.half",
+   "ty": "Nat -> Nat"
+  },
+  {
+   "name": "Nat.sqr",
+   "ty": "Nat -> Nat"
+  },
+  {
+   "name": "Bool.if",
+   "ty": "Bool, a, a -> a"
+  }
+ ],
+ "params": [
+  {
+   "name": "x"
+  }
+ ],
+ "grade": {
+  "compile": true,
+  "requires": [],
+  "contracts": [],
+  "forbidden": [
+   "hallucinated-symbol",
+   "effect-unsound"
+  ]
+ }
+}

@@ -1,0 +1,41 @@
+{
+ "id": "ho-next-even",
+ "category": "from-scratch",
+ "prompt": "Define `next_even` : Nat -> Nat (parameter p0): halve the input, double that, then add 2. Compose in-scope helpers.",
+ "scope": [
+  {
+   "name": "Nat.inc",
+   "ty": "Nat -> Nat"
+  },
+  {
+   "name": "Nat.dec",
+   "ty": "Nat -> Nat"
+  },
+  {
+   "name": "Nat.double",
+   "ty": "Nat -> Nat"
+  },
+  {
+   "name": "Nat.half",
+   "ty": "Nat -> Nat"
+  },
+  {
+   "name": "Nat.sqr",
+   "ty": "Nat -> Nat"
+  }
+ ],
+ "params": [
+  {
+   "name": "x"
+  }
+ ],
+ "grade": {
+  "compile": true,
+  "requires": [],
+  "contracts": [],
+  "forbidden": [
+   "hallucinated-symbol",
+   "effect-unsound"
+  ]
+ }
+}
