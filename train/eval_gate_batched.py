@@ -33,7 +33,8 @@ def gen_batch(prompts, tag):
         texts = [
             tok.apply_chat_template(
                 [{"role": "user", "content": p + "\n\n" + PROTO}],
-                tokenize=False, add_generation_prompt=True)
+                tokenize=False, add_generation_prompt=True,
+                **({"enable_thinking": False} if "Qwen3" in BASE else {}))
             for p in chunk
         ]
         enc = tok(texts, return_tensors="pt", padding=True).to(m.device)

@@ -19,7 +19,7 @@ PROTOCOL = open("train.py").read().split('PROTOCOL = """')[1].split('"""')[0]
 
 def main():
     ap = argparse.ArgumentParser()
-    ap.add_argument("--model", default="unsloth/gemma-4-e4b-it")
+    ap.add_argument("--model", default="unsloth/Qwen2.5-Coder-3B-Instruct")
     ap.add_argument("--corpus", default="corpus-v4.jsonl")
     ap.add_argument("--out", default="claw-lora-e4b")
     ap.add_argument("--epochs", type=float, default=3.0)

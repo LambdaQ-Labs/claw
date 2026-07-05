@@ -36,7 +36,8 @@ def build_text(tok, prompt, completion):
         {"role": "user", "content": user},
         {"role": "assistant", "content": completion},
     ]
-    return tok.apply_chat_template(msgs, tokenize=False)
+    kw = {"enable_thinking": False} if "Qwen3" in tok.name_or_path else {}
+    return tok.apply_chat_template(msgs, tokenize=False, **kw)
 
 
 def main():
@@ -58,8 +59,18 @@ def main():
     ds = Dataset.from_dict({"text": texts})
     print(f"corpus: {len(ds)} examples")
 
-    model = AutoModelForCausalLM.from_pretrained(args.model, torch_dtype="auto", device_map="auto")
-    if os.environ.get("CLAW_GRAD_CKPT"):
+    _kw = {"torch_dtype": "auto", "device_map": "auto"}
+    if os.environ.get("CLAW_4BIT"):
+        from transformers import BitsAndBytesConfig
+        import torch as _t
+        _kw["quantization_config"] = BitsAndBytesConfig(
+            load_in_4bit=True, bnb_4bit_quant_type="nf4",
+            bnb_4bit_compute_dtype=_t.bfloat16, bnb_4bit_use_double_quant=True)
+    model = AutoModelForCausalLM.from_pretrained(args.model, **_kw)
+    if os.environ.get("CLAW_4BIT"):
+        from peft import prepare_model_for_kbit_training
+        model = prepare_model_for_kbit_training(model)
+    if os.environ.get("CLAW_GRAD_CKPT") or os.environ.get("CLAW_4BIT"):
         model.gradient_checkpointing_enable()
         model.enable_input_require_grads()
 
