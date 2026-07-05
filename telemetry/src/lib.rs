@@ -119,7 +119,11 @@ pub fn share() -> Result<String, String> {
         return Err("telemetry log is empty".into());
     }
     let url = std::env::var("CLAW_TELEMETRY_URL")
-        .unwrap_or_else(|_| "https://telemetry.clawlang.dev/v1/ingest".into());
+        .unwrap_or_else(|_| {
+            // The deployed ingest worker; swaps to telemetry.clawlang.dev
+            // when the domain routes.
+            "https://claw-telemetry.ninad2471.workers.dev/v1/ingest".into()
+        });
 
     // gzip the JSONL — one small request, no per-event chatter.
     let gz = gzip(&body);

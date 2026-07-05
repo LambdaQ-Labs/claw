@@ -35,8 +35,9 @@ claw telemetry share      # gzip + upload, clear local log on success
 claw telemetry clear      # delete the local log
 ```
 
-`CLAW_TELEMETRY_URL` overrides the ingest endpoint (default
-`https://telemetry.clawlang.dev/v1/ingest`).
+`CLAW_TELEMETRY_URL` overrides the ingest endpoint (default: the deployed
+worker at `claw-telemetry.ninad2471.workers.dev`; moves to
+`telemetry.clawlang.dev` when the domain routes).
 
 ## Server side (why this costs ~nothing)
 
@@ -46,12 +47,15 @@ claw telemetry clear      # delete the local log
 **$0/month until there are thousands of active users** — and R2 charges no
 egress when training runs pull the data.
 
-Deploy (one-time, needs a Cloudflare account):
+**Deployed 2026-07-05** — bucket `claw-telemetry` (APAC), worker
+`claw-telemetry` at `claw-telemetry.ninad2471.workers.dev`, verified
+end-to-end (events → gzip → 200 → R2; worker tail shows outcome:ok, and
+the gzip round-trips through standard decoders). Remaining: route
+`telemetry.clawlang.dev` to the worker when DNS moves to Cloudflare.
 
 ```sh
-cd telemetry/worker
-wrangler r2 bucket create claw-telemetry
-wrangler deploy         # then route telemetry.clawlang.dev → this worker
+cd telemetry/worker      # to redeploy after changes
+npx wrangler deploy
 ```
 
 ## From telemetry to training data
