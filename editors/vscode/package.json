@@ -1,0 +1,56 @@
+{
+  "name": "claw-lang",
+  "displayName": "Claw Language",
+  "description": "Syntax highlighting, snippets, and language configuration for Claw — the AI-first programming language. Works in VS Code, Cursor, Windsurf, and VSCodium.",
+  "version": "0.1.0",
+  "publisher": "lambdaq-labs",
+  "license": "UPL-1.0",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/LambdaQ-Labs/claw",
+    "directory": "editors/vscode"
+  },
+  "homepage": "https://clawlang.dev",
+  "engines": {
+    "vscode": "^1.75.0"
+  },
+  "categories": [
+    "Programming Languages",
+    "Snippets"
+  ],
+  "keywords": [
+    "claw",
+    "clawlang",
+    "ai",
+    "agents",
+    "functional"
+  ],
+  "contributes": {
+    "languages": [
+      {
+        "id": "claw",
+        "aliases": [
+          "Claw",
+          "claw"
+        ],
+        "extensions": [
+          ".claw"
+        ],
+        "configuration": "./language-configuration.json"
+      }
+    ],
+    "grammars": [
+      {
+        "language": "claw",
+        "scopeName": "source.claw",
+        "path": "./syntaxes/claw.tmLanguage.json"
+      }
+    ],
+    "snippets": [
+      {
+        "language": "claw",
+        "path": "./snippets/claw.json"
+      }
+    ]
+  }
+}

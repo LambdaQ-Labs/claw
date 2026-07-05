@@ -1,0 +1,205 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Claw — the language AI can't hallucinate in</title>
+<meta name="description" content="Claw is an AI-first programming language. Code lives in a queryable database, generation is grammar-constrained, and a bundled model writes it better than Python.">
+<meta property="og:title" content="Claw — the language AI can't hallucinate in">
+<meta property="og:description" content="0% → 100% hallucination-free. A $0.03 fine-tune beats stock Python, JS, Go and Rust on functional correctness.">
+<meta property="og:image" content="https://clawlang.dev/og.png">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Cpath d='M6 26 Q10 12 16 6 Q14 16 12 26 Z M13 26 Q17 13 23 7 Q20 17 18 26 Z M19 26 Q23 15 28 10 Q25 19 24 26 Z' fill='%23f4a261'/%3E%3C/svg%3E">
+<style>
+:root{
+  --bg:#0d1117; --panel:#161b22; --line:#21262d;
+  --fg:#e6edf3; --dim:#8b949e;
+  --amber:#f4a261; --green:#4ade80; --red:#f87171;
+  --mono:ui-monospace,'SF Mono',Menlo,Consolas,monospace;
+}
+*{margin:0;padding:0;box-sizing:border-box}
+body{background:var(--bg);color:var(--fg);font:16px/1.65 -apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif}
+a{color:var(--amber);text-decoration:none}
+a:hover{text-decoration:underline}
+.wrap{max-width:960px;margin:0 auto;padding:0 24px}
+header{padding:18px 0;border-bottom:1px solid var(--line)}
+header .wrap{display:flex;align-items:center;gap:12px}
+header nav{margin-left:auto;display:flex;gap:20px;font-size:14px}
+header nav a{color:var(--dim)}
+.logo{display:flex;align-items:center;gap:10px;font-weight:700;font-size:18px}
+.hero{padding:88px 0 56px;text-align:center}
+.hero h1{font-size:clamp(28px,5vw,46px);line-height:1.15;letter-spacing:-.02em}
+.hero h1 em{color:var(--amber);font-style:normal}
+.hero p.sub{margin:20px auto 0;max-width:640px;color:var(--dim);font-size:18px}
+.install{margin:36px auto 0;display:inline-flex;align-items:center;gap:14px;background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:14px 20px;font-family:var(--mono);font-size:15px}
+.install .p{color:var(--green)}
+.badges{margin-top:22px;font-size:13px;color:var(--dim)}
+.badges span{margin:0 10px}
+section{padding:56px 0;border-top:1px solid var(--line)}
+h2{font-size:26px;margin-bottom:8px;letter-spacing:-.01em}
+.lead{color:var(--dim);max-width:680px;margin-bottom:32px}
+table{width:100%;border-collapse:collapse;font-size:15px;overflow-x:auto;display:block}
+th,td{text-align:left;padding:10px 14px;border-bottom:1px solid var(--line);white-space:nowrap}
+th{color:var(--dim);font-weight:600;font-size:13px;text-transform:uppercase;letter-spacing:.05em}
+td.num{font-family:var(--mono)}
+.win td{color:var(--green);font-weight:600}
+.gates{display:grid;grid-template-columns:repeat(auto-fit,minmax(210px,1fr));gap:16px;margin-top:8px}
+.gate{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:20px}
+.gate .n{font-family:var(--mono);color:var(--amber);font-size:13px}
+.gate h3{font-size:16px;margin:6px 0 8px}
+.gate p{font-size:14px;color:var(--dim)}
+pre{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:20px;overflow-x:auto;font-family:var(--mono);font-size:14px;line-height:1.6}
+pre .c{color:var(--dim)} pre .k{color:#79c0ff} pre .s{color:#a5d6ff} pre .f{color:var(--amber)} pre .t{color:#7ee787}
+.cols{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:24px}
+.foot{padding:40px 0;color:var(--dim);font-size:14px;border-top:1px solid var(--line);text-align:center}
+.cta{display:inline-block;margin-top:8px;background:var(--amber);color:#0d1117;font-weight:600;padding:10px 22px;border-radius:8px}
+.cta:hover{text-decoration:none;filter:brightness(1.1)}
+@media(prefers-color-scheme:light){
+  :root{--bg:#ffffff;--panel:#f6f8fa;--line:#d0d7de;--fg:#1f2328;--dim:#57606a}
+  pre .k{color:#0550ae} pre .s{color:#0a3069} pre .t{color:#116329}
+}
+</style>
+</head>
+<body>
+
+<header>
+  <div class="wrap">
+    <div class="logo">
+      <svg width="26" height="26" viewBox="0 0 32 32"><path d="M6 26 Q10 12 16 6 Q14 16 12 26 Z M13 26 Q17 13 23 7 Q20 17 18 26 Z M19 26 Q23 15 28 10 Q25 19 24 26 Z" fill="#f4a261"/></svg>
+      claw
+    </div>
+    <nav>
+      <a href="#numbers">Numbers</a>
+      <a href="#how">How</a>
+      <a href="#start">Start</a>
+      <a href="#ai">For AI teams</a>
+      <a href="https://github.com/LambdaQ-Labs/claw">GitHub</a>
+    </nav>
+  </div>
+</header>
+
+<div class="hero wrap">
+  <h1>The programming language<br><em>AI can't hallucinate in</em></h1>
+  <p class="sub">Claw stores code in a queryable database, constrains generation with a
+  type-directed grammar, and verifies every definition with a real compiler and
+  executable contracts. Then it ships a model that writes it — measurably better
+  than the same model writes Python.</p>
+  <div class="install"><span class="p">$</span> curl -fsSL https://clawlang.dev/install.sh | sh</div>
+  <div class="badges">
+    <span>⚖ UPL-1.0</span><span>⚙ compiler + LSP + MCP included</span><span>⬇ zero system deps</span>
+  </div>
+</div>
+
+<section id="numbers">
+  <div class="wrap">
+    <h2>Numbers, not adjectives</h2>
+    <p class="lead">One 0.5B model, five arms, identical execution-based grading:
+    every generated function is run against generated test cases and checked
+    against contracts. The Claw arm had a ~$0.03 fine-tune on machine-generated
+    data. The other arms had the model's entire pretraining corpus.</p>
+    <table>
+      <tr><th>arm (same model)</th><th>functional pass@1</th></tr>
+      <tr class="win"><td>Claw&nbsp;(tuned, $0.03)</td><td class="num">110/116&nbsp;&nbsp;94%</td></tr>
+      <tr><td>JavaScript (stock)</td><td class="num">104/116&nbsp;&nbsp;89%</td></tr>
+      <tr><td>Python (stock)</td><td class="num">66/116&nbsp;&nbsp;56%</td></tr>
+      <tr><td>Rust (stock)</td><td class="num">41/116&nbsp;&nbsp;35%</td></tr>
+      <tr><td>Go (stock)</td><td class="num">9/116&nbsp;&nbsp;7%</td></tr>
+    </table>
+    <p class="lead" style="margin-top:24px">And the discipline holds:
+    <b style="color:var(--fg)">0/121 → 121/121 hallucination-free</b> on the
+    reference gate after fine-tuning — including declared effect rows for
+    file, environment, and stdout access. Every number reproduces from the
+    <a href="https://github.com/LambdaQ-Labs/claw/tree/main/bench">committed harness</a>.</p>
+  </div>
+</section>
+
+<section id="how">
+  <div class="wrap">
+    <h2>Four gates, one guarantee</h2>
+    <p class="lead">No single layer makes a model reliable. The pipeline is the product.</p>
+    <div class="gates">
+      <div class="gate"><div class="n">gate 1</div><h3>Code as database</h3>
+        <p>Every definition is content-addressed and queryable. An agent asks
+        <i>what exists with this type?</i> instead of guessing an API. Measured:
+        hallucinated symbols 38 → 0 from context alone.</p></div>
+      <div class="gate"><div class="n">gate 2</div><h3>Constrained decoding</h3>
+        <p>The scope projects to a grammar. Out-of-scope calls and undeclared
+        effects are <i>ungeneratable at the token level</i> — a guarantee, not a
+        prompt.</p></div>
+      <div class="gate"><div class="n">gate 3</div><h3>Real typecheck</h3>
+        <p>Generated code round-trips through the actual compiler. Wrong arity,
+        undefined helpers, ignored parameters — caught before a human ever
+        reads the diff.</p></div>
+      <div class="gate"><div class="n">gate 4</div><h3>Executable contracts</h3>
+        <p>Definitions carry postconditions that run on generated inputs.
+        <code>area(2,3)</code> typechecks; <code>result == w*h</code> doesn't lie.</p></div>
+    </div>
+  </div>
+</section>
+
+<section id="start">
+  <div class="wrap">
+    <h2>Sixty seconds in</h2>
+    <div class="cols">
+      <div>
+<pre><span class="c"># fizzbuzz.claw</span>
+<span class="f">fizz</span> : <span class="t">U64</span> -&gt; <span class="t">Str</span>
+<span class="f">fizz</span> = |n| {
+    <span class="k">if</span> n % 15 == 0 <span class="s">"FizzBuzz"</span>
+    <span class="k">else if</span> n % 3 == 0 <span class="s">"Fizz"</span>
+    <span class="k">else if</span> n % 5 == 0 <span class="s">"Buzz"</span>
+    <span class="k">else</span> n.to_str()
+}
+
+<span class="f">main!</span> = |_args| {
+    <span class="f">echo!</span>(fizz(<span class="s">15</span>))
+    Ok({})
+}</pre>
+      </div>
+      <div>
+<pre><span class="p">$</span> claw run fizzbuzz.claw
+FizzBuzz
+
+<span class="p">$</span> claw check app.claw     <span class="c"># 100–200 ms</span>
+<span class="p">$</span> claw index . &amp;&amp; claw db symbols
+<span class="p">$</span> claw upgrade             <span class="c"># self-updating</span></pre>
+        <p style="color:var(--dim);font-size:14px;margin-top:14px">
+        Functional, effect-typed, whitespace-honest. Compiler, formatter,
+        test runner, LSP, and the MCP server ship in one tarball.
+        <a href="https://github.com/LambdaQ-Labs/claw/blob/main/docs/tour.md">Take the tour →</a></p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section id="ai">
+  <div class="wrap">
+    <h2>For AI teams</h2>
+    <p class="lead">Claw is an agent target, not just a language. Everything your
+    model needs to write verified code is an API:</p>
+    <div class="cols">
+      <div class="gate"><h3>MCP server, 5 tools</h3><p>symbols · type-directed candidates ·
+        decode grammar · render · real-compiler check. Configs for Claude Code &amp;
+        Desktop, Cursor, Windsurf, VS Code, Zed, Gemini CLI, Codex CLI.
+        <a href="https://github.com/LambdaQ-Labs/claw/blob/main/docs/mcp.md">docs/mcp.md</a></p></div>
+      <div class="gate"><h3>Run your model on the gate</h3><p>The five-language parity harness
+        is committed and reproducible. Point it at your checkpoint; publish your
+        numbers. <a href="https://github.com/LambdaQ-Labs/claw/blob/main/docs/parity-2026-07-05.md">the method</a></p></div>
+      <div class="gate"><h3>A data flywheel</h3><p>Opt-in telemetry captures
+        (prompt, definition, verdict) triples in the training schema. The bundled
+        model improves from real usage — and so can yours.</p></div>
+    </div>
+    <p style="margin-top:28px"><a class="cta" href="https://github.com/LambdaQ-Labs/claw">Read the code on GitHub</a></p>
+  </div>
+</section>
+
+<div class="foot">
+  <div class="wrap">
+    Claw, by LambdaQ Labs · UPL-1.0 ·
+    <a href="https://github.com/LambdaQ-Labs/claw">GitHub</a> ·
+    <a href="playground.html">Playground</a> ·
+    <a href="https://github.com/LambdaQ-Labs/claw/tree/main/docs">Docs</a>
+  </div>
+</div>
+
+</body>
+</html>

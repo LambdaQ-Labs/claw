@@ -1,0 +1,50 @@
+{
+  "Function with signature": {
+    "prefix": "fn",
+    "body": [
+      "${1:name} : ${2:Nat} -> ${3:Nat}",
+      "${1:name} = |${4:x}| ${0:body}"
+    ],
+    "description": "A definition with its type signature"
+  },
+  "Main entry point": {
+    "prefix": "main",
+    "body": [
+      "main! = |_args| {",
+      "    ${0:echo!(\"hello\")}",
+      "    Ok({})",
+      "}"
+    ],
+    "description": "The effectful program entry point"
+  },
+  "Match expression": {
+    "prefix": "match",
+    "body": [
+      "match ${1:value} {",
+      "    ${2:Some(x)} => ${3:x}",
+      "    ${4:None} => ${0:0}",
+      "}"
+    ],
+    "description": "Pattern match over a tag union"
+  },
+  "If / else": {
+    "prefix": "if",
+    "body": ["if ${1:cond} ${2:then} else ${0:else}"],
+    "description": "Conditional expression (both branches required)"
+  },
+  "Lambda": {
+    "prefix": "lam",
+    "body": ["|${1:x}| ${0:body}"],
+    "description": "Anonymous function"
+  },
+  "Module header": {
+    "prefix": "module",
+    "body": ["module [${0:exposed}]"],
+    "description": "Module header exposing definitions"
+  },
+  "List fold": {
+    "prefix": "fold",
+    "body": ["List.fold(${1:xs}, ${2:0}, |acc, x| ${0:acc + x})"],
+    "description": "Fold a list to a single value"
+  }
+}
