@@ -1,0 +1,92 @@
+<!doctype html>
+<html lang="mr">
+<head>
+<meta charset="utf-8">
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,600;9..144,700&family=Inter:wght@400;500;600;700&family=Noto+Sans+Devanagari:wght@400;500;600;700&family=Tiro+Devanagari+Marathi:ital@0;1&display=swap" rel="stylesheet">
+<style>
+  @page { size: A4; margin: 0; }
+  * { margin:0; padding:0; box-sizing:border-box; }
+  :root{ --ink:#1a1814; --dim:#5f574c; --acc:#c75b39; --cream:#faf6ec; --line:#e4d8c4; --sand:#f0e9d8; }
+  body{ font-family:'Noto Sans Devanagari','Inter',sans-serif; color:var(--ink); background:#fff; font-size:10.5pt; line-height:1.7; }
+  .page{ width:210mm; min-height:297mm; }
+  .head{ background:var(--cream); border-bottom:3px solid var(--acc); padding:20px 40px 18px; display:flex; align-items:center; justify-content:space-between; }
+  .lq{ font-family:'Fraunces',serif; font-size:30px; font-weight:600; letter-spacing:-1px; color:var(--ink); }
+  .lq .dot{ color:var(--acc); }
+  .brand{ display:flex; align-items:center; gap:10px; }
+  .brand .name{ font-family:'Fraunces',serif; font-size:26px; font-weight:600; color:var(--ink); }
+  .brand .dev{ font-family:'Inter'; font-size:9pt; color:var(--dim); letter-spacing:1px; text-transform:uppercase; }
+  .body{ padding:24px 40px 28px; }
+  .tag{ display:inline-block; font:600 8pt 'Inter'; letter-spacing:1.5px; text-transform:uppercase; color:var(--acc); border:1px solid var(--acc); border-radius:20px; padding:3px 12px; margin-bottom:14px; }
+  h1{ font-family:'Noto Sans Devanagari',serif; font-size:20pt; line-height:1.3; font-weight:700; margin-bottom:8px; }
+  h1 .en{ font-family:'Fraunces',serif; }
+  .sub{ font-size:12pt; color:var(--dim); margin-bottom:16px; font-weight:500; line-height:1.5; }
+  .dateline{ font-size:10pt; color:var(--dim); margin-bottom:14px; border-bottom:1px solid var(--line); padding-bottom:12px; }
+  .dateline b{ color:var(--ink); }
+  p{ margin-bottom:11px; }
+  .lead{ font-size:11.5pt; }
+  b{ color:var(--ink); }
+  .pull{ background:var(--sand); border-left:3px solid var(--acc); border-radius:6px; padding:12px 16px; margin:14px 0; }
+  .pull .big{ font-family:'Fraunces',serif; font-size:16pt; font-weight:600; color:var(--acc); }
+  .stats{ display:flex; margin:14px 0; border:1px solid var(--line); border-radius:8px; overflow:hidden; }
+  .stat{ flex:1; padding:12px 10px; text-align:center; border-right:1px solid var(--line); }
+  .stat:last-child{ border-right:none; }
+  .stat .n{ font-family:'Fraunces',serif; font-size:19pt; font-weight:700; color:var(--acc); }
+  .stat .l{ font-size:8pt; color:var(--dim); }
+  h2{ font-family:'Noto Sans Devanagari'; font-weight:700; font-size:12.5pt; margin:16px 0 6px; color:var(--ink); }
+  .quote{ font-family:'Tiro Devanagari Marathi',serif; font-style:italic; font-size:12pt; color:var(--ink); border-left:2px solid var(--acc); padding-left:14px; margin:12px 0; line-height:1.6; }
+  .quote .who{ display:block; font-family:'Noto Sans Devanagari'; font-style:normal; font-size:9.5pt; color:var(--dim); margin-top:5px; }
+  .links{ background:var(--ink); color:var(--cream); border-radius:8px; padding:12px 16px; margin:14px 0; font-size:10pt; line-height:1.6; }
+  .links a,.links .u{ color:#fdba74; } .links b{ color:#fff; }
+  .foot{ margin-top:16px; border-top:1px solid var(--line); padding-top:12px; font-size:9.5pt; color:var(--dim); line-height:1.6; }
+  .foot b{ color:var(--ink); }
+</style>
+</head>
+<body>
+<div class="page">
+  <div class="head">
+    <div class="lq">LambdaQ<span class="dot">.</span></div>
+    <div class="brand">
+      <svg width="34" height="34" viewBox="0 0 32 32"><circle cx="16" cy="16" r="11" fill="none" stroke="#c75b39" stroke-width="3" stroke-dasharray="52 17" stroke-linecap="round" transform="rotate(-42 16 16)"/><circle cx="16" cy="16" r="3.6" fill="#c75b39"/></svg>
+      <div><div class="name">Achuk</div><div class="dev">achuk.dev</div></div>
+    </div>
+  </div>
+
+  <div class="body">
+    <div class="tag">प्रेस रिलीज · तात्काळ प्रसिद्धीसाठी</div>
+    <h1>महाराष्ट्रात तयार झाली ‘<span class="en">अचूक</span>’ — AI ला चुकू न देणारी जगातील नवी प्रोग्रामिंग भाषा</h1>
+    <p class="sub">LambdaQ Labs ने प्रसिद्ध केली Achuk (अचूक) — स्वतःचे AI मॉडेल सोबत घेऊन येणारी, Python आणि Go पेक्षा सरस ठरणारी ओपन-सोर्स भाषा — तयार खर्च फक्त $2.</p>
+    <div class="dateline"><b>पुणे / महाराष्ट्र — ६ जुलै २०२६.</b> &nbsp; भारतीय डीप-टेक कंपनी <b>LambdaQ Labs</b> ने आज <b>Achuk (अचूक)</b> ही नवी ओपन-सोर्स प्रोग्रामिंग भाषा प्रसिद्ध केली. नावाप्रमाणेच — ही भाषा AI ला चुकू देत नाही.</div>
+
+    <p class="lead">AI कडून कोड लिहून घेणाऱ्या प्रत्येक प्रोग्रामरला एक अडचण नेहमी येते: AI आत्मविश्वासाने असे फंक्शन वापरतो जे <b>अस्तित्वातच नसते.</b> कोड बघायला अगदी बरोबर वाटतो, पण चालवल्यावर कोसळतो. जगाचे उत्तर आजवर एकच होते — “अजून चांगली सूचना (prompt) द्या.” LambdaQ Labs ने वेगळे उत्तर तयार केले — अशी भाषा, जिथे ही चूक <b>मुळातच अशक्य</b> आहे.</p>
+
+    <p>Achuk मध्ये AI ने लिहिलेली प्रत्येक ओळ प्रकल्पातील खऱ्या नावांपुरतीच मर्यादित असते, आणि प्रत्यक्ष कंपायलर ती <b>तुम्हाला दिसण्याआधीच</b> तपासतो. चूक असेल तर ती नाकारली जाते — कधीही चुकीचा कोड हातात दिला जात नाही. शिवाय Achuk सोबत स्वतःचे AI मॉडेल येते — एका कमांडमध्ये इन्स्टॉल, कोणतीही API key नाही, इंटरनेट नाही, कोणत्याही लॅपटॉपवर चालते.</p>
+
+    <div class="stats">
+      <div class="stat"><div class="n">९४%</div><div class="l">Achuk मध्ये बरोबर</div></div>
+      <div class="stat"><div class="n">५६%</div><div class="l">तेच मॉडेल, Python</div></div>
+      <div class="stat"><div class="n">७%</div><div class="l">तेच मॉडेल, Go</div></div>
+      <div class="stat"><div class="n">३८ → ०</div><div class="l">काल्पनिक फंक्शन्स</div></div>
+    </div>
+
+    <p>प्रकल्पाच्या खुल्या, प्रत्यक्ष चालवून तपासलेल्या बेंचमार्कवर, तेच AI मॉडेल Achuk मध्ये <b>९४% बरोबर कोड</b> लिहिते — Python मध्ये फक्त ५६%, आणि Go मध्ये ७%. काल्पनिक (न-अस्तित्वातील) फंक्शन कॉल्स ३८ वरून <b>शून्यावर</b> आले. प्रत्येक निकाल ओपन-सोर्स रेपॉझिटरीमधून पडताळून पाहता येतो.</p>
+
+    <div class="pull">संपूर्ण भाषा, AI मॉडेल, पॅकेज रजिस्ट्री आणि प्लेग्राउंड — हे सगळे अवघ्या काही दिवसांत, केवळ <span class="big">$2</span> (सुमारे ₹१७०) खर्चात तयार झाले — आणि पूर्णपणे मोफत ओपन-सोर्स प्रसिद्ध केले.</div>
+
+    <p class="quote">“आम्हाला अशी भाषा नको होती जिच्यावर फक्त माणूस विश्वास ठेवू शकेल, किंवा फक्त यंत्र लिहू शकेल. Achuk अशी घडवली की दोघांनाही विश्वास ठेवता येईल — हमी भाषेतच आहे, मॉडेल बरोबर करेल अशा आशेवर नाही. आणि तिला ‘अचूक’ हे मराठी नाव असणे — हाच तर मुद्दा आहे.”
+      <span class="who">— निनाद, संस्थापक, LambdaQ Labs</span></p>
+
+    <h2>भारतात घडलेले, जगासाठी</h2>
+    <p>Achuk हा LambdaQ Labs चा पूर्णपणे ओपन-सोर्स प्रकल्प आहे — भारतातून फ्रंटियर AI घडवणारी डीप-टेक कंपनी. जगातील मोजक्या “AI-first” भाषांच्या पंक्तीत Achuk सामील होते — आणि grammar-constrained जनरेशन, खरी कंपायलर पडताळणी, व सोबत आलेले मॉडेल — हे तिन्ही एका कमांडमध्ये एकत्र देणाऱ्या पहिल्यांपैकी आहे.</p>
+
+    <div class="links">
+      <b>६० सेकंदात वापरून पाहा:</b> <span class="u">achuk.dev</span> &nbsp;·&nbsp; <b>सोर्स व बेंचमार्क:</b> <span class="u">github.com/LambdaQ-Labs/achuk</span> &nbsp;·&nbsp; <b>लाइव्ह प्लेग्राउंड:</b> <span class="u">achuk.dev/playground.html</span>
+    </div>
+
+    <div class="foot">
+      <b>LambdaQ Labs विषयी</b> — भारतातून फ्रंटियर AI घडवणारी डीप-टेक कंपनी. &nbsp; <b>माध्यम संपर्क:</b> hello@lambdaq.org &nbsp;·&nbsp; achuk.dev &nbsp;·&nbsp; lambdaq.org<br>
+      <span style="font-size:8.5pt">बेंचमार्कची पद्धत व पडताळणीच्या सूचना ओपन-सोर्स रेपॉझिटरीमध्ये प्रसिद्ध केल्या आहेत. Achuk ओपन-सोर्स परवान्याखाली प्रसिद्ध.</span>
+    </div>
+  </div>
+</div>
+</body>
+</html>
