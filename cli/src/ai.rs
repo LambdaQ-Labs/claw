@@ -119,63 +119,119 @@ fn gen(cdb: &Cdb, task: &str, unconstrained: bool) -> anyhow::Result<()> {
         "Task: {task}\n\nIn-scope symbols (the ONLY callable definitions):\n{scope}\n\n{PROTOCOL}"
     );
 
-    let mut body = serde_json::json!({
-        "messages": [{"role": "user", "content": prompt}],
-        "temperature": 0,
-        "max_tokens": 300,
-    });
-    if !unconstrained {
+    let grammar = if unconstrained {
+        None
+    } else {
         let hole = HoleContext {
             editing: None,
             expected: achuk_core::Type::Var("any".into()),
         };
-        let mask = legal_continuations(cdb, &hole)?;
-        body["grammar"] = serde_json::Value::String(mask.to_gbnf());
-    }
+        Some(legal_continuations(cdb, &hole)?.to_gbnf())
+    };
 
-    let resp: serde_json::Value = ureq::post(&format!("http://127.0.0.1:{PORT}/v1/chat/completions"))
-        .set("content-type", "application/json")
-        .timeout(std::time::Duration::from_secs(600))
-        .send_string(&body.to_string())?
-        .into_json()?;
-    let raw = resp["choices"][0]["message"]["content"]
-        .as_str()
-        .ok_or_else(|| anyhow::anyhow!("no completion in the server response"))?;
-
-    let defs: Vec<achuk_bench_grader::ProducedDef> =
-        serde_json::from_str(raw.trim().trim_matches('`'))
-            .map_err(|e| anyhow::anyhow!("model output was not Def-JSON: {e}\n{raw}"))?;
-
-    // Render for the human.
-    println!("── generated ──");
-    for (i, d) in defs.iter().enumerate() {
-        let name = d.name.clone().unwrap_or_else(|| format!("def{i}"));
-        println!("{}", achuk_core::render::render_def(&name, &d.def));
-    }
-
-    // Verify with the real compiler: every CDB symbol in scope as a stub.
+    // Scope stubs for the real-compiler verification.
     let mut scope_pairs = Vec::new();
     for (n, h) in cdb.symbols()? {
         let d = cdb.get(&h)?;
         scope_pairs.push((n, d.ty));
     }
-    let module = achuk_bench_grader::realc::to_module(&scope_pairs, &defs);
-    match achuk_bench_grader::realc::achukc_check(&module) {
-        Ok(r) if r.compiled => println!("── verified ── real compiler: OK"),
-        Ok(r) => {
-            println!("── REJECTED ── real compiler found {} error(s):\n{}", r.errors, r.detail);
-            std::process::exit(1);
+
+    // Best-of-N: the model is small, so one greedy shot often fails. We
+    // sample up to N candidates (attempt 0 greedy, rest sampled) and return
+    // the FIRST that the real compiler accepts — the compiler is the filter.
+    // This is the whole thesis: a weak model made reliable by verification.
+    const N: usize = 6;
+    let mut last_fail: Option<(Vec<achuk_bench_grader::ProducedDef>, String, achuk_bench_grader::realc::RealCheck)> = None;
+
+    for attempt in 0..N {
+        let mut body = serde_json::json!({
+            "messages": [{"role": "user", "content": prompt}],
+            "temperature": if attempt == 0 { 0.0 } else { 0.7 },
+            "seed": attempt as i64,
+            "max_tokens": 300,
+        });
+        if let Some(g) = &grammar {
+            body["grammar"] = serde_json::Value::String(g.clone());
         }
-        Err(e) => println!("── unverified ── compiler unavailable ({e})"),
+        if attempt == 1 {
+            eprint!("  refining");
+        } else if attempt > 1 {
+            eprint!(".");
+        }
+
+        let resp: serde_json::Value =
+            ureq::post(&format!("http://127.0.0.1:{PORT}/v1/chat/completions"))
+                .set("content-type", "application/json")
+                .timeout(std::time::Duration::from_secs(600))
+                .send_string(&body.to_string())?
+                .into_json()?;
+        let raw = resp["choices"][0]["message"]["content"]
+            .as_str()
+            .unwrap_or("")
+            .trim()
+            .trim_matches('`')
+            .to_string();
+
+        let defs: Vec<achuk_bench_grader::ProducedDef> = match serde_json::from_str(&raw) {
+            Ok(d) => d,
+            Err(_) => continue, // unparseable — try another sample
+        };
+        let module = achuk_bench_grader::realc::to_module(&scope_pairs, &defs);
+        match achuk_bench_grader::realc::achukc_check(&module) {
+            Ok(r) if r.compiled => {
+                if attempt > 0 {
+                    eprintln!();
+                }
+                println!("── generated ──");
+                for (i, d) in defs.iter().enumerate() {
+                    let name = d.name.clone().unwrap_or_else(|| format!("def{i}"));
+                    println!("{}", achuk_core::render::render_def(&name, &d.def));
+                }
+                let note = if attempt == 0 {
+                    String::new()
+                } else {
+                    format!("  (verified on attempt {} of {N})", attempt + 1)
+                };
+                println!("── verified ── real compiler: OK{note}");
+                achuk_telemetry::event(
+                    "ai_gen",
+                    serde_json::json!({"constrained": !unconstrained, "defs": defs.len(), "attempts": attempt + 1, "ok": true}),
+                    Some(serde_json::json!({"task": task, "raw": raw})),
+                );
+                return Ok(());
+            }
+            Ok(r) => last_fail = Some((defs, raw, r)),
+            Err(e) => {
+                println!("── unverified ── compiler unavailable ({e})");
+                return Ok(());
+            }
+        }
     }
 
-    achuk_telemetry::event(
-        "ai_gen",
-        serde_json::json!({"constrained": !unconstrained, "defs": defs.len()}),
-        Some(serde_json::json!({"task": task, "raw": raw})),
-    );
-    Ok(())
+    // Every candidate failed the compiler — show the closest attempt.
+    if let Some((defs, raw, r)) = last_fail {
+        eprintln!();
+        println!("── generated ── (best of {N} attempts)");
+        for (i, d) in defs.iter().enumerate() {
+            let name = d.name.clone().unwrap_or_else(|| format!("def{i}"));
+            println!("{}", achuk_core::render::render_def(&name, &d.def));
+        }
+        println!("── REJECTED ── none of {N} attempts compiled ({} error(s)):\n{}", r.errors, r.detail);
+        println!(
+            "\nThe bundled model is a small 0.5B — it struggles with some tasks. \
+             Try rephrasing the task, breaking it into smaller pieces, or `achuk index .` \
+             so the AI sees more of your real code."
+        );
+        achuk_telemetry::event(
+            "ai_gen",
+            serde_json::json!({"constrained": !unconstrained, "attempts": N, "ok": false}),
+            Some(serde_json::json!({"task": task, "raw": raw})),
+        );
+        std::process::exit(1);
+    }
+    anyhow::bail!("the model produced no parseable output in {N} attempts")
 }
+
 
 pub fn ai_cmd(db_path: &Path, args: &[String]) -> anyhow::Result<()> {
     match args.first().map(String::as_str) {
