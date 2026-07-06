@@ -1,4 +1,4 @@
-/* @ts-self-types="./claw_play.d.ts" */
+/* @ts-self-types="./achuk_play.d.ts" */
 
 /**
  * Type-directed search: which scope symbols unify with this signature?
@@ -208,7 +208,7 @@ function __wbg_get_imports() {
     };
     return {
         __proto__: null,
-        "./claw_play_bg.js": import0,
+        "./achuk_play_bg.js": import0,
     };
 }
 
@@ -374,7 +374,7 @@ async function __wbg_init(module_or_path) {
     }
 
     if (module_or_path === undefined) {
-        module_or_path = new URL('claw_play_bg.wasm', import.meta.url);
+        module_or_path = new URL('achuk_play_bg.wasm', import.meta.url);
     }
     const imports = __wbg_get_imports();
 
