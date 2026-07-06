@@ -150,3 +150,23 @@ diopune@gmail.com, ddikon12@gmail.com, diothane2013@gmail.com, dio.palghar@gmail
 1. **DGIPR 36 districts** (§3) — official, whole-state, most legit. START HERE.
 2. **Direct paper desks** — Jalgaon 28 (§1) + Tarun Bharat per-city (§4) + Mumbai flagships (§5) + Vidarbha/Marathwada verified (§6) + Pune (§4).
 3. Send from press@lambdaq.org, individually addressed, personalized opening per outlet, Marathi PDF attached. Small batches.
+
+---
+
+## 7. More Mumbai + Konkan + North MH (✅ verified)
+**Mumbai (additional):**
+- Navakal — contact@navakal.in ✅
+- Lokmat Mumbai — editorial@lokmat.com ✅
+- Sakal Mumbai — editor.mumbai@esakal.com ✅
+
+**Konkan:**
+- Tarun Bharat Sindhudurg — news.sin@tarunbharat.com ✅
+- Krushival (Raigad/Alibag) — krushivalnews@gmail.com ✅
+- Kokan Media (Ratnagiri) — kokanmedia@kokanmedia.in ✅
+- Ratnagiri Times — timesspecial888@gmail.com ✅
+
+**North MH:**
+- Gavkari (Nashik) — gavmaha123@gmail.com ✅
+- Sakal Nashik — saknash@rediffmail.com ✅
+- Deshdoot (Nashik) — circnsk@deshdoot.com ⚠️ (circulation)
+- (Sarvamat Ahmednagar — no email; Mid-Day Marathi — grievance only)
