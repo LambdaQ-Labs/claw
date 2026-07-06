@@ -42,6 +42,20 @@ fn real_main() -> anyhow::Result<()> {
         args.remove(i);
     }
 
+    // Record the command invoked (name only — never args, paths, or code)
+    // so usage is captured for every command, not just `ai`/`defs-check`.
+    // Fire before dispatch: some commands exec the compiler and never return.
+    {
+        let cmd = args.first().map(String::as_str).unwrap_or("help");
+        let sub = match cmd {
+            "db" | "mcp" | "corpus" | "ai" | "telemetry" => {
+                args.get(1).map(|s| format!("{cmd}.{s}")).unwrap_or_else(|| cmd.into())
+            }
+            _ => cmd.into(),
+        };
+        achuk_telemetry::event("command", serde_json::json!({ "cmd": sub }), None);
+    }
+
     match args.first().map(String::as_str) {
         Some("--version" | "-V" | "version") => {
             println!("achuk {}", env!("CARGO_PKG_VERSION"));

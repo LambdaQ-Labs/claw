@@ -15,7 +15,22 @@ const MAX_BODY = 6 * 1024 * 1024; // one full client log, gzipped, with margin
 
 export default {
   async fetch(request, env) {
-    if (request.method !== "POST" || new URL(request.url).pathname !== "/v1/ingest") {
+    const url = new URL(request.url);
+    // Read-only stats: how much has landed. No PII — counts + bytes only.
+    if (request.method === "GET" && url.pathname === "/stats") {
+      let count = 0, bytes = 0, days = new Set(), cursor = undefined;
+      do {
+        const page = await env.TELEMETRY.list({ prefix: "v1/", cursor, limit: 1000 });
+        for (const o of page.objects) {
+          count++; bytes += o.size;
+          const d = o.key.split("/")[1];
+          if (d) days.add(d);
+        }
+        cursor = page.truncated ? page.cursor : undefined;
+      } while (cursor);
+      return Response.json({ uploads: count, bytes, days: days.size, live: true });
+    }
+    if (request.method !== "POST" || url.pathname !== "/v1/ingest") {
       return new Response("achuk telemetry ingest\n", { status: 404 });
     }
     const len = Number(request.headers.get("content-length") || 0);
