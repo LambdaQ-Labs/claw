@@ -1,0 +1,94 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600;9..144,700&family=Inter:wght@400;500;600;700&family=Noto+Sans+Devanagari:wght@400;600;700&display=swap" rel="stylesheet">
+<style>
+  @page { size: A4; margin: 0; }
+  * { margin:0; padding:0; box-sizing:border-box; }
+  :root{ --ink:#1a1814; --dim:#6b6358; --acc:#c75b39; --cream:#faf6ec; --line:#e4d8c4; --sand:#f0e9d8; }
+  body{ font-family:'Inter',sans-serif; color:var(--ink); background:#fff; font-size:10.5pt; line-height:1.55; }
+  .page{ width:210mm; min-height:297mm; padding:0; margin:0 auto; }
+  /* letterhead */
+  .head{ background:var(--cream); border-bottom:3px solid var(--acc); padding:20px 40px 18px; display:flex; align-items:center; justify-content:space-between; }
+  .lq{ font-family:'Fraunces',serif; font-size:30px; font-weight:600; letter-spacing:-1px; color:var(--ink); }
+  .lq .dot{ color:var(--acc); }
+  .brand{ display:flex; align-items:center; gap:10px; }
+  .brand .name{ font-family:'Fraunces',serif; font-size:26px; font-weight:600; color:var(--ink); }
+  .brand .dev{ font-family:'Inter'; font-size:9pt; color:var(--dim); letter-spacing:1px; text-transform:uppercase; }
+  .body{ padding:26px 40px 30px; }
+  .tag{ display:inline-block; font:600 8pt 'Inter'; letter-spacing:1.5px; text-transform:uppercase; color:var(--acc); border:1px solid var(--acc); border-radius:20px; padding:3px 12px; margin-bottom:14px; }
+  h1{ font-family:'Fraunces',serif; font-size:23pt; line-height:1.15; font-weight:600; letter-spacing:-.3px; margin-bottom:8px; }
+  .dev-h1{ font-family:'Noto Sans Devanagari'; }
+  .sub{ font-size:12pt; color:var(--dim); margin-bottom:16px; font-weight:500; }
+  .dateline{ font-size:9.5pt; color:var(--dim); margin-bottom:14px; border-bottom:1px solid var(--line); padding-bottom:12px; }
+  .dateline b{ color:var(--ink); }
+  p{ margin-bottom:11px; }
+  .lead{ font-size:11.5pt; }
+  .pull{ background:var(--sand); border-left:3px solid var(--acc); border-radius:6px; padding:12px 16px; margin:14px 0; }
+  .pull .big{ font-family:'Fraunces',serif; font-size:16pt; font-weight:600; color:var(--acc); }
+  .stats{ display:flex; gap:0; margin:14px 0; border:1px solid var(--line); border-radius:8px; overflow:hidden; }
+  .stat{ flex:1; padding:12px 14px; text-align:center; border-right:1px solid var(--line); }
+  .stat:last-child{ border-right:none; }
+  .stat .n{ font-family:'Fraunces',serif; font-size:19pt; font-weight:700; color:var(--acc); }
+  .stat .l{ font-size:7.5pt; color:var(--dim); text-transform:uppercase; letter-spacing:.5px; }
+  h2{ font-family:'Fraunces',serif; font-size:12.5pt; margin:16px 0 6px; color:var(--ink); }
+  .quote{ font-family:'Fraunces',serif; font-style:italic; font-size:11.5pt; color:var(--ink); border-left:2px solid var(--line); padding-left:14px; margin:12px 0; }
+  .quote .who{ display:block; font-family:'Inter'; font-style:normal; font-size:9pt; color:var(--dim); margin-top:5px; }
+  .foot{ margin-top:18px; border-top:1px solid var(--line); padding-top:12px; font-size:9pt; color:var(--dim); }
+  .foot b{ color:var(--ink); }
+  a{ color:var(--acc); text-decoration:none; }
+  .links{ background:var(--ink); color:var(--cream); border-radius:8px; padding:12px 16px; margin:14px 0; font-size:10pt; }
+  .links a{ color:#fdba74; }
+  .links b{ color:#fff; }
+</style>
+</head>
+<body>
+<div class="page">
+  <div class="head">
+    <div class="lq">LambdaQ<span class="dot">.</span></div>
+    <div class="brand">
+      <svg width="34" height="34" viewBox="0 0 32 32"><circle cx="16" cy="16" r="11" fill="none" stroke="#c75b39" stroke-width="3" stroke-dasharray="52 17" stroke-linecap="round" transform="rotate(-42 16 16)"/><circle cx="16" cy="16" r="3.6" fill="#c75b39"/></svg>
+      <div><div class="name">Achuk</div><div class="dev">achuk.dev</div></div>
+    </div>
+  </div>
+
+  <div class="body">
+    <div class="tag">Press Release · For Immediate Release</div>
+    <h1>India builds <span class="dev-h1">अचूक</span> — a new programming language where AI-written code <em>can't</em> be fake</h1>
+    <p class="sub">LambdaQ Labs releases Achuk: an open-source AI-first language that ships its own model and out-scores Python and Go on a reproducible benchmark — built for under $2.</p>
+    <div class="dateline"><b>Pune / Maharashtra, India — 6 July 2026.</b> &nbsp; LambdaQ Labs today released <b>Achuk</b> (अचूक, Marathi for <em>“infallible”</em>), an open-source programming language designed for the age of AI-written code.</div>
+
+    <p class="lead">Every developer using AI to write code has hit the same wall: the AI confidently produces code that calls a function which does not exist. It looks perfect, then it breaks. The industry’s answer has been “write better prompts.” LambdaQ Labs built a different answer — a language in which such mistakes are <b>structurally impossible</b>.</p>
+
+    <p>In Achuk, every line the AI writes is constrained to the project’s real symbols, and verified by the actual compiler <em>before the developer ever sees it</em>. If the code is wrong, it is rejected — never handed over as a silent bug. And Achuk ships with its own fine-tuned AI model built in: one command installs it, with no API keys and no cloud, running on any laptop.</p>
+
+    <div class="stats">
+      <div class="stat"><div class="n">94%</div><div class="l">correct in Achuk</div></div>
+      <div class="stat"><div class="n">56%</div><div class="l">same model, Python</div></div>
+      <div class="stat"><div class="n">7%</div><div class="l">same model, Go</div></div>
+      <div class="stat"><div class="n">38 → 0</div><div class="l">hallucinated calls</div></div>
+    </div>
+
+    <p>On the project’s public, execution-graded benchmark, the same AI model writes <b>94% correct code in Achuk</b> versus 56% in Python and 7% in Go — and invented function calls dropped from 38 per run to zero. Every result is reproducible from the open-source repository.</p>
+
+    <div class="pull">The entire language, model, package registry and playground were built in a handful of days for <span class="big">under $2</span> of cloud compute — and released fully open-source.</div>
+
+    <p class="quote">“We didn’t want a language only humans could trust, or only machines could write. Achuk is built so both can — the guarantees live in the language itself, not in hoping the model gets it right. That it carries a Marathi name for <em>infallible</em> is exactly the point.”
+      <span class="who">— Ninad, Founder, LambdaQ Labs</span></p>
+
+    <h2>Made in India, for the world</h2>
+    <p>Achuk is a fully open-source project from LambdaQ Labs, a deep-tech company building frontier AI from India. It joins a small global frontier of “AI-first” languages — and is among the first to combine grammar-constrained generation, real compiler verification, and a bundled model into a single one-command install.</p>
+
+    <div class="links">
+      <b>Try it in 60 seconds:</b> &nbsp; achuk.dev &nbsp;·&nbsp; <b>Source &amp; benchmark:</b> github.com/LambdaQ-Labs/achuk &nbsp;·&nbsp; <b>Live playground:</b> achuk.dev/playground.html
+    </div>
+
+    <div class="foot">
+      <b>About LambdaQ Labs</b> — A deep-tech company building frontier AI, made in India. &nbsp; <b>Media contact:</b> dev@achuk.dev &nbsp;·&nbsp; achuk.dev &nbsp;·&nbsp; lambdaq.org<br>
+      <span style="font-size:8pt">Benchmark methodology and reproducibility instructions are published in the open-source repository. Achuk is released under an open-source license.</span>
+    </div>
+  </div>
+</div>
+</body>
+</html>
