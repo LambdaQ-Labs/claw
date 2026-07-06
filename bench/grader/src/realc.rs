@@ -187,10 +187,35 @@ pub fn achukc_check(module_src: &str) -> anyhow::Result<RealCheck> {
         })
         .ok_or_else(|| anyhow::anyhow!("achukc produced no 'Found N error(s)' summary:\n{text}"))?;
 
-    let detail = text
-        .lines()
+    // achukc prints each diagnostic as its own box separated by blank lines.
+    // Our verify wrapper adds a `module [...]` header, which triggers a
+    // harmless "MODULE HEADER DEPRECATED" warning — drop that block so the
+    // user sees only the real errors, not self-inflicted noise.
+    // The verify wrapper's `module [...]` header always makes the FIRST
+    // diagnostic box a harmless "MODULE HEADER DEPRECATED" warning. Skip the
+    // whole first box (up to the second box top `┌`) so the user sees the
+    // real error, not the ASCII-boxed deprecation notice.
+    let lines: Vec<&str> = text.lines().collect();
+    let box_tops: Vec<usize> = lines
+        .iter()
+        .enumerate()
+        .filter(|(_, l)| l.contains('\u{250c}')) // ┌
+        .map(|(i, _)| i)
+        .collect();
+    let start = if box_tops.len() >= 2
+        && lines[box_tops[0]..box_tops[1]]
+            .iter()
+            .any(|l| l.to_uppercase().contains("DEPRECATED"))
+    {
+        box_tops[1]
+    } else {
+        0
+    };
+    let detail = lines[start..]
+        .iter()
         .filter(|l| !l.trim().is_empty())
-        .take(6)
+        .take(8)
+        .cloned()
         .collect::<Vec<_>>()
         .join("\n");
     Ok(RealCheck {
