@@ -10,7 +10,7 @@
 //! ```
 //!
 //! The inference runtime is a bundled llama.cpp server (`achuk-infer`) and
-//! a quantized model (`model/achuk-0.5b-q8.gguf`), both shipped in the same
+//! a quantized model (`model/achuk-coder-3b-q8.gguf`), both shipped in the same
 //! tarball as the compiler — no separate downloads, no configuration.
 //! `achuk ai gen` starts the server on demand and leaves it warm.
 
@@ -54,7 +54,7 @@ fn find_resource(env: &str, rel: &[&str], what: &str) -> anyhow::Result<PathBuf>
 }
 
 fn model_path() -> anyhow::Result<PathBuf> {
-    find_resource("ACHUK_MODEL_PATH", &["model", "achuk-0.5b-q8.gguf"], "the bundled model")
+    find_resource("ACHUK_MODEL_PATH", &["model", "achuk-coder-3b-q8.gguf"], "the bundled model")
 }
 
 fn infer_path() -> anyhow::Result<PathBuf> {
@@ -108,6 +108,40 @@ fn scope_lines(cdb: &Cdb) -> anyhow::Result<String> {
     Ok(out.join("\n"))
 }
 
+/// Collect every `Var` name referenced in an expression (its free-and-bound
+/// identifiers). Used to stub only the scope symbols a candidate actually
+/// calls, keeping the verification module minimal.
+fn collect_refs(e: &achuk_core::Expr, out: &mut std::collections::HashSet<String>) {
+    use achuk_core::Expr::*;
+    match e {
+        Var(v) => {
+            out.insert(v.clone());
+        }
+        Lam { body, .. } => collect_refs(body, out),
+        App { func, args } => {
+            collect_refs(func, out);
+            args.iter().for_each(|a| collect_refs(a, out));
+        }
+        If { cond, then, els } => {
+            collect_refs(cond, out);
+            collect_refs(then, out);
+            collect_refs(els, out);
+        }
+        Let { value, body, .. } => {
+            collect_refs(value, out);
+            collect_refs(body, out);
+        }
+        Record(fields) => fields.iter().for_each(|(_, e)| collect_refs(e, out)),
+        Field(e, _) => collect_refs(e, out),
+        Tag(_, args) => args.iter().for_each(|a| collect_refs(a, out)),
+        Match(s, arms) => {
+            collect_refs(s, out);
+            arms.iter().for_each(|(_, b)| collect_refs(b, out));
+        }
+        Ref(_) | Lit(_) => {}
+    }
+}
+
 /// `achuk ai gen "<task>"` — generate, constrained and verified.
 fn gen(cdb: &Cdb, task: &str, unconstrained: bool) -> anyhow::Result<()> {
     use achuk_constraint::{legal_continuations, HoleContext};
@@ -129,11 +163,14 @@ fn gen(cdb: &Cdb, task: &str, unconstrained: bool) -> anyhow::Result<()> {
         Some(legal_continuations(cdb, &hole)?.to_gbnf())
     };
 
-    // Scope stubs for the real-compiler verification.
-    let mut scope_pairs = Vec::new();
+    // Scope symbols for the real-compiler verification. We stub only the ones
+    // a candidate actually references — stubbing the WHOLE cdb pulls in
+    // complex-typed symbols (effectful `main!`, polymorphic `where` clauses)
+    // whose crash-stubs may not typecheck, false-rejecting correct code.
+    let mut all_scope = Vec::new();
     for (n, h) in cdb.symbols()? {
         let d = cdb.get(&h)?;
-        scope_pairs.push((n, d.ty));
+        all_scope.push((n, d.ty));
     }
 
     // Best-of-N: the model is small, so one greedy shot often fails. We
@@ -148,7 +185,7 @@ fn gen(cdb: &Cdb, task: &str, unconstrained: bool) -> anyhow::Result<()> {
             "messages": [{"role": "user", "content": prompt}],
             "temperature": if attempt == 0 { 0.0 } else { 0.7 },
             "seed": attempt as i64,
-            "max_tokens": 300,
+            "max_tokens": 512,
         });
         if let Some(g) = &grammar {
             body["grammar"] = serde_json::Value::String(g.clone());
@@ -176,6 +213,16 @@ fn gen(cdb: &Cdb, task: &str, unconstrained: bool) -> anyhow::Result<()> {
             Ok(d) => d,
             Err(_) => continue, // unparseable — try another sample
         };
+        // Keep only the scope symbols this candidate references.
+        let mut refs = std::collections::HashSet::new();
+        for d in &defs {
+            collect_refs(&d.def.expr, &mut refs);
+        }
+        let scope_pairs: Vec<_> = all_scope
+            .iter()
+            .filter(|(n, _)| refs.contains(n.as_str()))
+            .cloned()
+            .collect();
         let module = achuk_bench_grader::realc::to_module(&scope_pairs, &defs);
         match achuk_bench_grader::realc::achukc_check(&module) {
             Ok(r) if r.compiled => {
