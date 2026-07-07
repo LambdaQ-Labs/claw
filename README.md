@@ -122,7 +122,7 @@ names, types, and effects the moment it lands.
 git clone https://github.com/LambdaQ-Labs/achuk && cd achuk
 cargo test --workspace                 # the Rust toolchain — all green
 cd compiler && zig build roc           # the compiler → achukc
-sh scripts/package.sh v0.1.0           # build a release tarball → dist/
+sh scripts/package.sh v0.1.1           # build a release tarball → dist/
 
 # the code-as-database, directly
 cargo run -p achuk-cli -- db candidates "Nat, Nat -> a"

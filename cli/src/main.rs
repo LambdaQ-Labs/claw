@@ -423,13 +423,34 @@ latest:    {latest_v}");
     let asset = format!("achuk-{tag}-{os}-{arch}.tar.gz");
     let url =
         format!("https://github.com/{REPO}/releases/download/{tag}/{asset}");
+
+    let stage = bin_dir.parent().unwrap().join(format!(".upgrade-{tag}"));
+    let _ = std::fs::remove_dir_all(&stage);
+    std::fs::create_dir_all(&stage)?;
+    let tarball = stage.join(&asset);
+
+    // The bundle is large (the model is ~2 GB) — stream it to disk while
+    // hashing, rather than buffering the whole thing in memory.
     eprintln!("downloading {asset} …");
-    let mut buf = Vec::new();
-    ureq::get(&url)
-        .set("user-agent", "achuk-upgrade")
-        .call()?
-        .into_reader()
-        .read_to_end(&mut buf)?;
+    use sha2::Digest;
+    let mut hasher = sha2::Sha256::new();
+    {
+        use std::io::{Read, Write};
+        let mut reader = ureq::get(&url)
+            .set("user-agent", "achuk-upgrade")
+            .call()?
+            .into_reader();
+        let mut file = std::fs::File::create(&tarball)?;
+        let mut chunk = vec![0u8; 1 << 16];
+        loop {
+            let n = reader.read(&mut chunk)?;
+            if n == 0 {
+                break;
+            }
+            hasher.update(&chunk[..n]);
+            file.write_all(&chunk[..n])?;
+        }
+    }
 
     // Integrity: the CI publishes a .sha256 sidecar; verify when present.
     match ureq::get(&format!("{url}.sha256"))
@@ -437,22 +458,14 @@ latest:    {latest_v}");
         .call()
     {
         Ok(resp) => {
-            use sha2::Digest;
             let want = resp.into_string()?.split_whitespace().next().unwrap_or("").to_lowercase();
-            let got = format!("{:x}", sha2::Sha256::digest(&buf));
+            let got = format!("{:x}", hasher.finalize());
             anyhow::ensure!(want == got, "checksum mismatch — aborting upgrade");
             eprintln!("checksum ok");
         }
         Err(_) => eprintln!("(no checksum published for this asset — skipping verification)"),
     }
 
-    // Unpack to a staging dir, then rename each binary over the old one —
-    // on unix a running executable can be replaced this way.
-    let stage = bin_dir.parent().unwrap().join(format!(".upgrade-{tag}"));
-    let _ = std::fs::remove_dir_all(&stage);
-    std::fs::create_dir_all(&stage)?;
-    let tarball = stage.join(&asset);
-    std::fs::write(&tarball, &buf)?;
     let ok = std::process::Command::new("tar")
         .args(["-xzf"])
         .arg(&tarball)
@@ -461,15 +474,30 @@ latest:    {latest_v}");
         .status()?
         .success();
     anyhow::ensure!(ok, "unpacking failed");
+
+    // Swap the binaries — on unix a running executable can be renamed over.
     let mut swapped = 0;
     for entry in std::fs::read_dir(stage.join("bin"))? {
         let entry = entry?;
         let dest = bin_dir.join(entry.file_name());
+        let _ = std::fs::remove_file(&dest);
         std::fs::rename(entry.path(), &dest)?;
         swapped += 1;
     }
+    // …and replace the bundled model + platforms wholesale. A new binary can
+    // expect a differently-named model (e.g. the v0.1.1 3B model), so a
+    // bin-only swap would leave `achuk ai` pointing at a model that's gone.
+    let root = bin_dir.parent().unwrap();
+    for dir in ["model", "platforms"] {
+        let src = stage.join(dir);
+        if src.exists() {
+            let dst = root.join(dir);
+            let _ = std::fs::remove_dir_all(&dst);
+            std::fs::rename(&src, &dst)?;
+        }
+    }
     let _ = std::fs::remove_dir_all(&stage);
-    println!("upgraded to {latest_v} ({swapped} binaries swapped)");
+    println!("upgraded to {latest_v} ({swapped} binaries + model swapped)");
     Ok(())
 }
 
